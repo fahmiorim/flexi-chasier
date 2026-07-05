@@ -1,0 +1,12 @@
+<resources>
+    <!-- Tema dasar aplikasi Cassy Kasir (Mode Terang).
+         Menggunakan Material 3 sebagai basis desain untuk tampilan yang modern. -->
+    <style name="Theme.CassyKasir" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Menjadikan status bar dan navigation bar transparan untuk mendukung Edge-to-Edge. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Memastikan ikon di status bar terlihat jelas (gelap) pada latar belakang terang. -->
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

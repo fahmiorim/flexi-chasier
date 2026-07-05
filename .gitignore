@@ -1,0 +1,54 @@
+# ====================================================================
+# Cassy Kasir - Pengaturan Pengabaian Git
+# ====================================================================
+
+# Build dan keluaran Gradle
+.gradle/
+build/
+**/build/
+.externalNativeBuild/
+.cxx/
+captures/
+
+# Berkas Android Studio dan IntelliJ yang bersifat lokal
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.navigation/
+
+# Konfigurasi lokal dan rahasia
+local.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+google-services.json
+
+# Berkas sistem operasi
+.DS_Store
+Thumbs.db
+
+# Log dan cache
+*.log
+.kotlin/
+
+# Konfigurasi editor lokal
+.vscode/
+
+# Artefak lokal dari agen atau eksperimen
+STUDIO_AGENT_GUIDE.md
+artifacts/
+*.artifact.md
+
+# Artefak build Android
+*.apk
+*.aab
+*.ap_
+*.hprof

@@ -1,0 +1,32 @@
+root = true
+
+# Konfigurasi Standar untuk Semua Berkas
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Pengaturan Khusus Kotlin & Gradle Script
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *, java.**, javax.**, kotlin.**, ^
+
+# Pengaturan Khusus XML (Android Resources)
+[*.xml]
+indent_size = 4
+indent_style = space
+
+# Pengaturan Khusus Markdown
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Pengaturan Berkas Konfigurasi (YAML/JSON)
+[*.{json,yml,yaml}]
+indent_size = 2
