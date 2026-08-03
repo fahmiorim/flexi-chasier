@@ -1,0 +1,894 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 21,
+    "identityHash": "73c101e3bea761a430e2745662da3c0a",
+    "entities": [
+      {
+        "tableName": "Transaction_lokal",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `uangDibayar` INTEGER NOT NULL, `potongan` INTEGER NOT NULL, `biayaLayanan` INTEGER NOT NULL, `pajak` INTEGER NOT NULL, `waktuTransactionEpochMili` INTEGER NOT NULL, `catatan` TEXT, `status` TEXT NOT NULL, `PaymentMethod` TEXT NOT NULL, `OrderType` TEXT NOT NULL, `nomorAntrian` INTEGER, `mejaId` TEXT, `waktuDiprosesEpochMili` INTEGER, `waktuSelesaiEpochMili` INTEGER, `waktuDibayarEpochMili` INTEGER, `dibatalkan` INTEGER NOT NULL, `alasanPembatalan` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uangDibayar",
+            "columnName": "uangDibayar",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "potongan",
+            "columnName": "potongan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "biayaLayanan",
+            "columnName": "biayaLayanan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pajak",
+            "columnName": "pajak",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waktuTransactionEpochMili",
+            "columnName": "waktuTransactionEpochMili",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "PaymentMethod",
+            "columnName": "PaymentMethod",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "OrderType",
+            "columnName": "OrderType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomorAntrian",
+            "columnName": "nomorAntrian",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mejaId",
+            "columnName": "mejaId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waktuDiprosesEpochMili",
+            "columnName": "waktuDiprosesEpochMili",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waktuSelesaiEpochMili",
+            "columnName": "waktuSelesaiEpochMili",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waktuDibayarEpochMili",
+            "columnName": "waktuDibayarEpochMili",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dibatalkan",
+            "columnName": "dibatalkan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "alasanPembatalan",
+            "columnName": "alasanPembatalan",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_Transaction_lokal_waktuTransactionEpochMili",
+            "unique": false,
+            "columnNames": [
+              "waktuTransactionEpochMili"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_waktuTransactionEpochMili` ON `${TABLE_NAME}` (`waktuTransactionEpochMili`)"
+          },
+          {
+            "name": "index_Transaction_lokal_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_Transaction_lokal_PaymentMethod",
+            "unique": false,
+            "columnNames": [
+              "PaymentMethod"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_PaymentMethod` ON `${TABLE_NAME}` (`PaymentMethod`)"
+          },
+          {
+            "name": "index_Transaction_lokal_dibatalkan",
+            "unique": false,
+            "columnNames": [
+              "dibatalkan"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_dibatalkan` ON `${TABLE_NAME}` (`dibatalkan`)"
+          },
+          {
+            "name": "index_Transaction_lokal_waktuDibayarEpochMili",
+            "unique": false,
+            "columnNames": [
+              "waktuDibayarEpochMili"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_waktuDibayarEpochMili` ON `${TABLE_NAME}` (`waktuDibayarEpochMili`)"
+          },
+          {
+            "name": "index_Transaction_lokal_status_PaymentMethod_dibatalkan",
+            "unique": false,
+            "columnNames": [
+              "status",
+              "PaymentMethod",
+              "dibatalkan"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Transaction_lokal_status_PaymentMethod_dibatalkan` ON `${TABLE_NAME}` (`status`, `PaymentMethod`, `dibatalkan`)"
+          }
+        ]
+      },
+      {
+        "tableName": "item_Transaction_lokal",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idLokal` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `TransactionId` TEXT NOT NULL, `produkId` TEXT NOT NULL, `namaProduk` TEXT NOT NULL, `hargaProduk` INTEGER NOT NULL, `jumlah` INTEGER NOT NULL, `catatanItem` TEXT, `kodePindai` TEXT, `deskripsiProduk` TEXT NOT NULL, `varianNama` TEXT, `apakahSelesai` INTEGER NOT NULL, FOREIGN KEY(`TransactionId`) REFERENCES `Transaction_lokal`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "idLokal",
+            "columnName": "idLokal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "TransactionId",
+            "columnName": "TransactionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "produkId",
+            "columnName": "produkId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "namaProduk",
+            "columnName": "namaProduk",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hargaProduk",
+            "columnName": "hargaProduk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jumlah",
+            "columnName": "jumlah",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatanItem",
+            "columnName": "catatanItem",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "kodePindai",
+            "columnName": "kodePindai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deskripsiProduk",
+            "columnName": "deskripsiProduk",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "varianNama",
+            "columnName": "varianNama",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "apakahSelesai",
+            "columnName": "apakahSelesai",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "idLokal"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_item_Transaction_lokal_TransactionId",
+            "unique": false,
+            "columnNames": [
+              "TransactionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_item_Transaction_lokal_TransactionId` ON `${TABLE_NAME}` (`TransactionId`)"
+          },
+          {
+            "name": "index_item_Transaction_lokal_produkId",
+            "unique": false,
+            "columnNames": [
+              "produkId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_item_Transaction_lokal_produkId` ON `${TABLE_NAME}` (`produkId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Transaction_lokal",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "TransactionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "produk",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nama` TEXT NOT NULL, `harga` INTEGER NOT NULL, `stokTersedia` INTEGER NOT NULL, `kodePindai` TEXT, `deskripsi` TEXT NOT NULL, `apakahAktif` INTEGER NOT NULL, `kategori` TEXT NOT NULL, `fotoUri` TEXT, `favorit` INTEGER NOT NULL, `hargaModal` INTEGER, `varianJson` TEXT, `apakahStokDiaktifkan` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "harga",
+            "columnName": "harga",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stokTersedia",
+            "columnName": "stokTersedia",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kodePindai",
+            "columnName": "kodePindai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deskripsi",
+            "columnName": "deskripsi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apakahAktif",
+            "columnName": "apakahAktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kategori",
+            "columnName": "kategori",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoUri",
+            "columnName": "fotoUri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "favorit",
+            "columnName": "favorit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hargaModal",
+            "columnName": "hargaModal",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "varianJson",
+            "columnName": "varianJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "apakahStokDiaktifkan",
+            "columnName": "apakahStokDiaktifkan",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "meja_lokal",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nomor` TEXT NOT NULL, `aktif` INTEGER NOT NULL, `tableStatus` TEXT NOT NULL, `TransactionId` TEXT, `waktuDudukEpochMili` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomor",
+            "columnName": "nomor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tableStatus",
+            "columnName": "tableStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "TransactionId",
+            "columnName": "TransactionId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waktuDudukEpochMili",
+            "columnName": "waktuDudukEpochMili",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "shift_kas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `saldoAwal` INTEGER NOT NULL, `saldoAkhir` INTEGER, `waktuBuka` INTEGER NOT NULL, `waktuTutup` INTEGER, `status` TEXT NOT NULL, `catatanBuka` TEXT, `catatanTutup` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saldoAwal",
+            "columnName": "saldoAwal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saldoAkhir",
+            "columnName": "saldoAkhir",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waktuBuka",
+            "columnName": "waktuBuka",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waktuTutup",
+            "columnName": "waktuTutup",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatanBuka",
+            "columnName": "catatanBuka",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "catatanTutup",
+            "columnName": "catatanTutup",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "mutasi_kas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `shiftId` TEXT NOT NULL, `tipe` TEXT NOT NULL, `kategori` TEXT NOT NULL, `nominal` INTEGER NOT NULL, `catatan` TEXT NOT NULL, `waktu` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`shiftId`) REFERENCES `shift_kas`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shiftId",
+            "columnName": "shiftId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipe",
+            "columnName": "tipe",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kategori",
+            "columnName": "kategori",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nominal",
+            "columnName": "nominal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waktu",
+            "columnName": "waktu",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_mutasi_kas_shiftId",
+            "unique": false,
+            "columnNames": [
+              "shiftId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mutasi_kas_shiftId` ON `${TABLE_NAME}` (`shiftId`)"
+          },
+          {
+            "name": "index_mutasi_kas_tipe",
+            "unique": false,
+            "columnNames": [
+              "tipe"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mutasi_kas_tipe` ON `${TABLE_NAME}` (`tipe`)"
+          },
+          {
+            "name": "index_mutasi_kas_shiftId_tipe",
+            "unique": false,
+            "columnNames": [
+              "shiftId",
+              "tipe"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mutasi_kas_shiftId_tipe` ON `${TABLE_NAME}` (`shiftId`, `tipe`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "shift_kas",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "shiftId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "setoran_kas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nominal` INTEGER NOT NULL, `catatan` TEXT NOT NULL, `waktu` INTEGER NOT NULL, `dihapus` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nominal",
+            "columnName": "nominal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waktu",
+            "columnName": "waktu",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dihapus",
+            "columnName": "dihapus",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_setoran_kas_dihapus",
+            "unique": false,
+            "columnNames": [
+              "dihapus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_setoran_kas_dihapus` ON `${TABLE_NAME}` (`dihapus`)"
+          }
+        ]
+      },
+      {
+        "tableName": "bahan",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nama` TEXT NOT NULL, `satuan` TEXT NOT NULL, `stokTersedia` REAL NOT NULL, `hargaPerSatuan` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "satuan",
+            "columnName": "satuan",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stokTersedia",
+            "columnName": "stokTersedia",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hargaPerSatuan",
+            "columnName": "hargaPerSatuan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "pembelian_bahan",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `bahanId` TEXT NOT NULL, `jumlah` REAL NOT NULL, `satuanBeli` TEXT NOT NULL, `totalHarga` INTEGER NOT NULL, `tanggalBeli` INTEGER NOT NULL, `catatan` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`bahanId`) REFERENCES `bahan`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bahanId",
+            "columnName": "bahanId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jumlah",
+            "columnName": "jumlah",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "satuanBeli",
+            "columnName": "satuanBeli",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalHarga",
+            "columnName": "totalHarga",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tanggalBeli",
+            "columnName": "tanggalBeli",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pembelian_bahan_bahanId",
+            "unique": false,
+            "columnNames": [
+              "bahanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pembelian_bahan_bahanId` ON `${TABLE_NAME}` (`bahanId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "bahan",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "bahanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "resep",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `produkId` TEXT NOT NULL, `varianNama` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`produkId`) REFERENCES `produk`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "produkId",
+            "columnName": "produkId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "varianNama",
+            "columnName": "varianNama",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_resep_produkId",
+            "unique": false,
+            "columnNames": [
+              "produkId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_resep_produkId` ON `${TABLE_NAME}` (`produkId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "produk",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "produkId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "bahan_resep",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `resepId` TEXT NOT NULL, `bahanId` TEXT NOT NULL, `jumlah` REAL NOT NULL, `satuan` TEXT NOT NULL, FOREIGN KEY(`resepId`) REFERENCES `resep`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`bahanId`) REFERENCES `bahan`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resepId",
+            "columnName": "resepId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bahanId",
+            "columnName": "bahanId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jumlah",
+            "columnName": "jumlah",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "satuan",
+            "columnName": "satuan",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_bahan_resep_resepId",
+            "unique": false,
+            "columnNames": [
+              "resepId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bahan_resep_resepId` ON `${TABLE_NAME}` (`resepId`)"
+          },
+          {
+            "name": "index_bahan_resep_bahanId",
+            "unique": false,
+            "columnNames": [
+              "bahanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bahan_resep_bahanId` ON `${TABLE_NAME}` (`bahanId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "resep",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "resepId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "bahan",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "bahanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '73c101e3bea761a430e2745662da3c0a')"
+    ]
+  }
+}

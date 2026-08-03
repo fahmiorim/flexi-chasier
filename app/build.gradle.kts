@@ -12,11 +12,11 @@ plugins {
 
 android {
     // Namespace unik untuk identifikasi package di sistem Android
-    namespace = "id.cassy.kasir"
+    namespace = "id.flexi.kasir"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "id.cassy.kasir"
+        applicationId = "id.flexi.kasir"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -54,7 +54,7 @@ android {
             buildConfigField(
                 "String",
                 "ALAMAT_DASAR_API",
-                "\"https://cassy-kasir-belum-dikonfigurasi.invalid/\"",
+                "\"https://flexi-kasir-belum-dikonfigurasi.invalid/\"",
             )
 
             proguardFiles(
@@ -90,13 +90,14 @@ android {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
 dependencies {
     // Pustaka Dasar Android & Kotlin
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
 
     // Jetpack Compose BOM (Bill of Materials): Menjamin konsistensi versi antar komponen Compose
@@ -117,8 +118,13 @@ dependencies {
     // Persistensi Data Lokal (Room & DataStore)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+
+    // Paging 3 — Loading data bertahap untuk performa
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
 
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
@@ -128,6 +134,7 @@ dependencies {
     // Pengujian lokal JVM untuk logika domain murni.
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.core)
 
     // Dependensi Debug
     debugImplementation(libs.androidx.compose.ui.tooling)

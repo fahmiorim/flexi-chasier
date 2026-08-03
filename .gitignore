@@ -52,3 +52,10 @@ artifacts/
 *.aab
 *.ap_
 *.hprof
+
+# Artefak lokal Windows / sementara
+nul
+rename-classes.ps1
+rename-files.ps1
+/icon.png
+/splash.png

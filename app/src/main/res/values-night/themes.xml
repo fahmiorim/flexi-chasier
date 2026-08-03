@@ -1,7 +1,7 @@
 <resources>
-    <!-- Tema dasar aplikasi Cassy Kasir (Mode Gelap).
+    <!-- Tema dasar aplikasi Flexi Cashier (Mode Gelap).
          Menggunakan Material 3 sebagai basis desain untuk tampilan yang modern dan hemat energi. -->
-    <style name="Theme.CassyKasir" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.FlexiKasir" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Menjadikan status bar dan navigation bar transparan untuk mendukung Edge-to-Edge. -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
