@@ -43,7 +43,7 @@ android {
             buildConfigField(
                 "String",
                 "ALAMAT_DASAR_API",
-                "\"http://10.0.2.2:8080/\"",
+                "\"http://10.0.2.2:4000/\"",
             )
         }
 
@@ -121,6 +121,7 @@ dependencies {
     implementation(libs.androidx.room.paging)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.security.crypto)
 
     // Paging 3 — Loading data bertahap untuk performa
     implementation(libs.androidx.paging.runtime)

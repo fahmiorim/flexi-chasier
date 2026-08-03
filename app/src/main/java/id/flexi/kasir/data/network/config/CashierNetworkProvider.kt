@@ -1,8 +1,10 @@
 package id.flexi.kasir.data.network.config
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.data.network.service.ProductNetworkService
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -30,6 +32,7 @@ object CashierNetworkProvider {
 
     fun buatKlienHttp(
         modeDebug: Boolean,
+        tambahanInterceptor: Interceptor? = null,
     ): OkHttpClient {
         val pembangun = OkHttpClient.Builder()
             .connectTimeout(
@@ -44,6 +47,9 @@ object CashierNetworkProvider {
                 CashierNetworkConfig.batasWaktuTulisDetik,
                 TimeUnit.SECONDS,
             )
+
+        // Interceptor autentikasi didaftarkan sebelum logging agar log memuat header Authorization.
+        tambahanInterceptor?.let { pembangun.addInterceptor(it) }
 
         if (modeDebug) {
             val interceptorLogging = HttpLoggingInterceptor().apply {
@@ -80,5 +86,37 @@ object CashierNetworkProvider {
         )
 
         return retrofit.create(ProductNetworkService::class.java)
+    }
+
+    /**
+     * Layanan auth TANPA interceptor autentikasi. Dipakai untuk login/register
+     * dan untuk menukar refresh token (menghindari perulangan 401).
+     */
+    fun buatAuthNetworkService(
+        alamatDasarApi: String,
+        modeDebug: Boolean,
+    ): AuthNetworkService {
+        val klienHttp = buatKlienHttp(modeDebug = modeDebug)
+        val retrofit = buatRetrofit(
+            alamatDasarApi = alamatDasarApi,
+            klienHttp = klienHttp,
+        )
+
+        return retrofit.create(AuthNetworkService::class.java)
+    }
+
+    /**
+     * Klien HTTP dengan interceptor autentikasi. Semua endpoint terproteksi
+     * memakai klien ini agar otomatis menyisipkan Bearer token.
+     */
+    fun buatKlienHttpOtentikasi(
+        alamatDasarApi: String,
+        modeDebug: Boolean,
+        authInterceptor: Interceptor,
+    ): OkHttpClient {
+        return buatKlienHttp(
+            modeDebug = modeDebug,
+            tambahanInterceptor = authInterceptor,
+        )
     }
 }

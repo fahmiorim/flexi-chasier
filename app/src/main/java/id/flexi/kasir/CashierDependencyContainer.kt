@@ -2,8 +2,12 @@ package id.flexi.kasir
 
 import android.content.Context
 import androidx.room.Room
+import id.flexi.kasir.data.auth.SesiStore
+import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.network.config.CashierNetworkConfig
 import id.flexi.kasir.data.network.config.CashierNetworkProvider
+import id.flexi.kasir.data.network.interceptor.AuthInterceptor
+import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.data.network.service.ProductNetworkService
 import id.flexi.kasir.data.local.database.FlexiCashierDatabase
 import id.flexi.kasir.data.local.database.CashierDatabaseMigration
@@ -14,6 +18,7 @@ import id.flexi.kasir.data.local.repository.CashRepositoryLokal
 import id.flexi.kasir.data.local.repository.TableRepositoryLokal
 import id.flexi.kasir.data.local.repository.TransactionRepositoryLokal
 import id.flexi.kasir.data.repository.ProductRepositoryLokalRemote
+import id.flexi.kasir.data.repository.AuthRepositoryImpl
 import id.flexi.kasir.domain.usecase.AmatiMutasiKas
 import id.flexi.kasir.domain.usecase.AmatiSemuaKas
 import id.flexi.kasir.domain.usecase.SeedDemoData
@@ -66,6 +71,12 @@ import id.flexi.kasir.domain.repository.RepositoriStoreSetting
 import id.flexi.kasir.domain.repository.RepositoriStorePreference
 import id.flexi.kasir.domain.repository.ProductRepository
 import id.flexi.kasir.domain.repository.TransactionRepository
+import id.flexi.kasir.domain.repository.AuthRepository
+import id.flexi.kasir.domain.usecase.AmatiSesi
+import id.flexi.kasir.domain.usecase.KeluarAkun
+import id.flexi.kasir.domain.usecase.LoginUser
+import id.flexi.kasir.domain.usecase.PilihGerai
+import id.flexi.kasir.domain.usecase.RegisterAkun
 
 /**
  * Kontainer dependensi manual (Service Locator) untuk aplikasi Flexi Cashier.
@@ -383,5 +394,85 @@ class CashierDependencyContainer(
 
     val AmatiResepByProduk: AmatiResepByProduk by lazy {
         AmatiResepByProduk(bahanRepository)
+    }
+
+    // ── Autentikasi (SaaS multi-tenant) ──
+
+    /**
+     * Penyimpanan token JWT terenkripsi (Keystore).
+     */
+    val TokenStore: TokenStore by lazy {
+        TokenStore(konteks.applicationContext)
+    }
+
+    /**
+     * Penyimpanan sesi login (data akun + daftar gerai) di DataStore.
+     */
+    val SesiStore: SesiStore by lazy {
+        SesiStore(konteks.applicationContext)
+    }
+
+    /**
+     * Layanan auth TANPA interceptor — dipakai untuk login/register dan penukaran
+     * refresh token di AuthInterceptor.
+     */
+    val AuthNetworkService: AuthNetworkService by lazy {
+        CashierNetworkProvider.buatAuthNetworkService(
+            alamatDasarApi = CashierNetworkConfig.alamatDasarApi,
+            modeDebug = BuildConfig.DEBUG,
+        )
+    }
+
+    /**
+     * Interceptor yang menyisipkan Bearer token dan menukar refresh token saat 401.
+     */
+    val AuthInterceptor: AuthInterceptor by lazy {
+        AuthInterceptor(
+            tokenStore = TokenStore,
+            layananAuth = AuthNetworkService,
+        )
+    }
+
+    /**
+     * Klien HTTP terotentikasi. Endpoint terproteksi di phase berikutnya
+     * (sync, laporan, pengaturan) memakai klien ini.
+     */
+    val KlienHttpOtentikasi: okhttp3.OkHttpClient by lazy {
+        CashierNetworkProvider.buatKlienHttpOtentikasi(
+            alamatDasarApi = CashierNetworkConfig.alamatDasarApi,
+            modeDebug = BuildConfig.DEBUG,
+            authInterceptor = AuthInterceptor,
+        )
+    }
+
+    /**
+     * Repositori autentikasi: jaringan + token terenkripsi + sesi DataStore.
+     */
+    val AuthRepository: AuthRepository by lazy {
+        AuthRepositoryImpl(
+            layananJaringan = AuthNetworkService,
+            tokenStore = TokenStore,
+            sesiStore = SesiStore,
+        )
+    }
+
+    val loginUser: LoginUser by lazy {
+        LoginUser(AuthRepository)
+    }
+
+    val registerAkun: RegisterAkun by lazy {
+        RegisterAkun(AuthRepository)
+    }
+
+    val pilihGerai: PilihGerai by lazy {
+        PilihGerai(AuthRepository)
+    }
+
+    val keluarAkun: KeluarAkun by lazy {
+        KeluarAkun(AuthRepository)
+    }
+
+    val amatiSesi: AmatiSesi by lazy {
+        AmatiSesi(AuthRepository)
     }
 }

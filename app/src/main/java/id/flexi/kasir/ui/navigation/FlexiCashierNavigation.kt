@@ -16,8 +16,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import id.flexi.kasir.CashierApp
+import id.flexi.kasir.domain.model.PeranAkun
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.ui.CashierViewModelProvider
+import id.flexi.kasir.ui.auth.AuthViewModel
+import id.flexi.kasir.ui.auth.LoginScreen
+import id.flexi.kasir.ui.auth.PilihGeraiScreen
 import id.flexi.kasir.ui.dashboard.DashboardScreen
 import id.flexi.kasir.ui.dashboard.DashboardViewModel
 import id.flexi.kasir.ui.detail.ProductDetailEffect
@@ -54,6 +58,52 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun NavigasiFlexiCashierApp() {
+    val context = LocalContext.current
+    val aplikasi = context.applicationContext as CashierApp
+    val cakupanKorutin = rememberCoroutineScope()
+    val sesi by aplikasi.kontainer.amatiSesi().collectAsState(initial = null)
+
+    val akun = sesi
+    when {
+        akun == null -> {
+            val viewModel: AuthViewModel = viewModel(
+                factory = CashierViewModelProvider.Factory,
+            )
+            LoginScreen(viewModel = viewModel)
+        }
+
+        akun.geraiAktif == null && akun.daftarGerai.size > 1 -> {
+            PilihGeraiScreen(
+                akun = akun,
+                onPilihGerai = { geraiId ->
+                    cakupanKorutin.launch {
+                        aplikasi.kontainer.pilihGerai(geraiId)
+                    }
+                },
+                onKeluar = {
+                    cakupanKorutin.launch {
+                        aplikasi.kontainer.keluarAkun()
+                    }
+                },
+            )
+        }
+
+        else -> {
+            KasirAppUtama(
+                aplikasi = aplikasi,
+                peran = akun.peran,
+                namaUser = akun.nama,
+            )
+        }
+    }
+}
+
+@Composable
+private fun KasirAppUtama(
+    aplikasi: CashierApp,
+    peran: PeranAkun,
+    namaUser: String,
+) {
     val pengendaliNavigasi = rememberNavController()
     val statusDrawer = rememberDrawerState(initialValue = DrawerValue.Closed)
     val cakupanKorutin = rememberCoroutineScope()
@@ -82,8 +132,6 @@ fun NavigasiFlexiCashierApp() {
     val modelTampilanKasir = CashierMainViewModel.modelTampilan.collectAsStateWithLifecycle()
 
     // Observe store setting for sidebar conditional menu
-    val context = LocalContext.current
-    val aplikasi = context.applicationContext as CashierApp
     val pengaturanToko by aplikasi.kontainer.ambilStoreSetting().collectAsState(initial = StoreSetting())
 
     ModalNavigationDrawer(
@@ -108,6 +156,13 @@ fun NavigasiFlexiCashierApp() {
                 namaUsaha = pengaturanToko.namaUsaha,
                 alamat = pengaturanToko.alamat,
                 tagline = pengaturanToko.tagline,
+                peran = peran,
+                namaUser = namaUser,
+                onKeluar = {
+                    cakupanKorutin.launch {
+                        aplikasi.kontainer.keluarAkun()
+                    }
+                },
             )
         },
     ) {

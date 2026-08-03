@@ -20,6 +20,7 @@ import id.flexi.kasir.ui.bahan.BahanViewModel
 import id.flexi.kasir.ui.bahan.BahanFormViewModel
 import id.flexi.kasir.ui.bahan.BahanDetailViewModel
 import id.flexi.kasir.ui.resep.ResepViewModel
+import id.flexi.kasir.ui.auth.AuthViewModel
 
 /**
  * Penyedia (Factory) untuk membuat instansi ViewModel dengan dependensi yang diperlukan.
@@ -192,6 +193,15 @@ object CashierViewModelProvider {
                 CatatPembelianBahan = aplikasi.kontainer.CatatPembelianBahan,
                 AmatiPembelianBahan = aplikasi.kontainer.AmatiPembelianBahan,
                 HapusPembelianBahan = aplikasi.kontainer.HapusPembelianBahan,
+            )
+        }
+
+        initializer {
+            val aplikasi = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CashierApp
+            AuthViewModel(
+                loginUser = aplikasi.kontainer.loginUser,
+                registerAkun = aplikasi.kontainer.registerAkun,
+                keluarAkun = aplikasi.kontainer.keluarAkun,
             )
         }
 

@@ -3,6 +3,7 @@
 package id.flexi.kasir.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.TableRestaurant
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.flexi.kasir.BuildConfig
+import id.flexi.kasir.domain.model.PeranAkun
 import id.flexi.kasir.ui.navigation.CashierNavigationDestination
 
 import androidx.compose.foundation.layout.Box
@@ -61,6 +64,9 @@ fun SidebarKasir(
     namaUsaha: String = "",
     alamat: String = "",
     tagline: String = "",
+    peran: PeranAkun = PeranAkun.Pemilik,
+    namaUser: String = "",
+    onKeluar: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -165,13 +171,17 @@ fun SidebarKasir(
                     .verticalScroll(scrollState)
                     .padding(vertical = 12.dp)
             ) {
-                val itemsMenu = listOf(
-                    Triple(Icons.Default.Dashboard, "Dashboard", CashierNavigationDestination.Dashboard),
-                    Triple(Icons.Default.ShoppingCart, "Transaksi", CashierNavigationDestination.KasirUtama),
-                    Triple(Icons.Default.Inventory2, "Kelola Produk", CashierNavigationDestination.KelolaProduk),
-                    Triple(Icons.Default.TableRestaurant, "Pengaturan Meja", CashierNavigationDestination.PengaturanMeja),
-                    Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction),
-                )
+                val bolehKelola = peran == PeranAkun.Pemilik
+
+                val itemsMenu = buildList {
+                    add(Triple(Icons.Default.Dashboard, "Dashboard", CashierNavigationDestination.Dashboard))
+                    add(Triple(Icons.Default.ShoppingCart, "Transaksi", CashierNavigationDestination.KasirUtama))
+                    if (bolehKelola) {
+                        add(Triple(Icons.Default.Inventory2, "Kelola Produk", CashierNavigationDestination.KelolaProduk))
+                        add(Triple(Icons.Default.TableRestaurant, "Pengaturan Meja", CashierNavigationDestination.PengaturanMeja))
+                    }
+                    add(Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction))
+                }
 
                 itemsMenu.forEach { (icon, label, tujuan) ->
                     val apakahDipilih = when (tujuan) {
@@ -211,7 +221,7 @@ fun SidebarKasir(
                     )
                 }
 
-                if (apakahManajemenKasAktif) {
+                if (bolehKelola && apakahManajemenKasAktif) {
                     val rekapKasDipilih = currentRoute == CashierNavigationDestination.Kasir
                     NavigationDrawerItem(
                         icon = {
@@ -243,68 +253,126 @@ fun SidebarKasir(
                     )
                 }
 
-                val laporanDipilih = currentRoute == CashierNavigationDestination.Laporan
-                NavigationDrawerItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Assessment,
-                            contentDescription = "Laporan",
-                            tint = if (laporanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = "Laporan",
-                            fontWeight = if (laporanDipilih) FontWeight.Bold else FontWeight.Medium,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    },
-                    selected = laporanDipilih,
-                    onClick = { onPilihMenu(CashierNavigationDestination.Laporan) },
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 2.dp)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unselectedContainerColor = Color.Transparent
-                    ),
-                )
+                if (bolehKelola) {
+                    val laporanDipilih = currentRoute == CashierNavigationDestination.Laporan
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Assessment,
+                                contentDescription = "Laporan",
+                                tint = if (laporanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = "Laporan",
+                                fontWeight = if (laporanDipilih) FontWeight.Bold else FontWeight.Medium,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        },
+                        selected = laporanDipilih,
+                        onClick = { onPilihMenu(CashierNavigationDestination.Laporan) },
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 2.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            unselectedContainerColor = Color.Transparent
+                        ),
+                    )
 
-                val pengaturanDipilih = currentRoute == CashierNavigationDestination.Pengaturan
-                NavigationDrawerItem(
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Pengaturan",
-                            tint = if (pengaturanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = "Pengaturan",
-                            fontWeight = if (pengaturanDipilih) FontWeight.Bold else FontWeight.Medium,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    },
-                    selected = pengaturanDipilih,
-                    onClick = { onPilihMenu(CashierNavigationDestination.Pengaturan) },
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 2.dp)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unselectedContainerColor = Color.Transparent
-                    ),
-                )
+                    val pengaturanDipilih = currentRoute == CashierNavigationDestination.Pengaturan
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Pengaturan",
+                                tint = if (pengaturanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = "Pengaturan",
+                                fontWeight = if (pengaturanDipilih) FontWeight.Bold else FontWeight.Medium,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        },
+                        selected = pengaturanDipilih,
+                        onClick = { onPilihMenu(CashierNavigationDestination.Pengaturan) },
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 2.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            unselectedContainerColor = Color.Transparent
+                        ),
+                    )
+                }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            // Info akun & keluar
+            if (namaUser.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        modifier = Modifier.size(36.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Text(
+                            text = namaUser.take(1).uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            ),
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                    ) {
+                        Text(
+                            text = namaUser,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = if (peran == PeranAkun.Pemilik) "Pemilik" else "Kasir",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (onKeluar != null) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Keluar",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .clickable { onKeluar() }
+                                .padding(2.dp),
+                        )
+                    }
+                }
+            }
 
             // Footer versi aplikasi yang rapi
             Text(
