@@ -8,21 +8,35 @@ import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.LebarStruk
 import id.flexi.kasir.domain.model.PrinterType
 import id.flexi.kasir.domain.model.ReceiptPrintFormat
+import id.flexi.kasir.data.sync.SinkronStatusPengamat
+import id.flexi.kasir.data.sync.SinkronStatusLokal
+import id.flexi.kasir.ui.keSinkronMesinStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val ambilStoreSetting: AmbilStoreSetting,
     private val simpanStoreSetting: SimpanStoreSetting,
+    private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     init {
+        // Pantau status mesin sinkronisasi (antrian outbox + hasil terakhir).
+        viewModelScope.launch {
+            (sinkronStatusPengamat?.status ?: flowOf(SinkronStatusLokal())).collect { statusLokal ->
+                _state.update {
+                    it.copy(sinkronMesinStatus = statusLokal.keSinkronMesinStatus())
+                }
+            }
+        }
+
         viewModelScope.launch {
             ambilStoreSetting().collect { pengaturan ->
                 _state.update {
@@ -174,5 +188,29 @@ class SettingsViewModel(
 
     fun bersihkanPesan() {
         _state.update { it.copy(pesanBerhasil = null) }
+    }
+
+    /**
+     * Menjalankan satu siklus sinkronisasi penuh (push outbox + pull perubahan).
+     * Hasil ditampilkan lewat snackbar; bar status terbarui otomatis dari flow.
+     */
+    fun sinkronkanSekarang() {
+        val pengamat = sinkronStatusPengamat ?: run {
+            _state.update { it.copy(pesanSinkronisasi = "Sinkronisasi belum tersedia.") }
+            return
+        }
+        viewModelScope.launch {
+            val hasil = pengamat.sinkronkanSekarang()
+            val pesan = when {
+                hasil.geraiId.isNullOrBlank() -> "Belum ada gerai aktif untuk disinkronkan."
+                hasil.berhasil -> "Sinkronisasi selesai."
+                else -> hasil.pesanError ?: "Sinkronisasi gagal."
+            }
+            _state.update { it.copy(pesanSinkronisasi = pesan) }
+        }
+    }
+
+    fun bersihkanPesanSinkronisasi() {
+        _state.update { it.copy(pesanSinkronisasi = null) }
     }
 }

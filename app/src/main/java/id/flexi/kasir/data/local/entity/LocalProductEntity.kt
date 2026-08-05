@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
 data class LocalProductEntity(
     @PrimaryKey
     val id: String,
+    val geraiId: String = "",
     val nama: String,
     val harga: Long,
     val stokTersedia: Int,

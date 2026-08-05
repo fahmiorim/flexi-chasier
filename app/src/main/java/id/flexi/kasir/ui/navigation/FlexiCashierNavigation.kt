@@ -104,6 +104,7 @@ private fun KasirAppUtama(
     peran: PeranAkun,
     namaUser: String,
 ) {
+    val context = LocalContext.current
     val pengendaliNavigasi = rememberNavController()
     val statusDrawer = rememberDrawerState(initialValue = DrawerValue.Closed)
     val cakupanKorutin = rememberCoroutineScope()
@@ -382,6 +383,8 @@ private fun KasirAppUtama(
                     perbaruiTampilkanLogoDiStruk = viewModel::perbaruiTampilkanLogoDiStruk,
                     perbaruiTampilkanPajakDiStruk = viewModel::perbaruiTampilkanPajakDiStruk,
                     saatSimpan = viewModel::simpan,
+                    saatSinkronkan = viewModel::sinkronkanSekarang,
+                    saatBersihkanPesanSinkronisasi = viewModel::bersihkanPesanSinkronisasi,
                 )
             }
 

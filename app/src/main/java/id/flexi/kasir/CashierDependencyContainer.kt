@@ -2,6 +2,7 @@ package id.flexi.kasir
 
 import android.content.Context
 import androidx.room.Room
+import kotlinx.coroutines.flow.first
 import id.flexi.kasir.data.auth.SesiStore
 import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.network.config.CashierNetworkConfig
@@ -9,8 +10,12 @@ import id.flexi.kasir.data.network.config.CashierNetworkProvider
 import id.flexi.kasir.data.network.interceptor.AuthInterceptor
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.data.network.service.ProductNetworkService
+import id.flexi.kasir.data.network.service.SyncNetworkService
 import id.flexi.kasir.data.local.database.FlexiCashierDatabase
 import id.flexi.kasir.data.local.database.CashierDatabaseMigration
+import id.flexi.kasir.data.sync.MesinSinkronisasi
+import id.flexi.kasir.data.sync.OutboxPencatat
+import id.flexi.kasir.data.sync.SinkronStatusPengamat
 import id.flexi.kasir.print.ThermalPrinterManager
 import id.flexi.kasir.data.local.preference.RepositoriStoreSettingDataStore
 import id.flexi.kasir.data.local.preference.RepositoriStorePreferenceDataStore
@@ -119,6 +124,8 @@ class CashierDependencyContainer(
                 CashierDatabaseMigration.DARI_19_KE_20,
                 CashierDatabaseMigration.DARI_20_KE_21,
                 CashierDatabaseMigration.DARI_21_KE_22,
+                CashierDatabaseMigration.DARI_22_KE_23,
+                CashierDatabaseMigration.DARI_23_KE_24,
             )
             .fallbackToDestructiveMigration(false)
             .build()
@@ -131,7 +138,46 @@ class CashierDependencyContainer(
      * dari layer ranah.
      */
     val TransactionRepository: TransactionRepository by lazy {
-        TransactionRepositoryLokal(basisData)
+        TransactionRepositoryLokal(basisData, OutboxPencatat)
+    }
+
+    /**
+     * Sumber gerai aktif dari sesi (dipakai sinkronisasi & repo produk).
+     */
+    private val sumberGeraiAktifId: suspend () -> String? = {
+        SesiStore.amatiSesi().first()?.geraiAktifId
+    }
+
+    /**
+     * Pencatat antrian outbox: setiap perubahan lokal dicatat untuk di-push.
+     */
+    val OutboxPencatat: OutboxPencatat by lazy {
+        OutboxPencatat(
+            basisData = basisData,
+            sumberGeraiAktifId = sumberGeraiAktifId,
+        )
+    }
+
+    /**
+     * Mesin sinkronisasi dua arah (dorong outbox + tarik perubahan).
+     */
+    val MesinSinkronisasi: MesinSinkronisasi by lazy {
+        MesinSinkronisasi(
+            basisData = basisData,
+            layanan = SyncNetworkService,
+            sumberGeraiAktifId = sumberGeraiAktifId,
+            repositoriStoreSetting = repositoriStoreSetting,
+        )
+    }
+
+    /**
+     * Pengamat status sinkronisasi untuk UI (antrian outbox + hasil terakhir).
+     */
+    val SinkronStatusPengamat: SinkronStatusPengamat by lazy {
+        SinkronStatusPengamat(
+            basisData = basisData,
+            mesin = MesinSinkronisasi,
+        )
     }
 
     /**
@@ -141,6 +187,8 @@ class CashierDependencyContainer(
         ProductRepositoryLokalRemote(
             basisData = basisData,
             layananJaringan = ProductNetworkService,
+            sumberGeraiAktifId = sumberGeraiAktifId,
+            pencatatOutbox = OutboxPencatat,
         )
     }
 
@@ -156,11 +204,11 @@ class CashierDependencyContainer(
     }
 
     private val TableRepository: TableRepository by lazy {
-        TableRepositoryLokal(basisData)
+        TableRepositoryLokal(basisData, OutboxPencatat)
     }
 
     val CashRepository: CashRepository by lazy {
-        CashRepositoryLokal(basisData.LocalCashDao())
+        CashRepositoryLokal(basisData.LocalCashDao(), OutboxPencatat)
     }
 
     /**
@@ -173,6 +221,19 @@ class CashierDependencyContainer(
         CashierNetworkProvider.buatProductNetworkService(
             alamatDasarApi = CashierNetworkConfig.alamatDasarApi,
             modeDebug = BuildConfig.DEBUG,
+            authInterceptor = AuthInterceptor,
+        )
+    }
+
+    /**
+     * Layanan sinkronisasi TERPROTEKSI — memakai klien ber-AuthInterceptor
+     * (Bearer token otomatis + refresh saat 401).
+     */
+    val SyncNetworkService: SyncNetworkService by lazy {
+        CashierNetworkProvider.buatSyncNetworkService(
+            alamatDasarApi = CashierNetworkConfig.alamatDasarApi,
+            modeDebug = BuildConfig.DEBUG,
+            authInterceptor = AuthInterceptor,
         )
     }
 
@@ -353,7 +414,7 @@ class CashierDependencyContainer(
     // ── Bahan Baku ──
 
     val bahanRepository: BahanRepository by lazy {
-        BahanRepositoryLokal(basisData.BahanDao())
+        BahanRepositoryLokal(basisData.BahanDao(), OutboxPencatat)
     }
 
     val SimpanBahan: SimpanBahan by lazy {

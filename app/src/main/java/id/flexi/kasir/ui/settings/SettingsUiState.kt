@@ -4,6 +4,7 @@ import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.LebarStruk
 import id.flexi.kasir.domain.model.PrinterType
 import id.flexi.kasir.domain.model.ReceiptPrintFormat
+import id.flexi.kasir.ui.SinkronMesinStatus
 
 data class SettingsUiState(
     val judulLayar: String = "Pengaturan",
@@ -31,5 +32,6 @@ data class SettingsUiState(
     val tampilkanPajakDiStruk: Boolean = true,
     val apakahSedangMemuat: Boolean = true,
     val apakahSedangMenyimpan: Boolean = false,
-    val pesanBerhasil: String? = null,
+    val pesanBerhasil: String? = null,    val sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
+    val pesanSinkronisasi: String? = null,
 )

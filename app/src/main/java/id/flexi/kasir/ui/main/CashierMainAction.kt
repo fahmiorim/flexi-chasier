@@ -105,6 +105,12 @@ sealed interface CashierMainAction {
      */
     data object SinkronkanKatalogProduk : CashierMainAction
 
+    /**
+     * Aksi saat pengguna meminta sinkronisasi penuh (push outbox + pull
+     * perubahan) lewat mesin sinkronisasi.
+     */
+    data object SinkronkanSekarang : CashierMainAction
+
     data object AlihkanCatalogDisplay : CashierMainAction
 
     /**

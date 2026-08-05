@@ -32,6 +32,9 @@ interface LocalCashDao {
     @Query("SELECT * FROM shift_kas WHERE id = :id")
     suspend fun ambilKasBerdasarkanId(id: String): LocalCashKasEntity?
 
+    @Query("DELETE FROM shift_kas WHERE id = :id")
+    suspend fun hapusKas(id: String)
+
     // ── Mutasi ──
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

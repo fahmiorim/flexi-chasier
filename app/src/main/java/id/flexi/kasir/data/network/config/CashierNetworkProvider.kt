@@ -3,6 +3,7 @@ package id.flexi.kasir.data.network.config
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.data.network.service.ProductNetworkService
+import id.flexi.kasir.data.network.service.SyncNetworkService
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -75,17 +76,48 @@ object CashierNetworkProvider {
             .build()
     }
 
+    /**
+     * Layanan produk TERPROTEKSI: memakai klien ber-AuthInterceptor agar
+     * Bearer token disisipkan otomatis (endpoint /api/produk butuh login).
+     */
     fun buatProductNetworkService(
         alamatDasarApi: String,
         modeDebug: Boolean,
+        authInterceptor: Interceptor,
     ): ProductNetworkService {
-        val klienHttp = buatKlienHttp(modeDebug = modeDebug)
+        val klienHttp = buatKlienHttpOtentikasi(
+            alamatDasarApi = alamatDasarApi,
+            modeDebug = modeDebug,
+            authInterceptor = authInterceptor,
+        )
         val retrofit = buatRetrofit(
             alamatDasarApi = alamatDasarApi,
             klienHttp = klienHttp,
         )
 
         return retrofit.create(ProductNetworkService::class.java)
+    }
+
+    /**
+     * Layanan sinkronisasi TERPROTEKSI: semua endpoint push/pull memakai
+     * klien ber-AuthInterceptor (Bearer + refresh otomatis saat 401).
+     */
+    fun buatSyncNetworkService(
+        alamatDasarApi: String,
+        modeDebug: Boolean,
+        authInterceptor: Interceptor,
+    ): SyncNetworkService {
+        val klienHttp = buatKlienHttpOtentikasi(
+            alamatDasarApi = alamatDasarApi,
+            modeDebug = modeDebug,
+            authInterceptor = authInterceptor,
+        )
+        val retrofit = buatRetrofit(
+            alamatDasarApi = alamatDasarApi,
+            klienHttp = klienHttp,
+        )
+
+        return retrofit.create(SyncNetworkService::class.java)
     }
 
     /**

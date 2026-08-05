@@ -3,6 +3,7 @@ package id.flexi.kasir.data.network.interceptor
 import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.network.model.RefreshRequest
 import id.flexi.kasir.data.network.service.AuthNetworkService
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -44,7 +45,9 @@ class AuthInterceptor(
         }
 
         val hasilTukar = runCatching {
-            layananAuth.refresh(RefreshRequest(refreshToken = tokenRefresh))
+            runBlocking {
+                layananAuth.refresh(RefreshRequest(refreshToken = tokenRefresh))
+            }
         }
         if (hasilTukar.isFailure) {
             // Refresh gagal -> sesi tidak valid lagi, bersihkan token.

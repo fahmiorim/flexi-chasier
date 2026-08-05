@@ -50,6 +50,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,6 +60,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +76,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.SyncStatus
+import id.flexi.kasir.ui.SinkronMesinStatus
+import id.flexi.kasir.ui.labelJudulSinkron
+import id.flexi.kasir.ui.labelMetadataSinkron
 
 
 @Composable
@@ -250,6 +255,79 @@ internal fun CashierHomeHeader(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SinkronStatusBar(
+    status: SinkronMesinStatus,
+    saatSinkronkan: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val warnaStatus = when (val s = status.status) {
+        SyncStatus.Synced -> MaterialTheme.colorScheme.primary
+        SyncStatus.LocalChanges -> MaterialTheme.colorScheme.tertiary
+        SyncStatus.Syncing -> MaterialTheme.colorScheme.primary
+        is SyncStatus.Gagal -> MaterialTheme.colorScheme.error
+        SyncStatus.Never -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = warnaStatus.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = warnaStatus.copy(alpha = 0.25f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // Indikator: spinner saat berjalan, titik berwarna saat diam.
+            if (status.apakahSedangBerjalan) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = warnaStatus,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(warnaStatus),
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = labelJudulSinkron(status),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = warnaStatus,
+                )
+                Text(
+                    text = labelMetadataSinkron(status),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            TextButton(
+                onClick = saatSinkronkan,
+                enabled = !status.apakahSedangBerjalan,
+            ) {
+                Text(
+                    text = if (status.apakahSedangBerjalan) "Menyinkron..." else "Sinkronkan",
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

@@ -2,6 +2,7 @@ package id.flexi.kasir.data.local.repository
 
 import id.flexi.kasir.data.local.database.FlexiCashierDatabase
 import id.flexi.kasir.data.local.entity.LocalTableEntity
+import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.domain.model.Meja
 import id.flexi.kasir.domain.model.TableStatus
 import id.flexi.kasir.domain.repository.TableRepository
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.map
 
 class TableRepositoryLokal(
     private val basisData: FlexiCashierDatabase,
+    private val pencatatOutbox: OutboxPencatat? = null,
 ) : TableRepository {
 
     override fun amatiSemuaMeja(): Flow<List<Meja>> {
@@ -29,10 +31,17 @@ class TableRepositoryLokal(
                 waktuDudukEpochMili = meja.waktuDudukEpochMili,
             ),
         )
+
+        // Catat ke outbox agar meja ter-push ke server (best-effort).
+        runCatching { pencatatOutbox?.catatMeja(meja) }
     }
 
     override suspend fun DeleteTable(id: String) {
+        val meja = basisData.LocalTableDao().ambilMeja(id)
         basisData.LocalTableDao().DeleteTable(id)
+        if (meja != null) {
+            runCatching { pencatatOutbox?.catatMeja(meja.sebagaiMeja(), dihapus = true) }
+        }
     }
 
     override suspend fun perbaruiTableStatus(id: String, tableStatus: TableStatus, TransactionId: String?) {

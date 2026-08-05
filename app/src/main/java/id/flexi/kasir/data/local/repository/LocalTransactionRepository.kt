@@ -10,6 +10,7 @@ import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Uang
 import id.flexi.kasir.domain.model.OrderType
+import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -28,6 +29,7 @@ import androidx.paging.map
  */
 class TransactionRepositoryLokal(
     private val basisData: FlexiCashierDatabase,
+    private val pencatatOutbox: OutboxPencatat? = null,
 ) : TransactionRepository {
 
     private val aksesDataTransaction = basisData.LocalTransactionDao()
@@ -199,6 +201,9 @@ class TransactionRepositoryLokal(
         }
 
         aksesDataTransaction.simpanTransactionDenganItem(entitasTransaction, daftarEntitasItem)
+
+        // Catat ke outbox agar perubahan ini ter-push ke server (best-effort).
+        runCatching { pencatatOutbox?.catatTransaksi(Transaction) }
     }
 
     /**
@@ -283,6 +288,9 @@ class TransactionRepositoryLokal(
             }
             aksesDataTransaction.hapusTransactionBerdasarkanId(identitasTransaction)
         }
+
+        // Beri tahu server bahwa transaksi ini dihapus (soft-delete).
+        runCatching { pencatatOutbox?.catatTransaksi(Transaction.keDomain(), dihapus = true) }
     }
 
     override suspend fun batalkanTransaction(
@@ -290,6 +298,16 @@ class TransactionRepositoryLokal(
         alasan: String?,
     ) {
         aksesDataTransaction.tandaiDibatalkan(identitasTransaction, alasan)
+        val transaction = aksesDataTransaction
+            .ambilTransactionBerdasarkanId(identitasTransaction)
+            ?.keDomain()
+        if (transaction != null) {
+            runCatching {
+                pencatatOutbox?.catatTransaksi(
+                    transaction.copy(dibatalkan = true, alasanPembatalan = alasan),
+                )
+            }
+        }
     }
 
     override suspend fun perbaruiStatusDanPaymentTransaction(
@@ -306,6 +324,15 @@ class TransactionRepositoryLokal(
             paymentMethod = paymentMethod.name,
             waktuDibayar = waktuDibayarEpochMili ?: System.currentTimeMillis(),
         )
+
+        // Data pembayaran berubah → perbarui payload outbox agar server tidak
+        // menyimpan versi lama (dibayar = 0 untuk pesanan yang baru dibayar).
+        val transaction = aksesDataTransaction
+            .ambilTransactionBerdasarkanId(identitasTransaction)
+            ?.keDomain()
+        if (transaction != null) {
+            runCatching { pencatatOutbox?.catatTransaksi(transaction) }
+        }
     }
 
     override suspend fun perbaruiStatusDanWaktuTransaction(
@@ -327,6 +354,14 @@ class TransactionRepositoryLokal(
         }
         waktuDibayarEpochMili?.let {
             aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, it)
+        }
+
+        // Bump versi di outbox agar status terbaru ikut ter-push.
+        val transaction = aksesDataTransaction
+            .ambilTransactionBerdasarkanId(identitasTransaction)
+            ?.keDomain()
+        if (transaction != null) {
+            runCatching { pencatatOutbox?.catatTransaksi(transaction) }
         }
     }
 

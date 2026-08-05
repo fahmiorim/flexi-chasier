@@ -127,6 +127,9 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
+    // WorkManager — Sinkronisasi latar belakang (outbox push + pull berkala)
+    implementation(libs.androidx.work.runtime.ktx)
+
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp.core)

@@ -40,6 +40,10 @@ import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.OrderType
 import id.flexi.kasir.domain.model.Uang
+import id.flexi.kasir.data.sync.SinkronStatusPengamat
+import id.flexi.kasir.data.sync.SinkronStatusLokal
+import id.flexi.kasir.ui.SinkronMesinStatus
+import id.flexi.kasir.ui.keSinkronMesinStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -51,6 +55,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -84,6 +89,7 @@ class CashierMainViewModel(
     private val SelesaikanTransaction: SelesaikanTransaction,
     private val amatiKasAktif: AmatiKasAktif,
     private val seedDemoData: SeedDemoData,
+    private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
 ) : ViewModel() {
 
     private val daftarProdukPenuh = LoadProductCatalog.eksekusi()
@@ -133,6 +139,14 @@ class CashierMainViewModel(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = emptyList(),
+        )
+
+    private val statusSinkronMesin = (sinkronStatusPengamat?.status ?: flowOf(SinkronStatusLokal()))
+        .map { sinkronStatusLokal -> sinkronStatusLokal.keSinkronMesinStatus() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = SinkronMesinStatus(),
         )
 
     private val _TransactionStatus = MutableStateFlow(
@@ -223,28 +237,42 @@ class CashierMainViewModel(
         )
     }
 
-    val modelTampilan = combine(
+    private val statusIntiModelTampilan = combine(
         statusDasarModelTampilan,
         statusPencarianModelTampilan,
         statusPengaturanModelTampilan,
         statusNavigasiModelTampilan,
         shiftKasAktif,
     ) { statusDasar, statusPencarian, statusPengaturan, statusNavigasi, shiftAktif ->
-        val perluBukaKas = shiftKasDimuat && statusPengaturan.StoreSetting.manajemenKasAktif && shiftAktif == null
+        StatusIntiModelTampilan(
+            statusDasar = statusDasar,
+            statusPencarian = statusPencarian,
+            statusPengaturan = statusPengaturan,
+            statusNavigasi = statusNavigasi,
+            shiftAktif = shiftAktif,
+        )
+    }
+
+    val modelTampilan = combine(
+        statusIntiModelTampilan,
+        statusSinkronMesin,
+    ) { inti, sinkronMesin ->
+        val perluBukaKas = shiftKasDimuat && inti.statusPengaturan.StoreSetting.manajemenKasAktif && inti.shiftAktif == null
         bentukModelTampilan(
-            daftarProdukPenuh = statusDasar.daftarProdukPenuh,
-            TransactionStatus = statusDasar.TransactionStatus,
-            statusElemenLayar = statusDasar.statusElemenLayar,
-            kataKunciMentah = statusPencarian.kataKunciMentah,
-            kataKunciEfektif = statusPencarian.kataKunciEfektif,
-            StorePreference = statusPengaturan.StorePreference,
-            StoreSetting = statusPengaturan.StoreSetting,
-            daftarPesananPending = statusPengaturan.daftarPesananPending,
-            daftarPesananDiproses = statusPengaturan.daftarPesananDiproses,
-            daftarMeja = statusPengaturan.daftarMeja,
-            tabTransaksi = statusNavigasi.tabTransaksi,
-            kategoriTerpilih = statusNavigasi.kategoriTerpilih,
+            daftarProdukPenuh = inti.statusDasar.daftarProdukPenuh,
+            TransactionStatus = inti.statusDasar.TransactionStatus,
+            statusElemenLayar = inti.statusDasar.statusElemenLayar,
+            kataKunciMentah = inti.statusPencarian.kataKunciMentah,
+            kataKunciEfektif = inti.statusPencarian.kataKunciEfektif,
+            StorePreference = inti.statusPengaturan.StorePreference,
+            StoreSetting = inti.statusPengaturan.StoreSetting,
+            daftarPesananPending = inti.statusPengaturan.daftarPesananPending,
+            daftarPesananDiproses = inti.statusPengaturan.daftarPesananDiproses,
+            daftarMeja = inti.statusPengaturan.daftarMeja,
+            tabTransaksi = inti.statusNavigasi.tabTransaksi,
+            kategoriTerpilih = inti.statusNavigasi.kategoriTerpilih,
             apakahPerluBukaKas = perluBukaKas,
+            sinkronMesinStatus = sinkronMesin,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -317,6 +345,7 @@ class CashierMainViewModel(
             CashierMainAction.TutupStatusHasilCheckout -> tutupStatusHasilCheckout()
             CashierMainAction.ResetPencarian -> resetPencarian()
             CashierMainAction.SinkronkanKatalogProduk -> sinkronkanKatalogProduk()
+            CashierMainAction.SinkronkanSekarang -> sinkronkanSekarang()
             is CashierMainAction.UbahCatatanCheckout -> perbaruiCatatanCheckout(aksi.catatan)
             is CashierMainAction.UbahPaymentMethod -> perbaruiPaymentMethod(aksi.paymentMethod)
             is CashierMainAction.UbahOrderType -> perbaruiOrderType(aksi.orderType)
@@ -462,6 +491,30 @@ class CashierMainViewModel(
                     )
 
                     kirimPesanSingkat(hasilSinkronisasi.alasanGagal)
+                }
+            }
+        }
+    }
+
+    private fun sinkronkanSekarang() {
+        val pengamat = sinkronStatusPengamat ?: run {
+            kirimPesanSingkat("Sinkronisasi belum tersedia.")
+            return
+        }
+
+        viewModelScope.launch {
+            val hasil = pengamat.sinkronkanSekarang()
+            // Mesin menulis metadata hasil ke Room, jadi UI (bar sinkronisasi)
+            // terbarui otomatis lewat aliran status.
+            when {
+                hasil.geraiId.isNullOrBlank() -> {
+                    kirimPesanSingkat("Belum ada gerai aktif untuk disinkronkan.")
+                }
+                hasil.berhasil -> {
+                    kirimPesanSingkat("Sinkronisasi selesai.")
+                }
+                else -> {
+                    kirimPesanSingkat(hasil.pesanError ?: "Sinkronisasi gagal.")
                 }
             }
         }
@@ -1394,5 +1447,13 @@ private data class StatusPengaturanModelTampilan(
 private data class StatusNavigasiModelTampilan(
     val tabTransaksi: Int,
     val kategoriTerpilih: String,
+)
+
+private data class StatusIntiModelTampilan(
+    val statusDasar: StatusDasarModelTampilan,
+    val statusPencarian: StatusPencarianModelTampilan,
+    val statusPengaturan: StatusPengaturanModelTampilan,
+    val statusNavigasi: StatusNavigasiModelTampilan,
+    val shiftAktif: id.flexi.kasir.domain.model.CashKas?,
 )
 

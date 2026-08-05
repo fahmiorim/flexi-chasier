@@ -7,6 +7,8 @@ import id.flexi.kasir.data.local.dao.LocalCashDao
 import id.flexi.kasir.data.local.dao.LocalTableDao
 import id.flexi.kasir.data.local.dao.LocalProductDao
 import id.flexi.kasir.data.local.dao.LocalTransactionDao
+import id.flexi.kasir.data.local.dao.OutboxDao
+import id.flexi.kasir.data.local.dao.SinkronMetaDao
 import id.flexi.kasir.data.local.entity.LocalBahanEntity
 import id.flexi.kasir.data.local.entity.LocalBahanResepEntity
 import id.flexi.kasir.data.local.entity.LocalCashMutationEntity
@@ -18,6 +20,8 @@ import id.flexi.kasir.data.local.entity.LocalTransactionItemEntity
 import id.flexi.kasir.data.local.entity.LocalTableEntity
 import id.flexi.kasir.data.local.entity.LocalProductEntity
 import id.flexi.kasir.data.local.entity.LocalTransactionEntity
+import id.flexi.kasir.data.local.entity.OutboxSinkronEntity
+import id.flexi.kasir.data.local.entity.SinkronMetaEntity
 
 /**
  * Titik masuk utama database Room aplikasi Flexi Cashier.
@@ -35,8 +39,10 @@ import id.flexi.kasir.data.local.entity.LocalTransactionEntity
         LocalPembelianBahanEntity::class,
         LocalResepEntity::class,
         LocalBahanResepEntity::class,
+        OutboxSinkronEntity::class,
+        SinkronMetaEntity::class,
     ],
-    version = 22,
+    version = 24,
     exportSchema = true,
 )
 abstract class FlexiCashierDatabase : RoomDatabase() {
@@ -64,4 +70,14 @@ abstract class FlexiCashierDatabase : RoomDatabase() {
      * Menyediakan akses ke operasi data bahan baku.
      */
     abstract fun BahanDao(): BahanDao
+
+    /**
+     * Menyediakan akses ke antrian outbox sinkronisasi.
+     */
+    abstract fun OutboxDao(): OutboxDao
+
+    /**
+     * Menyediakan akses ke metadata sinkronisasi (kursor pull, dsb.).
+     */
+    abstract fun SinkronMetaDao(): SinkronMetaDao
 }

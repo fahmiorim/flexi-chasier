@@ -49,6 +49,7 @@ object CashierViewModelProvider {
                 SelesaikanTransaction = aplikasi.kontainer.SelesaikanTransaction,
                 amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
                 seedDemoData = aplikasi.kontainer.seedDemoData,
+                sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
             )
         }
 
@@ -122,6 +123,7 @@ object CashierViewModelProvider {
             SettingsViewModel(
                 ambilStoreSetting = aplikasi.kontainer.ambilStoreSetting,
                 simpanStoreSetting = aplikasi.kontainer.simpanStoreSetting,
+                sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
             )
         }
 

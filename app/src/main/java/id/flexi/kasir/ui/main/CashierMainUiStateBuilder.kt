@@ -15,6 +15,7 @@ import id.flexi.kasir.domain.model.TransactionCostBreakdown
 import id.flexi.kasir.domain.model.SyncStatus
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Uang
+import id.flexi.kasir.ui.SinkronMesinStatus
 import java.time.format.DateTimeFormatter
 
 /**
@@ -51,6 +52,7 @@ class BentukCashierMainUiState {
         tabTransaksi: Int = 1,
         kategoriTerpilih: String = "",
         apakahPerluBukaKas: Boolean = false,
+        sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
     ): CashierMainUiState {
         val daftarCartItem = TransactionStatus.daftarCartItem
 
@@ -192,6 +194,7 @@ class BentukCashierMainUiState {
             kategoriTerpilih = kategoriTerpilih,
             produkUntukPilihVarian = statusElemenLayar.produkUntukPilihVarian,
             apakahPerluBukaKas = apakahPerluBukaKas,
+            sinkronMesinStatus = sinkronMesinStatus,
         )
     }
 

@@ -32,8 +32,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Info
 import id.flexi.kasir.ui.component.FlexiCard
+import id.flexi.kasir.ui.SinkronMesinStatus
+import id.flexi.kasir.ui.labelJudulSinkron
+import id.flexi.kasir.ui.labelMetadataSinkron
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -930,6 +934,108 @@ internal fun DialogPreviewStruk(
             ) {
                 Text("Tutup", fontWeight = FontWeight.Bold)
             }
+        }
+    }
+}
+
+// ═══════════════════════════════════════
+// SECTION: SINKRONISASI
+// ═══════════════════════════════════════
+
+@Composable
+internal fun BagianSinkronisasi(
+    modifier: Modifier = Modifier,
+    sinkronMesinStatus: SinkronMesinStatus,
+    saatSinkronkan: () -> Unit,
+) {
+    val warnaStatus = when (val s = sinkronMesinStatus.status) {
+        id.flexi.kasir.domain.model.SyncStatus.Synced -> MaterialTheme.colorScheme.primary
+        id.flexi.kasir.domain.model.SyncStatus.LocalChanges -> MaterialTheme.colorScheme.tertiary
+        id.flexi.kasir.domain.model.SyncStatus.Syncing -> MaterialTheme.colorScheme.primary
+        is id.flexi.kasir.domain.model.SyncStatus.Gagal -> MaterialTheme.colorScheme.error
+        id.flexi.kasir.domain.model.SyncStatus.Never -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    KartuBagian(judul = "Sinkronisasi", modifier = modifier) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = warnaStatus.copy(alpha = 0.08f),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (sinkronMesinStatus.apakahSedangBerjalan) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = warnaStatus,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CloudSync,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = warnaStatus,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = labelJudulSinkron(sinkronMesinStatus),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = warnaStatus,
+                    )
+                    Text(
+                        text = labelMetadataSinkron(sinkronMesinStatus),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        if (sinkronMesinStatus.jumlahPerubahanLokal > 0) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${sinkronMesinStatus.jumlahPerubahanLokal} perubahan lokal belum dikirim ke server.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        Button(
+            onClick = saatSinkronkan,
+            enabled = !sinkronMesinStatus.apakahSedangBerjalan,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Text(
+                text = if (sinkronMesinStatus.apakahSedangBerjalan) "Menyinkronkan..." else "Sinkronkan Sekarang",
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }

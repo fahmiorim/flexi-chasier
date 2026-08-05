@@ -15,6 +15,8 @@ interface ProductNetworkService {
 
     @GET("api/produk")
     suspend fun ambilDaftarProduk(
+        @Query("geraiId")
+        geraiId: String,
         @Query("kata_kunci")
         kataKunci: String? = null,
     ): List<ProductNetworkResponse>

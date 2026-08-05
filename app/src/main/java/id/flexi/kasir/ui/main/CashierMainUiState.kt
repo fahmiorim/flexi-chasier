@@ -10,6 +10,7 @@ import id.flexi.kasir.domain.model.SyncStatus
 import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Varian
+import id.flexi.kasir.ui.SinkronMesinStatus
 
 /**
  * Status ringkasan informasi aplikasi dan metrik cepat di beranda.
@@ -178,4 +179,5 @@ data class CashierMainUiState(
     val kategoriTerpilih: String = "",
     val produkUntukPilihVarian: Produk? = null,
     val apakahPerluBukaKas: Boolean = false,
+    val sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
 )

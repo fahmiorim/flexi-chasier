@@ -64,6 +64,14 @@ interface BahanDao {
     @Query("DELETE FROM pembelian_bahan WHERE id = :id")
     suspend fun hapusPembelian(id: String)
 
+    /** Mengambil satu pembelian berdasarkan ID. */
+    @Query("SELECT * FROM pembelian_bahan WHERE id = :id LIMIT 1")
+    suspend fun ambilPembelianBerdasarkanId(id: String): LocalPembelianBahanEntity?
+
+    /** Mengambil id bahan yang benar-benar ada (untuk filter anak agar FK aman). */
+    @Query("SELECT id FROM bahan WHERE id IN (:daftarId)")
+    suspend fun ambilIdBahanBerdasarkanDaftarId(daftarId: List<String>): List<String>
+
     /** Mengambil pembelian terakhir untuk suatu bahan (untuk hitung harga satuan). */
     @Query("SELECT * FROM pembelian_bahan WHERE bahanId = :bahanId ORDER BY tanggalBeli DESC LIMIT 1")
     suspend fun ambilPembelianTerakhir(bahanId: String): LocalPembelianBahanEntity?
@@ -89,6 +97,10 @@ interface BahanDao {
     /** Menghapus resep berdasarkan ID. */
     @Query("DELETE FROM resep WHERE id = :id")
     suspend fun hapusResep(id: String)
+
+    /** Mengambil satu resep berdasarkan ID. */
+    @Query("SELECT * FROM resep WHERE id = :id LIMIT 1")
+    suspend fun ambilResepBerdasarkanId(id: String): LocalResepEntity?
 
     /** Menghapus semua resep untuk satu produk. */
     @Query("DELETE FROM resep WHERE produkId = :produkId")

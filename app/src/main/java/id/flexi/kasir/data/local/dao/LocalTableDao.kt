@@ -22,6 +22,9 @@ interface LocalTableDao {
     @Query("DELETE FROM meja_lokal WHERE id = :id")
     suspend fun DeleteTable(id: String)
 
+    @Query("SELECT * FROM meja_lokal WHERE id = :id LIMIT 1")
+    suspend fun ambilMeja(id: String): LocalTableEntity?
+
     @Query("""
         UPDATE meja_lokal 
         SET tableStatus = :tableStatus, TransactionId = :TransactionId, 

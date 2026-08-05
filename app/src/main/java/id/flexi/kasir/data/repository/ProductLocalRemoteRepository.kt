@@ -6,11 +6,13 @@ import id.flexi.kasir.data.local.database.FlexiCashierDatabase
 import id.flexi.kasir.data.network.validation.validasiDaftarProdukJaringan
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
+import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.domain.sample.SampleProductCatalog
 import id.flexi.kasir.domain.model.NetworkOperationResult
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
@@ -25,6 +27,8 @@ import java.io.IOException
 class ProductRepositoryLokalRemote(
     private val basisData: FlexiCashierDatabase,
     private val layananJaringan: ProductNetworkService,
+    private val sumberGeraiAktifId: suspend () -> String?,
+    private val pencatatOutbox: OutboxPencatat? = null,
 ) : ProductRepository {
 
     private val aksesDataProduk = basisData.LocalProductDao()
@@ -69,8 +73,16 @@ class ProductRepositoryLokalRemote(
     }
 
     override suspend fun sinkronkanKatalog(): NetworkOperationResult<Unit> {
+        val geraiId = sumberGeraiAktifId()
+        if (geraiId.isNullOrBlank()) {
+            return NetworkOperationResult.GagalServer(
+                kode = 409,
+                pesan = "Pilih gerai aktif terlebih dahulu sebelum menyinkronkan katalog.",
+            )
+        }
+
         return try {
-            val responsJaringan = layananJaringan.ambilDaftarProduk()
+            val responsJaringan = layananJaringan.ambilDaftarProduk(geraiId = geraiId)
 
             validasiDaftarProdukJaringan(
                 daftarProduk = responsJaringan,
@@ -87,7 +99,7 @@ class ProductRepositoryLokalRemote(
 
             aksesDataProduk.simpanBanyakProduk(
                 daftarProdukDomain.map { produk ->
-                    produk.keLokal()
+                    produk.keLokal().copy(geraiId = geraiId)
                 },
             )
 
@@ -130,9 +142,33 @@ class ProductRepositoryLokalRemote(
 
     override suspend fun SaveProduct(produk: Produk) {
         aksesDataProduk.SaveProduct(produk.keLokal())
+        runCatching { pencatatOutbox?.catatProduk(produk) }
     }
 
     override suspend fun DeleteProduct(identitasProduk: String) {
+        val produk = aksesDataProduk
+            .ambilProdukBerdasarkanDaftarIdentitas(listOf(identitasProduk))
+            .firstOrNull()
+            ?.keDomain()
+
+        if (produk != null) {
+            // Resep terkait ikut ditandai dihapus agar server konsisten (FK resep → produk).
+            basisData.BahanDao()
+                .amatiResepBerdasarkanProduk(identitasProduk)
+                .first()
+                .forEach { resepLokal ->
+                    runCatching {
+                        val resepDomain = resepLokal.keDomain(
+                            daftarBahan = basisData.BahanDao()
+                                .ambilBahanResepBerdasarkanResep(resepLokal.id)
+                                .map { it.keDomain() },
+                        )
+                        pencatatOutbox?.catatResep(resepDomain, dihapus = true)
+                    }
+                }
+            runCatching { pencatatOutbox?.catatProduk(produk, dihapus = true) }
+        }
+
         aksesDataProduk.DeleteProduct(identitasProduk)
     }
 

@@ -474,4 +474,70 @@ object CashierDatabaseMigration {
             )
         }
     }
+
+    /**
+     * Migrasi dari versi 22 ke versi 23.
+     *
+     * Perubahan:
+     * - menambahkan kolom `geraiId` pada tabel produk agar katalog tersimpan
+     *   per-gerai (mendukung sinkronisasi katalog multi-gerai).
+     */
+    val DARI_22_KE_23: Migration = object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL(
+                    "ALTER TABLE produk ADD COLUMN geraiId TEXT NOT NULL DEFAULT ''",
+                )
+            } catch (_: Exception) {
+                // Kolom sudah ada — tidak perlu migrasi ulang.
+            }
+        }
+    }
+
+    /**
+     * Migrasi dari versi 23 ke versi 24.
+     *
+     * Perubahan:
+     * - menambahkan tabel `outbox_sinkron` untuk antrian perubahan lokal yang
+     *   menunggu dikirim ke server (push sinkronisasi).
+     * - menambahkan tabel `meta_sinkron` untuk metadata sinkronisasi
+     *   (kursor pull terakhir per gerai).
+     */
+    val DARI_23_KE_24: Migration = object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `outbox_sinkron` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `entitas` TEXT NOT NULL,
+                    `itemId` TEXT NOT NULL,
+                    `geraiId` TEXT NOT NULL,
+                    `versi` INTEGER NOT NULL,
+                    `payload` TEXT NOT NULL,
+                    `status` TEXT NOT NULL DEFAULT 'Antri',
+                    `jumlahPercobaan` INTEGER NOT NULL DEFAULT 0,
+                    `waktuDibuat` INTEGER NOT NULL,
+                    `pesanError` TEXT
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_outbox_sinkron_entitas_itemId ON outbox_sinkron(entitas, itemId)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_outbox_sinkron_status ON outbox_sinkron(status)",
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `meta_sinkron` (
+                    `kunci` TEXT NOT NULL,
+                    `nilai` TEXT NOT NULL,
+                    PRIMARY KEY(`kunci`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
 }

@@ -144,6 +144,12 @@ internal fun CashierPhoneLayout(
             saatBukaAntrian = { saatAksiDikirim(CashierMainAction.BukaAntrianPanel) },
         )
 
+        SinkronStatusBar(
+            status = modelTampilan.sinkronMesinStatus,
+            saatSinkronkan = { saatAksiDikirim(CashierMainAction.SinkronkanSekarang) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        )
+
         PrimaryTabRow(
             selectedTabIndex = modelTampilan.tabTransaksi,
             modifier = Modifier.fillMaxWidth(),
@@ -325,6 +331,11 @@ internal fun CashierTabletLayout(
             saatBukaPesananPending = { saatAksiDikirim(CashierMainAction.BukaPendingOrdersPanel) },
             jumlahAntrian = modelTampilan.daftarPesananDiproses.size,
             saatBukaAntrian = { saatAksiDikirim(CashierMainAction.BukaAntrianPanel) },
+        )
+
+        SinkronStatusBar(
+            status = modelTampilan.sinkronMesinStatus,
+            saatSinkronkan = { saatAksiDikirim(CashierMainAction.SinkronkanSekarang) },
         )
 
         PrimaryTabRow(

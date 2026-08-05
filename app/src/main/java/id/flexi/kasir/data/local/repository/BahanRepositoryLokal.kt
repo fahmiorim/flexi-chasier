@@ -3,6 +3,7 @@ package id.flexi.kasir.data.local.repository
 import id.flexi.kasir.data.local.dao.BahanDao
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
+import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.domain.model.Bahan
 import id.flexi.kasir.domain.model.BahanResep
 import id.flexi.kasir.domain.model.PembelianBahan
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.map
 
 class BahanRepositoryLokal(
     private val BahanDao: BahanDao,
+    private val pencatatOutbox: OutboxPencatat? = null,
 ) : BahanRepository {
 
     override fun amatiSemuaBahan(): Flow<List<Bahan>> {
@@ -32,10 +34,15 @@ class BahanRepositoryLokal(
 
     override suspend fun saveBahan(bahan: Bahan) {
         BahanDao.simpanBahan(bahan.keLokal())
+        runCatching { pencatatOutbox?.catatBahan(bahan) }
     }
 
     override suspend fun deleteBahan(id: String) {
+        val bahan = BahanDao.ambilBahanBerdasarkanId(id)?.keDomain()
         BahanDao.hapusBahan(id)
+        if (bahan != null) {
+            runCatching { pencatatOutbox?.catatBahan(bahan, dihapus = true) }
+        }
     }
 
     // ── Pembelian ──
@@ -48,10 +55,15 @@ class BahanRepositoryLokal(
 
     override suspend fun savePembelian(pembelian: PembelianBahan) {
         BahanDao.simpanPembelian(pembelian.keLokal())
+        runCatching { pencatatOutbox?.catatPembelianBahan(pembelian) }
     }
 
     override suspend fun deletePembelian(id: String) {
+        val pembelian = BahanDao.ambilPembelianBerdasarkanId(id)?.keDomain()
         BahanDao.hapusPembelian(id)
+        if (pembelian != null) {
+            runCatching { pencatatOutbox?.catatPembelianBahan(pembelian, dihapus = true) }
+        }
     }
 
     override suspend fun ambilPembelianTerakhir(bahanId: String): PembelianBahan? {
@@ -88,10 +100,18 @@ class BahanRepositoryLokal(
 
     override suspend fun saveResep(resep: Resep) {
         BahanDao.simpanResep(resep.keLokal())
+        runCatching { pencatatOutbox?.catatResep(resep) }
     }
 
     override suspend fun deleteResep(id: String) {
+        val resep = BahanDao.ambilResepBerdasarkanId(id)
         BahanDao.hapusResep(id)
+        if (resep != null) {
+            val resepDomain = resep.keDomain(
+                daftarBahan = BahanDao.ambilBahanResepBerdasarkanResep(id).map { it.keDomain() },
+            )
+            runCatching { pencatatOutbox?.catatResep(resepDomain, dihapus = true) }
+        }
     }
 
     override suspend fun saveBahanResep(daftar: List<BahanResep>) {

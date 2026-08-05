@@ -61,12 +61,22 @@ fun SettingsScreen(
     perbaruiTampilkanLogoDiStruk: (Boolean) -> Unit,
     perbaruiTampilkanPajakDiStruk: (Boolean) -> Unit,
     saatSimpan: () -> Unit,
+    saatSinkronkan: () -> Unit = {},
+    saatBersihkanPesanSinkronisasi: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.pesanBerhasil) {
         state.pesanBerhasil?.let {
             snackbarHostState.showSnackbar(it)
+        }
+    }
+
+    LaunchedEffect(state.pesanSinkronisasi) {
+        state.pesanSinkronisasi?.let {
+            snackbarHostState.showSnackbar(it)
+            // Bersihkan agar pesan yang sama bisa ditampilkan lagi nanti.
+            saatBersihkanPesanSinkronisasi()
         }
     }
 
@@ -190,6 +200,11 @@ fun SettingsScreen(
                     perbaruiJumlahTopFavorit = perbaruiJumlahTopFavorit,
                 )
             }
+
+            BagianSinkronisasi(
+                sinkronMesinStatus = state.sinkronMesinStatus,
+                saatSinkronkan = saatSinkronkan,
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
