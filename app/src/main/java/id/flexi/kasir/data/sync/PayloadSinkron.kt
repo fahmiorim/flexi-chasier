@@ -6,6 +6,7 @@ import id.flexi.kasir.data.network.model.ItemTransaksiSinkron
 import id.flexi.kasir.data.network.model.MejaSinkron
 import id.flexi.kasir.data.network.model.MutasiKasSinkron
 import id.flexi.kasir.data.network.model.PembelianBahanSinkron
+import id.flexi.kasir.data.network.model.PengaturanTokoSinkron
 import id.flexi.kasir.data.network.model.ProdukSinkron
 import id.flexi.kasir.data.network.model.ResepSinkron
 import id.flexi.kasir.data.network.model.SetoranSinkron
@@ -19,6 +20,7 @@ import id.flexi.kasir.domain.model.PembelianBahan
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
+import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -187,6 +189,26 @@ object PayloadSinkron {
         hargaTotal = pembelian.totalHarga,
         waktuEpochMili = pembelian.tanggalBeli,
         dihapus = dihapus,
+    )
+
+    /**
+     * Pengaturan toko: hanya field yang dibagikan lintas perangkat yang dikirim
+     * (nama usaha/alamat/tagline/logo); pengaturan khusus perangkat (printer,
+     * struk, tampilan) TIDAK ikut — server-authoritative hanya untuk field ini.
+     *
+     * @param id ID deterministik satu baris per gerai (lihat OutboxPencatat).
+     */
+    fun pengaturanToko(
+        pengaturan: StoreSetting,
+        id: String,
+        versi: Long,
+    ): PengaturanTokoSinkron = PengaturanTokoSinkron(
+        id = id,
+        versi = versi,
+        namaUsaha = pengaturan.namaUsaha,
+        alamat = pengaturan.alamat.ifBlank { null },
+        tagline = pengaturan.tagline.ifBlank { null },
+        logoUri = pengaturan.logoUri.ifBlank { null },
     )
 
     /**

@@ -243,7 +243,12 @@ class MesinSinkronisasi(
 
             // storeSettings adalah snapshot penuh di tiap respons; cukup pakai
             // yang terakhir dan terapkan SEKALI setelah seluruh batch selesai.
-            respons.storeSettings.firstOrNull()?.let { pengaturanTokoTerakhir = it }
+            // Utamakan baris dengan id deterministik per gerai (konsisten dengan
+            // push), fallback ke baris pertama bila data lama/seeded masih ada.
+            val pengaturanToko = respons.storeSettings
+                .firstOrNull { it.id == OutboxPencatat.idPengaturanToko(geraiId) }
+                ?: respons.storeSettings.firstOrNull()
+            pengaturanToko?.let { pengaturanTokoTerakhir = it }
 
             // Kursor selalu maju (minimal +1 ms) agar tidak pernah putar tanpa henti
             // meskipun jam server tidak maju; data batch yang sudah ditarik tetap

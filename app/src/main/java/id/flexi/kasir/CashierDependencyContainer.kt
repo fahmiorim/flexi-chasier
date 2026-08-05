@@ -316,7 +316,7 @@ class CashierDependencyContainer(
     }
 
     val simpanStoreSetting: SimpanStoreSetting by lazy {
-        SimpanStoreSetting(repositoriStoreSetting)
+        SimpanStoreSetting(repositoriStoreSetting, OutboxPencatat)
     }
 
     val ObservePendingOrders: ObservePendingOrders by lazy {

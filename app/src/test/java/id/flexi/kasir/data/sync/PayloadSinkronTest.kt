@@ -14,6 +14,7 @@ import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.BahanResep
 import id.flexi.kasir.domain.model.Setoran
+import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.model.Uang
@@ -189,6 +190,43 @@ class PayloadSinkronTest {
         assertEquals("s-1", payload.shiftId)
         assertEquals(100_000L, payload.nominal)
         assertTrue(payload.dihapus)
+    }
+
+    @Test
+    fun `pengaturan toko - kontrak id versi dan field opsional blank menjadi null`() {
+        val payload = PayloadSinkron.pengaturanToko(
+            pengaturan = StoreSetting(
+                namaUsaha = "Kopi Nusantara",
+                alamat = "Jl. Merdeka No. 1",
+                tagline = "",
+                logoUri = "",
+            ),
+            id = "pengaturan-toko-gerai-1",
+            versi = 9L,
+        )
+
+        assertEquals("pengaturan-toko-gerai-1", payload.id)
+        assertEquals(9L, payload.versi)
+        assertEquals("Kopi Nusantara", payload.namaUsaha)
+        assertEquals("Jl. Merdeka No. 1", payload.alamat)
+        // Field opsional kosong → null (kontrak nullable server).
+        assertNull(payload.tagline)
+        assertNull(payload.logoUri)
+    }
+
+    @Test
+    fun `pengaturan toko - bentuk JSON memakai nama field kontrak backend`() {
+        val json = CashierNetworkProvider.jsonUtama.encodeToString(
+            PayloadSinkron.pengaturanToko(
+                pengaturan = StoreSetting(namaUsaha = "Kopi Nusantara", logoUri = "file:///logo.png"),
+                id = "pengaturan-toko-gerai-1",
+                versi = 1L,
+            ),
+        )
+
+        assertTrue(json.contains("\"namaUsaha\""))
+        assertTrue(json.contains("\"logoUri\""))
+        assertTrue(json.contains("\"pengaturan-toko-gerai-1\""))
     }
 
     @Test

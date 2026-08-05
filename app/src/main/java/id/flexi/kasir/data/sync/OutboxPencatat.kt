@@ -12,6 +12,7 @@ import id.flexi.kasir.domain.model.PembelianBahan
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
+import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.decodeFromString
@@ -103,6 +104,19 @@ class OutboxPencatat(
         }
     }
 
+    /**
+     * Pengaturan toko bersifat satu baris per gerai: id deterministik dari
+     * gerai aktif agar stabil lintas perangkat dan unik antar gerai
+     * (server memakai id sebagai primary key).
+     */
+    suspend fun catatPengaturanToko(pengaturan: StoreSetting) {
+        val geraiId = sumberGeraiAktifId() ?: return
+        val idPengaturan = idPengaturanToko(geraiId)
+        catat(ENTITAS_PENGATURAN_TOKO, idPengaturan) { versi ->
+            json.encodeToString(PayloadSinkron.pengaturanToko(pengaturan, idPengaturan, versi))
+        }
+    }
+
     suspend fun catatResep(resep: Resep, dihapus: Boolean = false) {
         val namaProduk = produkDao
             .ambilProdukBerdasarkanDaftarIdentitas(listOf(resep.produkId))
@@ -146,5 +160,8 @@ class OutboxPencatat(
         const val ENTITAS_PEMBELIAN_BAHAN = "pembelian-bahan"
         const val ENTITAS_RESEP = "resep"
         const val ENTITAS_PENGATURAN_TOKO = "pengaturan-toko"
+
+        /** ID deterministik pengaturan toko per gerai (satu baris per gerai). */
+        fun idPengaturanToko(geraiId: String): String = "pengaturan-toko-$geraiId"
     }
 }
