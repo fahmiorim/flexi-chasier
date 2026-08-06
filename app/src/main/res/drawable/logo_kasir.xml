@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Logo Flexi Kasir — mark "K" + motif nota.
+  Kotak bulat gradien navy (#1E3A8A → #0D47A1) dengan "K" putih dan
+  aksen garis emas (#F59E0B) yang merepresentasikan struk/nota.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="180"
+    android:viewportHeight="180">
+
+    <!-- Kotak dasar bulat dengan gradien navy -->
+    <path
+        android:pathData="M90,18
+            a72,72 0 1,0 0,144
+            a72,72 0 1,0 0,-144z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt"
+            name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="20"
+                android:endX="150"
+                android:endY="160">
+                <item android:offset="0.0" android:color="#FF1E3A8A" />
+                <item android:offset="0.55" android:color="#FF17479E" />
+                <item android:offset="1.0" android:color="#FF0D47A1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Garis aksen emas (top) — motif struk -->
+    <path
+        android:pathData="M58,58 L122,58"
+        android:strokeColor="#FFF59E0B"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+
+    <!-- Garis aksen emas (bottom) — motif struk -->
+    <path
+        android:pathData="M58,124 L104,124"
+        android:strokeColor="#FFF59E0B"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+
+    <!-- Huruf "K" putih -->
+    <path
+        android:pathData="M70,62
+            L70,120
+            L78.5,120
+            L78.5,97
+            L104,120
+            L115,120
+            L91,93.5
+            L115,62
+            L103.5,62
+            L78.5,89
+            L78.5,62 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

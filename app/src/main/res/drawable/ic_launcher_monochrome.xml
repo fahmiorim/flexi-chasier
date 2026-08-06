@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Foreground ikon adaptif Flexi Kasir — huruf "K" putih + garis aksen emas.
-  Viewport 108x108; elemen utama berada di zona aman (lingkaran tengah 66dp)
-  agar tidak terpotong mask ikon adaptif.
+  Monochrome ikon Flexi Kasir (Android 13+ themed icon).
+  Siluet satu warna — sistem akan me-tint sesuai tema/wallpaper launcher.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Huruf "K" putih -->
+    <!-- Siluet huruf "K" -->
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M40,32
@@ -26,17 +24,17 @@
             L46,53.5
             L46,32 Z" />
 
-    <!-- Garis aksen emas atas (nota) -->
+    <!-- Siluet garis nota atas -->
     <path
         android:pathData="M42,22 L66,22"
-        android:strokeColor="#FFF59E0B"
+        android:strokeColor="#FFFFFFFF"
         android:strokeWidth="4"
         android:strokeLineCap="round" />
 
-    <!-- Garis aksen emas bawah (nota) -->
+    <!-- Siluet garis nota bawah -->
     <path
         android:pathData="M42,86 L58,86"
-        android:strokeColor="#FFF59E0B"
+        android:strokeColor="#FFFFFFFF"
         android:strokeWidth="4"
         android:strokeLineCap="round" />
 </vector>

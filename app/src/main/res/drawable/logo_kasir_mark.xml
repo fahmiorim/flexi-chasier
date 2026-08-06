@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Mark Flexi Kasir transparan (tanpa kotak) — dipakai di layar splash
+  yang berlatar gradien navy agar mulus tanpa batas kotak.
+  Huruf "K" putih + garis aksen emas (nota).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Garis aksen emas atas (nota) -->
+    <path
+        android:pathData="M28,34 L92,34"
+        android:strokeColor="#FFF59E0B"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+
+    <!-- Garis aksen emas bawah (nota) -->
+    <path
+        android:pathData="M28,88 L70,88"
+        android:strokeColor="#FFF59E0B"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+
+    <!-- Huruf "K" putih -->
+    <path
+        android:pathData="M42,42
+            L42,80
+            L49,80
+            L49,64
+            L68,80
+            L76,80
+            L59,62
+            L76,42
+            L68,42
+            L49,58
+            L49,42 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>
