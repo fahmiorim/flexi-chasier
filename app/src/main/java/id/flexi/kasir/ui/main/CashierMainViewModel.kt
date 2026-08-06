@@ -492,6 +492,10 @@ class CashierMainViewModel(
 
                     kirimPesanSingkat(hasilSinkronisasi.alasanGagal)
                 }
+
+                is NetworkOperationResult.PerluVerifikasiEmail -> {
+                    // Tidak mungkin untuk sinkronisasi katalog; jaga exhaustiveness.
+                }
             }
         }
     }

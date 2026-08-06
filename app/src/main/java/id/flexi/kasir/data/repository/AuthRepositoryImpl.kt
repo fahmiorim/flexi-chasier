@@ -6,9 +6,12 @@ import id.flexi.kasir.data.auth.GeraiTersimpan
 import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.network.model.ApiErrorResponse
 import id.flexi.kasir.data.network.model.AuthNetworkResponse
+import id.flexi.kasir.data.network.model.KirimUlangVerifikasiRequest
 import id.flexi.kasir.data.network.model.LoginRequest
 import id.flexi.kasir.data.network.model.RefreshRequest
 import id.flexi.kasir.data.network.model.RegisterRequest
+import id.flexi.kasir.data.network.model.VerifikasiEmailRequest
+import id.flexi.kasir.data.network.model.VerifikasiNetworkResponse
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.domain.model.AkunUser
 import id.flexi.kasir.domain.model.GeraiSederhana
@@ -53,14 +56,58 @@ class AuthRepositoryImpl(
         email: String,
         password: String,
     ): NetworkOperationResult<AkunUser> {
-        return cobaAutentikasi {
-            layananJaringan.register(
+        return try {
+            val respons = layananJaringan.register(
                 RegisterRequest(
                     namaUsaha = namaUsaha,
                     namaUser = namaUser,
                     email = email,
                     password = password,
                 ),
+            )
+            if (respons.perluVerifikasiEmail) {
+                NetworkOperationResult.PerluVerifikasiEmail(
+                    email = respons.email ?: email,
+                )
+            } else {
+                NetworkOperationResult.GagalServer(
+                    kode = 500,
+                    pesan = "Respons registrasi tidak dikenali. Hubungi bantuan teknis.",
+                )
+            }
+        } catch (kesalahanJaringan: IOException) {
+            NetworkOperationResult.GagalJaringan(
+                pesan = "Koneksi internet bermasalah. Pastikan server aktif dan coba lagi.",
+            )
+        } catch (kesalahanHttp: HttpException) {
+            NetworkOperationResult.GagalServer(
+                kode = kesalahanHttp.code(),
+                pesan = pesanDariHttp(kesalahanHttp),
+            )
+        } catch (kesalahanLain: Exception) {
+            NetworkOperationResult.GagalServer(
+                kode = 500,
+                pesan = kesalahanLain.message
+                    ?: "Terjadi kesalahan tidak terduga. Coba lagi?",
+            )
+        }
+    }
+
+    override suspend fun verifikasiEmail(
+        email: String,
+        kode: String,
+    ): NetworkOperationResult<Unit> {
+        return cobaOperasiVerifikasi {
+            layananJaringan.verifikasiEmail(
+                VerifikasiEmailRequest(email = email, kode = kode),
+            )
+        }
+    }
+
+    override suspend fun kirimUlangVerifikasi(email: String): NetworkOperationResult<Unit> {
+        return cobaOperasiVerifikasi {
+            layananJaringan.kirimUlangVerifikasi(
+                KirimUlangVerifikasiRequest(email = email),
             )
         }
     }
@@ -79,6 +126,30 @@ class AuthRepositoryImpl(
         }
         tokenStore.hapus()
         sesiStore.hapus()
+    }
+
+    private suspend fun cobaOperasiVerifikasi(
+        operasi: suspend () -> VerifikasiNetworkResponse,
+    ): NetworkOperationResult<Unit> {
+        return try {
+            operasi()
+            NetworkOperationResult.Berhasil(Unit)
+        } catch (kesalahanJaringan: IOException) {
+            NetworkOperationResult.GagalJaringan(
+                pesan = "Koneksi internet bermasalah. Pastikan server aktif dan coba lagi.",
+            )
+        } catch (kesalahanHttp: HttpException) {
+            NetworkOperationResult.GagalServer(
+                kode = kesalahanHttp.code(),
+                pesan = pesanDariHttp(kesalahanHttp),
+            )
+        } catch (kesalahanLain: Exception) {
+            NetworkOperationResult.GagalServer(
+                kode = 500,
+                pesan = kesalahanLain.message
+                    ?: "Terjadi kesalahan tidak terduga. Coba lagi?",
+            )
+        }
     }
 
     private suspend fun cobaAutentikasi(
@@ -146,6 +217,7 @@ class AuthRepositoryImpl(
         return pesanServer ?: when (kesalahan.code()) {
             401 -> "Email atau kata sandi salah."
             409 -> "Email sudah terdaftar. Gunakan email lain."
+            403 -> "Email belum diverifikasi. Periksa kode di email Anda."
             else -> "Server bermasalah (Error ${kesalahan.code()}). Coba beberapa saat lagi."
         }
     }

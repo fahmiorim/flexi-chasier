@@ -203,6 +203,8 @@ object CashierViewModelProvider {
             AuthViewModel(
                 loginUser = aplikasi.kontainer.loginUser,
                 registerAkun = aplikasi.kontainer.registerAkun,
+                verifikasiEmail = aplikasi.kontainer.verifikasiEmail,
+                kirimUlangVerifikasi = aplikasi.kontainer.kirimUlangVerifikasi,
                 keluarAkun = aplikasi.kontainer.keluarAkun,
             )
         }

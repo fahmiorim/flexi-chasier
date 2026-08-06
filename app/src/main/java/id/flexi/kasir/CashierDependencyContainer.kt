@@ -81,6 +81,8 @@ import id.flexi.kasir.domain.usecase.AmatiSesi
 import id.flexi.kasir.domain.usecase.KeluarAkun
 import id.flexi.kasir.domain.usecase.LoginUser
 import id.flexi.kasir.domain.usecase.PilihGerai
+import id.flexi.kasir.domain.usecase.KirimUlangVerifikasi
+import id.flexi.kasir.domain.usecase.VerifikasiEmail
 import id.flexi.kasir.domain.usecase.RegisterAkun
 
 /**
@@ -523,6 +525,14 @@ class CashierDependencyContainer(
 
     val registerAkun: RegisterAkun by lazy {
         RegisterAkun(AuthRepository)
+    }
+
+    val verifikasiEmail: VerifikasiEmail by lazy {
+        VerifikasiEmail(AuthRepository)
+    }
+
+    val kirimUlangVerifikasi: KirimUlangVerifikasi by lazy {
+        KirimUlangVerifikasi(AuthRepository)
     }
 
     val pilihGerai: PilihGerai by lazy {

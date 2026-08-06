@@ -54,6 +54,36 @@ data class AuthNetworkResponse(
     val gerai: List<GeraiNetwork> = emptyList(),
 )
 
+/**
+ * Respons register: backend menahan token sampai email diverifikasi,
+ * jadi hanya `perluVerifikasiEmail` + `email` yang dikembalikan.
+ */
+@Serializable
+data class RegisterNetworkResponse(
+    val ok: Boolean = false,
+    @SerialName("perluVerifikasiEmail")
+    val perluVerifikasiEmail: Boolean = false,
+    val email: String? = null,
+)
+
+@Serializable
+data class VerifikasiEmailRequest(
+    val email: String,
+    val kode: String,
+)
+
+@Serializable
+data class KirimUlangVerifikasiRequest(
+    val email: String,
+)
+
+@Serializable
+data class VerifikasiNetworkResponse(
+    val ok: Boolean = false,
+    @SerialName("emailTerverifikasi")
+    val emailTerverifikasi: Boolean = false,
+)
+
 @Serializable
 data class RefreshNetworkResponse(
     @SerialName("accessToken")

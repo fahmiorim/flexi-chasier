@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -55,7 +57,11 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Store,
+                    imageVector = if (state.mode == AuthUiState.Mode.Verifikasi) {
+                        Icons.Default.MailOutline
+                    } else {
+                        Icons.Default.Store
+                    },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.padding(18.dp),
@@ -65,7 +71,11 @@ fun LoginScreen(
             Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "Flexi Cashier",
+                text = if (state.mode == AuthUiState.Mode.Verifikasi) {
+                    "Verifikasi Email"
+                } else {
+                    "Flexi Cashier"
+                },
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                 ),
@@ -74,13 +84,15 @@ fun LoginScreen(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = if (state.mode == AuthUiState.Mode.Login) {
-                    "Masuk ke akun Anda untuk mulai berjualan"
-                } else {
-                    "Buat akun baru untuk usaha Anda"
+                text = when (state.mode) {
+                    AuthUiState.Mode.Login -> "Masuk ke akun Anda untuk mulai berjualan"
+                    AuthUiState.Mode.Register -> "Buat akun baru untuk usaha Anda"
+                    AuthUiState.Mode.Verifikasi ->
+                        "Masukkan kode 6 digit yang dikirim ke email Anda"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
 
             Spacer(Modifier.height(28.dp))
@@ -105,23 +117,44 @@ fun LoginScreen(
                 Spacer(Modifier.height(12.dp))
             }
 
-            OutlinedTextField(
-                value = state.email,
-                onValueChange = viewModel::perbaruiEmail,
-                label = { Text("Email") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (state.mode == AuthUiState.Mode.Verifikasi) {
+                OutlinedTextField(
+                    value = state.email,
+                    onValueChange = viewModel::perbaruiEmail,
+                    label = { Text("Email") },
+                    singleLine = true,
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = state.kodeVerifikasi,
+                    onValueChange = viewModel::perbaruiKodeVerifikasi,
+                    label = { Text("Kode Verifikasi") },
+                    singleLine = true,
+                    placeholder = { Text("000000") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                OutlinedTextField(
+                    value = state.email,
+                    onValueChange = viewModel::perbaruiEmail,
+                    label = { Text("Email") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = viewModel::perbaruiPassword,
-                label = { Text("Kata Sandi") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = state.password,
+                    onValueChange = viewModel::perbaruiPassword,
+                    label = { Text("Kata Sandi") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             state.pesanError?.let { pesan ->
                 Spacer(Modifier.height(12.dp))
@@ -133,10 +166,26 @@ fun LoginScreen(
                 )
             }
 
+            state.pesanInfo?.let { pesan ->
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = pesan,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = viewModel::kirim,
+                onClick = {
+                    if (state.mode == AuthUiState.Mode.Verifikasi) {
+                        viewModel.verifikasiKode()
+                    } else {
+                        viewModel.kirim()
+                    }
+                },
                 enabled = !state.sedangMemuat,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
@@ -149,7 +198,11 @@ fun LoginScreen(
                     )
                 } else {
                     Text(
-                        text = if (state.mode == AuthUiState.Mode.Login) "Masuk" else "Daftar",
+                        text = when (state.mode) {
+                            AuthUiState.Mode.Login -> "Masuk"
+                            AuthUiState.Mode.Register -> "Daftar"
+                            AuthUiState.Mode.Verifikasi -> "Verifikasi"
+                        },
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
@@ -159,21 +212,35 @@ fun LoginScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            TextButton(onClick = {
-                val modeBaru = if (state.mode == AuthUiState.Mode.Login) {
-                    AuthUiState.Mode.Register
-                } else {
-                    AuthUiState.Mode.Login
+            when (state.mode) {
+                AuthUiState.Mode.Verifikasi -> {
+                    TextButton(
+                        onClick = viewModel::kirimUlangKode,
+                        enabled = !state.sedangMemuat,
+                    ) {
+                        Text("Kirim ulang kode")
+                    }
+                    TextButton(
+                        onClick = { viewModel.gantiMode(AuthUiState.Mode.Login) },
+                        enabled = !state.sedangMemuat,
+                    ) {
+                        Text("Kembali ke Masuk")
+                    }
                 }
-                viewModel.gantiMode(modeBaru)
-            }) {
-                Text(
-                    text = if (state.mode == AuthUiState.Mode.Login) {
-                        "Belum punya akun? Daftar di sini"
-                    } else {
-                        "Sudah punya akun? Masuk di sini"
-                    },
-                )
+                AuthUiState.Mode.Login -> {
+                    TextButton(onClick = {
+                        viewModel.gantiMode(AuthUiState.Mode.Register)
+                    }) {
+                        Text("Belum punya akun? Daftar di sini")
+                    }
+                }
+                AuthUiState.Mode.Register -> {
+                    TextButton(onClick = {
+                        viewModel.gantiMode(AuthUiState.Mode.Login)
+                    }) {
+                        Text("Sudah punya akun? Masuk di sini")
+                    }
+                }
             }
         }
     }

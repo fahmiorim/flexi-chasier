@@ -10,6 +10,11 @@ sealed interface NetworkOperationResult<out T> {
     data class Berhasil<T>(val data: T) : NetworkOperationResult<T>
 
     /**
+     * Operasi berhasil namun memerlukan verifikasi email sebelum sesi aktif.
+     */
+    data class PerluVerifikasiEmail(val email: String) : NetworkOperationResult<Nothing>
+
+    /**
      * Gagal karena masalah koneksi internet.
      */
     data class GagalJaringan(val pesan: String) : NetworkOperationResult<Nothing>

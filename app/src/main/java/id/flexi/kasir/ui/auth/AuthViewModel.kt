@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.flexi.kasir.domain.model.NetworkOperationResult
 import id.flexi.kasir.domain.usecase.KeluarAkun
+import id.flexi.kasir.domain.usecase.KirimUlangVerifikasi
 import id.flexi.kasir.domain.usecase.LoginUser
 import id.flexi.kasir.domain.usecase.RegisterAkun
+import id.flexi.kasir.domain.usecase.VerifikasiEmail
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,22 +19,27 @@ data class AuthUiState(
     val password: String = "",
     val namaUsaha: String = "",
     val namaUser: String = "",
+    val kodeVerifikasi: String = "",
     val sedangMemuat: Boolean = false,
     val pesanError: String? = null,
+    val pesanInfo: String? = null,
 ) {
     enum class Mode {
         Login,
         Register,
+        Verifikasi,
     }
 }
 
 /**
- * Menangani form login/registrasi. Setelah berhasil, navigasi diarahkan oleh
- * aliran sesi ([id.flexi.kasir.domain.usecase.AmatiSesi]) di tingkat navigasi.
+ * Menangani form login/registrasi/verifikasi email. Setelah berhasil, navigasi
+ * diarahkan oleh aliran sesi ([id.flexi.kasir.domain.usecase.AmatiSesi]) di tingkat navigasi.
  */
 class AuthViewModel(
     private val loginUser: LoginUser,
     private val registerAkun: RegisterAkun,
+    private val verifikasiEmail: VerifikasiEmail,
+    private val kirimUlangVerifikasi: KirimUlangVerifikasi,
     private val keluarAkun: KeluarAkun,
 ) : ViewModel() {
 
@@ -43,6 +50,7 @@ class AuthViewModel(
         _state.value = _state.value.copy(
             mode = mode,
             pesanError = null,
+            pesanInfo = null,
         )
     }
 
@@ -60,6 +68,13 @@ class AuthViewModel(
 
     fun perbaruiNamaUser(namaUser: String) {
         _state.value = _state.value.copy(namaUser = namaUser, pesanError = null)
+    }
+
+    fun perbaruiKodeVerifikasi(kode: String) {
+        _state.value = _state.value.copy(
+            kodeVerifikasi = kode.take(6).filter { it.isDigit() },
+            pesanError = null,
+        )
     }
 
     fun kirim() {
@@ -85,10 +100,25 @@ class AuthViewModel(
                     email = state.email.trim(),
                     password = state.password,
                 )
+                AuthUiState.Mode.Verifikasi -> verifikasiEmail(
+                    email = state.email.trim(),
+                    kode = state.kodeVerifikasi,
+                )
             }
             when (hasil) {
                 is NetworkOperationResult.Berhasil -> {
                     _state.value = _state.value.copy(sedangMemuat = false)
+                }
+                is NetworkOperationResult.PerluVerifikasiEmail -> {
+                    // Registrasi sukses: pindah ke layar verifikasi, email diisi.
+                    _state.value = _state.value.copy(
+                        mode = AuthUiState.Mode.Verifikasi,
+                        email = hasil.email,
+                        kodeVerifikasi = "",
+                        sedangMemuat = false,
+                        pesanError = null,
+                        pesanInfo = "Kode verifikasi terkirim ke email Anda.",
+                    )
                 }
                 is NetworkOperationResult.GagalJaringan -> {
                     _state.value = _state.value.copy(
@@ -103,6 +133,111 @@ class AuthViewModel(
                     )
                 }
                 is NetworkOperationResult.FallbackLokal -> {
+                    _state.value = _state.value.copy(sedangMemuat = false)
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifikasi kode dari layar Verifikasi, lalu auto-login bila berhasil.
+     */
+    fun verifikasiKode() {
+        val state = _state.value
+        if (state.sedangMemuat) return
+        if (state.kodeVerifikasi.length != 6) {
+            _state.value = state.copy(pesanError = "Masukkan kode 6 digit dari email.")
+            return
+        }
+
+        _state.value = state.copy(sedangMemuat = true, pesanError = null)
+        viewModelScope.launch {
+            val hasil = verifikasiEmail(
+                email = state.email.trim(),
+                kode = state.kodeVerifikasi,
+            )
+            when (hasil) {
+                is NetworkOperationResult.Berhasil -> {
+                    // Email terverifikasi: login otomatis dengan data yang sudah diisi.
+                    val login = loginUser(
+                        email = state.email.trim(),
+                        password = state.password,
+                    )
+                    when (login) {
+                        is NetworkOperationResult.Berhasil -> {
+                            _state.value = _state.value.copy(sedangMemuat = false)
+                        }
+                        is NetworkOperationResult.GagalJaringan -> {
+                            _state.value = _state.value.copy(
+                                mode = AuthUiState.Mode.Login,
+                                sedangMemuat = false,
+                                pesanError = login.pesan,
+                                pesanInfo = null,
+                            )
+                        }
+                        is NetworkOperationResult.GagalServer -> {
+                            _state.value = _state.value.copy(
+                                mode = AuthUiState.Mode.Login,
+                                sedangMemuat = false,
+                                pesanError = login.pesan,
+                                pesanInfo = null,
+                            )
+                        }
+                        else -> {
+                            _state.value = _state.value.copy(
+                                mode = AuthUiState.Mode.Login,
+                                sedangMemuat = false,
+                                pesanInfo = "Email terverifikasi. Silakan masuk.",
+                            )
+                        }
+                    }
+                }
+                is NetworkOperationResult.GagalJaringan -> {
+                    _state.value = _state.value.copy(
+                        sedangMemuat = false,
+                        pesanError = hasil.pesan,
+                    )
+                }
+                is NetworkOperationResult.GagalServer -> {
+                    _state.value = _state.value.copy(
+                        sedangMemuat = false,
+                        pesanError = hasil.pesan,
+                    )
+                }
+                else -> {
+                    _state.value = _state.value.copy(sedangMemuat = false)
+                }
+            }
+        }
+    }
+
+    fun kirimUlangKode() {
+        val state = _state.value
+        if (state.sedangMemuat) return
+
+        _state.value = state.copy(sedangMemuat = true, pesanError = null)
+        viewModelScope.launch {
+            val hasil = kirimUlangVerifikasi(email = state.email.trim())
+            when (hasil) {
+                is NetworkOperationResult.Berhasil -> {
+                    _state.value = _state.value.copy(
+                        sedangMemuat = false,
+                        pesanInfo = "Kode verifikasi baru terkirim.",
+                    )
+                }
+                is NetworkOperationResult.GagalJaringan -> {
+                    _state.value = _state.value.copy(
+                        sedangMemuat = false,
+                        pesanError = hasil.pesan,
+                    )
+                }
+                is NetworkOperationResult.GagalServer -> {
+                    _state.value = _state.value.copy(
+                        sedangMemuat = false,
+                        pesanError = hasil.pesan,
+                    )
+                }
+                else -> {
                     _state.value = _state.value.copy(sedangMemuat = false)
                 }
             }
