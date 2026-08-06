@@ -30,6 +30,12 @@ data class RefreshRequest(
 )
 
 @Serializable
+data class LogoutRequest(
+    @SerialName("refreshToken")
+    val refreshToken: String,
+)
+
+@Serializable
 data class AuthUserNetwork(
     val id: String,
     val nama: String,

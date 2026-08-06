@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * Bentuk field PERSIS mengikuti kontrak backend `flexi-chasier-server`
  * (lihat rute sinkronisasi di backend):
  * - push: POST `/api/sync/<entitas>` dengan body `{ geraiId, items: [...] }`
- * - pull: GET `/api/sync/perubahan?geraiId=&sejakEpochMili=&batas=`
+ * - pull: GET `/api/sync/perubahan?geraiId=&kursor=<peta keyset per entitas>&batas=`
  *
  * `versi` wajib untuk setiap item (aturan last-write-wins di server).
  * Seluruh tanggal memakai epoch mili.
@@ -273,13 +273,19 @@ data class PushResponse(
     val total: Int,
 )
 
-// ── Respons pull: semua entitas + flag terpotong ──
+// ── Respons pull: semua entitas + kursor per entitas + flag terpotong ──
 
 @Serializable
 data class PerubahanResponse(
-    @SerialName("waktuServerEpochMili")
-    val waktuServerEpochMili: Long,
     val terpotong: Boolean = false,
+    /**
+     * Kursor keyset per entitas (format "<epochMili>:<id>"). Klien memakainya
+     * sebagai posisi tarik berikutnya, sehingga baris yang belum terkirim
+     * (batch terpotong) tidak pernah terlewat — berbeda dari kursor waktu
+     * server lama (`waktuServerEpochMili`) yang bisa melompati data.
+     */
+    @SerialName("kursorBaru")
+    val kursorBaru: Map<String, String> = emptyMap(),
     val products: List<ProdukSinkron> = emptyList(),
     val transactions: List<TransaksiSinkron> = emptyList(),
     @SerialName("transactionItems")

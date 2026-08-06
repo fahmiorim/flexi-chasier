@@ -4,11 +4,12 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Metadata sinkronisasi berbentuk key-value.
+ * Metadata sinkronisasi berbasis key-value.
  *
  * Kunci yang dipakai:
- * - `pull_terakhir:<geraiId>` → kursor epoch mili (waktu server) terakhir yang
- *   berhasil ditarik, agar pull berikutnya hanya mengambil perubahan baru.
+ * - `pull_terakhir:<geraiId>:<entitas>` → kursor keyset (`<epochMili>:<id>`)
+ *   per entitas, agar pull berikutnya hanya mengambil perubahan baru tanpa
+ *   melewatkan data saat batch terpotong.
  */
 @Entity(tableName = "meta_sinkron")
 data class SinkronMetaEntity(

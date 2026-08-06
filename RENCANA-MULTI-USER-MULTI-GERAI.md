@@ -76,8 +76,9 @@ Tabel data (semua punya `tenant_id` + `gerai_id`):
 **Auth**
 - `POST /api/auth/register` — buat tenant + user Pemilik + gerai pertama
 - `POST /api/auth/login` — response: accessToken, refreshToken, user, daftar gerai
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
+- `POST /api/auth/refresh` — rotasi: token lama dicabut (`revokedAt`), token baru diterbitkan
+- `POST /api/auth/logout` — mencabut refresh token di server (idempoten, best-effort)
+- Refresh token disimpan hash (SHA-256) di tabel `RefreshToken`; reset password mencabut semua sesi
 
 **Gerai & user**
 - `GET/POST /api/gerai`, `PUT /api/gerai/:id`
@@ -97,7 +98,9 @@ Tabel data (semua punya `tenant_id` + `gerai_id`):
 - `POST /api/sync/pengaturan-toko`
 
 **Pull**
-- `GET /api/sync/perubahan?sejakEpochMili=&geraiId=` → daftar baris ber-`versi`
+- `GET /api/sync/perubahan?geraiId=&batas=&<entitas>=<kursor>` → daftar baris ber-`versi`
+- Kursor per entitas berformat keyset `"<epochMili>:<id>"` (`"0:"` = dari awal), digabung dengan `waktuDiubah` + `id` agar gap-free tanpa melewatkan baris ber-timestamp sama. Respons mengembalikan `kursorBaru` per entitas (maju hanya sejauh baris yang benar-benar dikirim) dan `terpotong`; klien menarik ulang selama `terpotong` true.
+- Item transaksi & bahan resep dikirim lengkap per induk (tidak dipaginasikan sendiri) agar tidak ada item yang hilang saat batch induk terpotong.
 
 **Laporan (untuk website)**
 - `GET /api/laporan/penjualan-harian?geraiId=&dari=&sampai=`

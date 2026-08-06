@@ -1,9 +1,12 @@
 package id.flexi.kasir.data.network.interceptor
 
 import id.flexi.kasir.data.auth.TokenStore
+import id.flexi.kasir.data.network.model.RefreshNetworkResponse
 import id.flexi.kasir.data.network.model.RefreshRequest
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -11,6 +14,11 @@ import okhttp3.Response
  * Menyisipkan token akses (Bearer) ke setiap permintaan, dan menukar ulang
  * dengan refresh token saat server membalas 401. Penukaran hanya dilakukan
  * sekali per permintaan untuk menghindari perulangan tak terbatas.
+ *
+ * Penukaran di-*single-flight* (mutex + rotasi) karena backend MEN-CABUT token
+ * lama saat refresh berhasil: tanpa ini, dua permintaan yang menerima 401
+ * bersamaan sama-sama menukar dengan token lama, dan yang kedua gagal lalu
+ * sesi terhapus secara keliru.
  */
 class AuthInterceptor(
     private val tokenStore: TokenStore,
@@ -46,7 +54,17 @@ class AuthInterceptor(
 
         val hasilTukar = runCatching {
             runBlocking {
-                layananAuth.refresh(RefreshRequest(refreshToken = tokenRefresh))
+                mutexRefresh.withLock {
+                    // Request lain mungkin sudah menukar token (rotasi): pakai
+                    // hasilnya alih-alih menukar lagi dengan token lama yang
+                    // sudah dicabut server.
+                    if (tokenStore.refreshToken != tokenRefresh) {
+                        val aksesBaru = checkNotNull(tokenStore.aksesToken)
+                        val refreshBaru = checkNotNull(tokenStore.refreshToken)
+                        return@withLock RefreshNetworkResponse(aksesBaru, refreshBaru)
+                    }
+                    layananAuth.refresh(RefreshRequest(refreshToken = tokenRefresh))
+                }
             }
         }
         if (hasilTukar.isFailure) {
@@ -66,5 +84,10 @@ class AuthInterceptor(
             .build()
 
         return rantai.proceed(permintaanUlang)
+    }
+
+    private companion object {
+        /** Mengunci penukaran refresh token agar hanya SATU yang berjalan. */
+        val mutexRefresh = Mutex()
     }
 }

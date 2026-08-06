@@ -8,6 +8,7 @@ import id.flexi.kasir.data.network.model.ApiErrorResponse
 import id.flexi.kasir.data.network.model.AuthNetworkResponse
 import id.flexi.kasir.data.network.model.KirimUlangVerifikasiRequest
 import id.flexi.kasir.data.network.model.LoginRequest
+import id.flexi.kasir.data.network.model.LogoutRequest
 import id.flexi.kasir.data.network.model.LupaPasswordRequest
 import id.flexi.kasir.data.network.model.ResetPasswordRequest
 import id.flexi.kasir.data.network.model.RefreshRequest
@@ -146,7 +147,7 @@ class AuthRepositoryImpl(
     override suspend fun logout() {
         runCatching {
             tokenStore.refreshToken?.let { refreshToken ->
-                layananJaringan.logout()
+                layananJaringan.logout(LogoutRequest(refreshToken))
             }
         }
         tokenStore.hapus()

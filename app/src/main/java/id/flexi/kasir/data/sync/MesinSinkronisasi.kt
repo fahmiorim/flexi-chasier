@@ -227,40 +227,49 @@ class MesinSinkronisasi(
     // ═══════════════════════════════════════
 
     private suspend fun tarikSemua(geraiId: String): Int {
-        val kunci = "pull_terakhir:$geraiId"
-        var kursor = metaDao.ambil(kunci)?.toLongOrNull() ?: 0L
+        // Satu kursor keyset ("<epochMili>:<id>") per entitas di meta_sinkron.
+        var kursor = ENTITAS_PULL.associateWith { entitas ->
+            metaDao.ambil("$PREFIX_KURSOR:$geraiId:$entitas") ?: KURSOR_AWAL
+        }
         var iterasi = 0
-        var pengaturanTokoTerakhir: PengaturanTokoSinkron? = null
+        var pengaturanTokoTerbaik: PengaturanTokoSinkron? = null
 
         while (iterasi < MAKS_ITERASI_PULL) {
             val respons = layanan.ambilPerubahan(
                 geraiId = geraiId,
-                sejakEpochMili = kursor,
+                kursor = kursor,
                 batas = BATCH_PULL,
             )
             terapkan(respons.kePerubahanLokal(geraiId))
             iterasi++
 
-            // storeSettings adalah snapshot penuh di tiap respons; cukup pakai
-            // yang terakhir dan terapkan SEKALI setelah seluruh batch selesai.
-            // Utamakan baris dengan id deterministik per gerai (konsisten dengan
-            // push), fallback ke baris pertama bila data lama/seeded masih ada.
-            val pengaturanToko = respons.storeSettings
-                .firstOrNull { it.id == OutboxPencatat.idPengaturanToko(geraiId) }
-                ?: respons.storeSettings.firstOrNull()
-            pengaturanToko?.let { pengaturanTokoTerakhir = it }
+            // Kursor per entitas maju HANYA sejauh baris yang benar-benar ditarik
+            // (gap-free). Entitas yang terpotong tidak melompati datanya, jadi
+            // batch berikutnya melanjutkan dari baris terakhir yang diterima.
+            respons.kursorBaru.forEach { (entitas, kursorBaru) ->
+                if (kursorBaru.isNotBlank()) {
+                    kursor = kursor + (entitas to kursorBaru)
+                }
+            }
 
-            // Kursor selalu maju (minimal +1 ms) agar tidak pernah putar tanpa henti
-            // meskipun jam server tidak maju; data batch yang sudah ditarik tetap
-            // terpakai (upsert idempotent).
-            kursor = maxOf(respons.waktuServerEpochMili, kursor + 1L)
+            // storeSettings sekarang dikirim incremental (hanya yang berubah sejak
+            // kursor). Terapkan baris ber-`versi` tertinggi SEKALI setelah seluruh
+            // batch selesai (last-write-wins).
+            respons.storeSettings.forEach { s ->
+                if (pengaturanTokoTerbaik == null || s.versi > pengaturanTokoTerbaik!!.versi) {
+                    pengaturanTokoTerbaik = s
+                }
+            }
+
             if (!respons.terpotong) break
         }
 
         // Pengaturan toko (DataStore, penyimpanan terpisah) — sekali per siklus.
-        pengaturanTokoTerakhir?.let { terapkanPengaturanToko(it) }
+        pengaturanTokoTerbaik?.let { terapkanPengaturanToko(it) }
 
-        metaDao.simpan(kunci, kursor.toString())
+        kursor.forEach { (entitas, kursorBaru) ->
+            metaDao.simpan("$PREFIX_KURSOR:$geraiId:$entitas", kursorBaru)
+        }
         return iterasi
     }
 
@@ -381,6 +390,18 @@ class MesinSinkronisasi(
         private const val BATCH_PULL = 500
         private const val MAKS_ITERASI_PULL = 30
         private const val MAKS_PERCOBAAN = 3
+
+        /** Awalan kunci meta kursor pull per entitas. */
+        private const val PREFIX_KURSOR = "pull_terakhir"
+
+        /** Format kursor awal: dari waktu 0 (tarik semua data). */
+        private const val KURSOR_AWAL = "0:"
+
+        /** Entitas yang ditarik, masing-masing dengan kursor keyset sendiri. */
+        private val ENTITAS_PULL = listOf(
+            "produk", "transaksi", "meja", "shiftKas", "mutasiKas",
+            "setoran", "bahan", "pembelianBahan", "resep", "pengaturanToko",
+        )
 
         /** Kunci meta: epoch mili saat siklus dimulai (kosong bila tidak berjalan). */
         const val KUNCI_SEDANG_BERJALAN = "sinkron_sedang_berjalan"

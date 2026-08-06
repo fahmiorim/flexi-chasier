@@ -16,6 +16,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 /**
  * Kontrak endpoint sinkronisasi dua arah dengan backend.
@@ -29,7 +30,8 @@ interface SyncNetworkService {
     // ── PULL ──
 
     /**
-     * Mengambil perubahan semua entitas sejak [sejakEpochMili].
+     * Mengambil perubahan semua entitas sejak kursor per entitas ([kursor]).
+     * Format nilai kursor: "<epochMili>:<id>" (kursor keyset gap-free).
      * Bila [terpotong] pada respons bernilai true, klien harus menarik lagi
      * dengan kursor baru hingga false (data melebihi [batas] baris).
      */
@@ -37,8 +39,8 @@ interface SyncNetworkService {
     suspend fun ambilPerubahan(
         @Query("geraiId")
         geraiId: String,
-        @Query("sejakEpochMili")
-        sejakEpochMili: Long,
+        @QueryMap
+        kursor: Map<String, String>,
         @Query("batas")
         batas: Int = 500,
     ): PerubahanResponse

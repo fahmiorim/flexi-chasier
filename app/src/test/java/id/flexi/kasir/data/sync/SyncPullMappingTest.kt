@@ -31,7 +31,6 @@ class SyncPullMappingTest {
     private val geraiId = "gerai-1"
 
     private fun responsContoh(): PerubahanResponse = PerubahanResponse(
-        waktuServerEpochMili = 1_700_000_000_000L,
         terpotong = false,
         products = listOf(
             ProdukSinkron(id = "p-1", versi = 5L, nama = "Es Teh", harga = 10_000L, stok = 4, aktif = true, kategori = "Minuman"),

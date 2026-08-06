@@ -4,6 +4,7 @@ import id.flexi.kasir.data.network.model.AuthNetworkResponse
 import id.flexi.kasir.data.network.model.KirimUlangVerifikasiRequest
 import id.flexi.kasir.data.network.model.LoginRequest
 import id.flexi.kasir.data.network.model.LogoutNetworkResponse
+import id.flexi.kasir.data.network.model.LogoutRequest
 import id.flexi.kasir.data.network.model.LupaPasswordRequest
 import id.flexi.kasir.data.network.model.ResetNetworkResponse
 import id.flexi.kasir.data.network.model.ResetPasswordRequest
@@ -44,5 +45,5 @@ interface AuthNetworkService {
     suspend fun refresh(@Body body: RefreshRequest): RefreshNetworkResponse
 
     @POST("api/auth/logout")
-    suspend fun logout(): LogoutNetworkResponse
+    suspend fun logout(@Body body: LogoutRequest): LogoutNetworkResponse
 }
