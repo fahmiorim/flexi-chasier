@@ -242,7 +242,7 @@ class PayloadSinkronTest {
             versi = 1L,
         )
 
-        assertEquals(3, payload.stok) // roundToInt(2.6)
+        assertEquals(2, payload.stok) // floor(2.6) — selaras Math.floor di web/server
         assertEquals(12_000L, payload.hargaBeli)
     }
 

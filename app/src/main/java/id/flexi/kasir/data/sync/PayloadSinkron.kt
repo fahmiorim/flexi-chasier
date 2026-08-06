@@ -26,8 +26,8 @@ import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
+import kotlin.math.floor
 import kotlin.math.max
-import kotlin.math.roundToInt
 
 /**
  * Pembangun payload push sinkronisasi (murni, tanpa akses database).
@@ -183,7 +183,7 @@ object PayloadSinkron {
         versi = versi,
         nama = bahan.nama,
         satuan = bahan.satuan,
-        stok = bahan.stokTersedia.roundToInt(),
+        stok = floor(bahan.stokTersedia).toInt(),
         hargaBeli = bahan.hargaPerSatuan,
         stokMinimum = bahan.stokMinimum.toLong(),
         aktif = bahan.aktif,
@@ -200,7 +200,7 @@ object PayloadSinkron {
         versi = versi,
         bahanId = pembelian.bahanId,
         namaBahan = namaBahan,
-        jumlah = pembelian.jumlah.roundToInt(),
+        jumlah = floor(pembelian.jumlah).toInt(),
         hargaTotal = pembelian.totalHarga,
         waktuEpochMili = pembelian.tanggalBeli,
         dihapus = dihapus,
@@ -282,7 +282,7 @@ object PayloadSinkron {
                 resepId = resep.id,
                 bahanId = bahanResep.bahanId,
                 namaBahan = namaBahan[bahanResep.bahanId] ?: "Bahan",
-                jumlah = bahanResep.jumlah.roundToInt(),
+                jumlah = floor(bahanResep.jumlah).toInt(),
             )
         },
     )

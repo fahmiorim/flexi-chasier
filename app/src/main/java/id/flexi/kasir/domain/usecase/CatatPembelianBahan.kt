@@ -23,6 +23,7 @@ class CatatPembelianBahan(
         satuanBeli: String,
         totalHarga: Long,
         catatan: String? = null,
+        mutasiKasId: String? = null,
     ) {
         if (jumlah <= 0 || totalHarga <= 0) return
 
@@ -34,6 +35,7 @@ class CatatPembelianBahan(
             totalHarga = totalHarga,
             tanggalBeli = System.currentTimeMillis(),
             catatan = catatan,
+            mutasiKasId = mutasiKasId,
         )
 
         // Simpan pembelian

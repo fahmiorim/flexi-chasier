@@ -333,7 +333,7 @@ internal fun ItemProdukKelola(
     onUbah: () -> Unit,
 ) {
     val statusStokReady = !produk.apakahStokDiaktifkan || produk.stokTersedia > 5
-    val statusStokMenipis = produk.apakahStokDiaktifkan && produk.stokTersedia in 1..5
+    val statusStokMenipis = produk.apakahStokDiaktifkan && produk.stokTersedia <= 5
     val statusStokHabis = produk.apakahStokDiaktifkan && produk.stokTersedia <= 0
 
     val stokPillColor = when {

@@ -209,7 +209,7 @@ internal fun KartuTotalPenjualan(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                MetrikChip(label = "Rata-rata", value = rataRata, warnaTerang = true)
+                MetrikChip(label = "Rata-rata / Hari", value = rataRata, warnaTerang = true)
                 if (totalDiskon != "Rp0") {
                     MetrikChip(label = "Diskon", value = totalDiskon, warnaTerang = true)
                 }

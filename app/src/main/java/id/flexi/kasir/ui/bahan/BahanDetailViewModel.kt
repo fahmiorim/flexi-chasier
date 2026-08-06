@@ -15,6 +15,7 @@ import id.flexi.kasir.domain.usecase.AmatiRiwayatPenyesuaian
 import id.flexi.kasir.domain.usecase.AturStokBahan
 import id.flexi.kasir.domain.usecase.CatatMutasiKas
 import id.flexi.kasir.domain.usecase.CatatPembelianBahan
+import id.flexi.kasir.domain.usecase.HapusMutasiKas
 import id.flexi.kasir.domain.usecase.HapusPembelianBahan
 import id.flexi.kasir.domain.usecase.ObserveBahanById
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +49,7 @@ data class StatusHapusPembelian(
     val jumlah: Double = 0.0,
     val satuan: String = "",
     val totalHarga: Long = 0L,
+    val mutasiKasId: String? = null,
 )
 
 class BahanDetailViewModel(
@@ -56,6 +58,7 @@ class BahanDetailViewModel(
     private val CatatPembelianBahan: CatatPembelianBahan,
     private val AmatiPembelianBahan: AmatiPembelianBahan,
     private val HapusPembelianBahan: HapusPembelianBahan,
+    private val hapusMutasiKas: HapusMutasiKas,
     private val aturStokBahan: AturStokBahan,
     private val amatiRiwayatPenyesuaian: AmatiRiwayatPenyesuaian,
     private val amatiKasAktif: AmatiKasAktif,
@@ -114,14 +117,9 @@ class BahanDetailViewModel(
         viewModelScope.launch {
             try {
                 val satuan = satuanBeli.ifBlank { "pcs" }
-                CatatPembelianBahan(
-                    bahanId = idBahan,
-                    jumlah = jumlahDouble,
-                    satuanBeli = satuan,
-                    totalHarga = totalLong,
-                    catatan = catatan.ifBlank { null },
-                )
-                if (bayarPakaiLaci && kasAktif != null) {
+                // Buat mutasi kas BelanjaBahan lebih dulu agar id-nya tersimpan
+                // pada pembelian — saat pembelian dihapus, mutasi ikut dibatalkan.
+                val mutasiKasId = if (bayarPakaiLaci && kasAktif != null) {
                     val namaBahan = _state.value.bahan?.nama ?: "Bahan"
                     catatMutasiKas(
                         shiftId = kasAktif.id,
@@ -129,8 +127,18 @@ class BahanDetailViewModel(
                         nominal = totalLong,
                         catatan = "Pembelian $namaBahan (+${formatJumlah(jumlahDouble)} $satuan)",
                         kategori = CashExpenseCategory.BelanjaBahan,
-                    )
+                    ).id
+                } else {
+                    null
                 }
+                CatatPembelianBahan(
+                    bahanId = idBahan,
+                    jumlah = jumlahDouble,
+                    satuanBeli = satuan,
+                    totalHarga = totalLong,
+                    catatan = catatan.ifBlank { null },
+                    mutasiKasId = mutasiKasId,
+                )
                 _state.update {
                     it.copy(
                         apakahDialogTambahPembelianTampil = false,
@@ -164,6 +172,7 @@ class BahanDetailViewModel(
                     jumlah = pembelian.jumlah,
                     satuan = pembelian.satuanBeli,
                     totalHarga = pembelian.totalHarga,
+                    mutasiKasId = pembelian.mutasiKasId,
                 ),
             )
         }
@@ -182,6 +191,9 @@ class BahanDetailViewModel(
                     bahanId = status.bahanId,
                     jumlah = status.jumlah,
                 )
+                // Batalkan mutasi kas BelanjaBahan agar kas tidak selisih
+                // (pembelian dibayar dari laci, bahan sudah dihapus).
+                status.mutasiKasId?.let { hapusMutasiKas(it) }
                 _state.update {
                     it.copy(
                         statusHapusPembelian = StatusHapusPembelian(),

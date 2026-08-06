@@ -108,9 +108,6 @@ class CashRegisterViewModel(
     private var lastPengeluaran: String = "Rp0"
     private var lastMutasiList: List<CashMutation> = emptyList()
     private var lastSaldoSaatIni: String = "Rp0"
-    // Global cumulative saldo (across all shifts)
-    private var saldoGlobal: String = "Rp0"
-
     // Flag anti-dobel-klik: dipisah dari state agar tidak dioverwrite oleh combine emissions
     @Volatile
     private var sedangTutup = false
@@ -130,26 +127,6 @@ class CashRegisterViewModel(
             }.collectLatest { }
         }
 
-        // Observe global cumulative saldo using aggregate queries (SQL SUM langsung)
-        viewModelScope.launch {
-            combine(
-                transactionRepository.hitungTotalTunaiSemua(),
-                cashRepository.hitungTotalMutasiSemuaBerdasarkanTipe(CashMutationType.Pemasukan.name),
-                cashRepository.hitungTotalMutasiSemuaBerdasarkanTipe(CashMutationType.Pengeluaran.name),
-                cashRepository.hitungTotalSetoranAktif(),
-                cashRepository.hitungTotalSaldoAwalSemua(),
-            ) { allTunai, allPemasukan, allPengeluaran, allSetoranAktif, allSaldoAwal ->
-                val globalSaldo = allTunai + allPemasukan - allPengeluaran - allSetoranAktif
-                saldoGlobal = globalSaldo.sebagaiRupiah()
-
-                val current = _state.value
-                when (current) {
-                    is CashRegisterUiState.BelumBuka -> _state.value = current.copy(saldoGlobal = saldoGlobal)
-                    is CashRegisterUiState.KasAktif -> _state.value = current.copy(saldoGlobal = saldoGlobal)
-                    else -> {}
-                }
-            }.collect { }
-        }
 
         viewModelScope.launch {
             amatiSetoran().collect { setoranList ->
@@ -193,7 +170,6 @@ class CashRegisterViewModel(
                         daftarKasTertutup = daftarKasTertutup,
                         daftarSetoran = daftarSetoran,
                         totalSetoran = totalSetoran.sebagaiRupiah(),
-                        saldoGlobal = saldoGlobal,
                         kasTerpilih = existing?.kasTerpilih,
                         penjualanTunaiTerakhir = lastPenjualanTunai,
                         penjualanQRISTerakhir = lastPenjualanQRIS,
@@ -250,7 +226,6 @@ class CashRegisterViewModel(
                     daftarKasTertutup = daftarKasTertutup,
                     daftarSetoran = daftarSetoran.filter { it.shiftId == shift.id },
                     totalSetoran = totalSetoranShift.sebagaiRupiah(),
-                    saldoGlobal = saldoGlobal,
                     kasTerpilih = existingAktif?.kasTerpilih,
                     saldoSaatIni = saldoSaatIni.sebagaiRupiah(),
                     penjualanTunai = penjualanTunaiHariIni.sebagaiRupiah(),

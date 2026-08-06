@@ -83,7 +83,7 @@ class TransactionHistoryViewModel(
         _tanggalSelesaiKustom,
     ) { mulai, selesai ->
         if (mulai != null && selesai != null) {
-            val fmt = SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID"))
+            val fmt = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID"))
             "${fmt.format(Date(mulai))} - ${fmt.format(Date(selesai))}"
         } else ""
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")

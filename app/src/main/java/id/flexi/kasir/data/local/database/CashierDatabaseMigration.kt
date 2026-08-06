@@ -621,4 +621,20 @@ object CashierDatabaseMigration {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_setoran_shiftId ON setoran_kas(shiftId)")
         }
     }
+
+    /**
+     * Migrasi dari versi 26 ke versi 27.
+     *
+     * Perubahan:
+     * - menambahkan kolom `mutasiKasId` pada tabel `pembelian_bahan` agar
+     *   mutasi kas BelanjaBahan bisa dibatalkan saat pembelian dihapus
+     *   (dihapus dari daftar pembelian tidak lagi meninggalkan pengeluaran kas).
+     */
+    val DARI_26_KE_27: Migration = object : Migration(26, 27) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL("ALTER TABLE pembelian_bahan ADD COLUMN mutasiKasId TEXT")
+            } catch (_: Exception) { }
+        }
+    }
 }

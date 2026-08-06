@@ -39,4 +39,6 @@ data class LocalPembelianBahanEntity(
     val totalHarga: Long,
     val tanggalBeli: Long = System.currentTimeMillis(),
     val catatan: String? = null,
+    /** ID mutasi kas BelanjaBahan terkait (dibatalkan saat pembelian dihapus). */
+    val mutasiKasId: String? = null,
 )

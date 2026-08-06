@@ -19,7 +19,6 @@ sealed interface CashRegisterUiState {
         val daftarKasTertutup: List<CashKas> = emptyList(),
         val daftarSetoran: List<Setoran> = emptyList(),
         val totalSetoran: String = "Rp0",
-        val saldoGlobal: String = "Rp0",
         val kasTerpilih: CashKas? = null,
         // Financial data dari shift terakhir (disimpan saat transisi dari KasAktif)
         val penjualanTunaiTerakhir: String = "Rp0",
@@ -67,7 +66,6 @@ sealed interface CashRegisterUiState {
         val daftarKasTertutup: List<CashKas> = emptyList(),
         val daftarSetoran: List<Setoran> = emptyList(),
         val totalSetoran: String = "Rp0",
-        val saldoGlobal: String = "Rp0",
         val kasTerpilih: CashKas? = null,
         // Financial data untuk shift tertutup yang dipilih dari riwayat
         val kasTerpilihPenjualanTunai: String? = null,

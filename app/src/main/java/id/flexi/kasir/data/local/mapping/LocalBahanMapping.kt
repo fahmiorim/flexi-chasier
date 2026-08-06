@@ -42,6 +42,7 @@ fun LocalPembelianBahanEntity.keDomain(): PembelianBahan = PembelianBahan(
     totalHarga = totalHarga,
     tanggalBeli = tanggalBeli,
     catatan = catatan,
+    mutasiKasId = mutasiKasId,
 )
 
 /** Mengubah objek domain PembelianBahan menjadi entitas database. */
@@ -53,6 +54,7 @@ fun PembelianBahan.keLokal(): LocalPembelianBahanEntity = LocalPembelianBahanEnt
     totalHarga = totalHarga,
     tanggalBeli = tanggalBeli,
     catatan = catatan,
+    mutasiKasId = mutasiKasId,
 )
 
 /** Mengubah entitas database menjadi objek domain Resep. */

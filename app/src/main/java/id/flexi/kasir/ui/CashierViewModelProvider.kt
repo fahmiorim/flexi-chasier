@@ -205,6 +205,7 @@ object CashierViewModelProvider {
                 amatiRiwayatPenyesuaian = aplikasi.kontainer.amatiRiwayatPenyesuaian,
                 amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
                 catatMutasiKas = aplikasi.kontainer.catatMutasiKas,
+                hapusMutasiKas = aplikasi.kontainer.hapusMutasiKas,
             )
         }
 

@@ -74,7 +74,7 @@ private fun ManualItemForm(
             OutlinedTextField(
                 value = nama,
                 onValueChange = { nama = it },
-                label = { Text("Keterangan") },
+                label = { Text("Catatan") },
                 placeholder = { Text("Misal: Es Teh Tawar") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),

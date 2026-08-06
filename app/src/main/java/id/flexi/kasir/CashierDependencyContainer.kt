@@ -141,6 +141,7 @@ class CashierDependencyContainer(
                 CashierDatabaseMigration.DARI_23_KE_24,
                 CashierDatabaseMigration.DARI_24_KE_25,
                 CashierDatabaseMigration.DARI_25_KE_26,
+                CashierDatabaseMigration.DARI_26_KE_27,
             )
             .fallbackToDestructiveMigration(false)
             .build()

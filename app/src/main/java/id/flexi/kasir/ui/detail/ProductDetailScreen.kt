@@ -324,7 +324,7 @@ private fun KontenDetailProduk(
                                     }
                                     marginProduk?.let { margin ->
                                         FlexiInfoRow(
-                                            label = "Margin Laba",
+                                            label = "Laba Kotor",
                                             value = margin,
                                             valueColor = MaterialTheme.colorScheme.primary,
                                         )
@@ -558,7 +558,7 @@ private fun DialogRiwayatPenyesuaianProduk(
     daftar: List<PenyesuaianStok>,
     onDismiss: () -> Unit,
 ) {
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")) }
 
     FlexiDialog(onDismissRequest = onDismiss) {
         Column(
@@ -569,7 +569,7 @@ private fun DialogRiwayatPenyesuaianProduk(
         ) {
             FlexiDialogHeader(
                 icon = Icons.Default.History,
-                title = "Riwayat Penyesuaian Stok",
+                title = "Riwayat Stok",
                 onClose = onDismiss,
             )
 

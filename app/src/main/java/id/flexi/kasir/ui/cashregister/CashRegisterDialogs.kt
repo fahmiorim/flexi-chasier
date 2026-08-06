@@ -177,7 +177,7 @@ internal fun DialogMutasi(
 
             OutlinedTextField(
                 value = catatan, onValueChange = perbaruiCatatan,
-                label = { Text("Keterangan") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Catatan") }, modifier = Modifier.fillMaxWidth(),
                 singleLine = true, shape = RoundedCornerShape(12.dp),
             )
 
@@ -377,7 +377,7 @@ internal fun DialogSetoran(
 
             OutlinedTextField(
                 value = catatan, onValueChange = perbaruiCatatan,
-                label = { Text("Keterangan (opsional)") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Catatan (opsional)") }, modifier = Modifier.fillMaxWidth(),
                 singleLine = true, shape = RoundedCornerShape(12.dp),
             )
 
@@ -419,7 +419,7 @@ internal fun DialogEditSetoran(
 
             OutlinedTextField(
                 value = catatan, onValueChange = perbaruiCatatan,
-                label = { Text("Keterangan") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Catatan") }, modifier = Modifier.fillMaxWidth(),
                 singleLine = true, shape = RoundedCornerShape(12.dp),
             )
 

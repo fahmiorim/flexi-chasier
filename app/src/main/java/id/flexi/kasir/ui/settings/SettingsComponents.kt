@@ -794,7 +794,7 @@ internal fun DialogPreviewStruk(
     val pajak = ((subtotal - potongan) * 0.1).toLong()
     val totalAkhir = subtotal - potongan + biayaLayanan + pajak
 
-    val formatTanggal = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale("id", "ID"))
+    val formatTanggal = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale("id", "ID"))
     val waktuPreview = formatTanggal.format(java.util.Date())
 
     fun garisP(): String = "═".repeat(maxChar)

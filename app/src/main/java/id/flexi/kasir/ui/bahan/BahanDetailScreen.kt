@@ -341,7 +341,7 @@ private fun KartuPembelian(
     pembelian: PembelianBahan,
     onHapus: () -> Unit,
 ) {
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")) }
 
     FlexiCard(
         modifier = Modifier.fillMaxWidth(),
@@ -416,7 +416,7 @@ private fun DialogTambahPembelian(
         ) {
             FlexiDialogHeader(
                 icon = Icons.Default.AddShoppingCart,
-                title = "Tambah Pembelian",
+                title = "Catat Pembelian",
                 onClose = onDismiss,
             )
 
@@ -586,7 +586,7 @@ private fun DialogRiwayatPenyesuaian(
     satuan: String,
     onDismiss: () -> Unit,
 ) {
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")) }
 
     FlexiDialog(onDismissRequest = onDismiss) {
         Column(
@@ -597,7 +597,7 @@ private fun DialogRiwayatPenyesuaian(
         ) {
             FlexiDialogHeader(
                 icon = Icons.Default.History,
-                title = "Riwayat Penyesuaian Stok",
+                title = "Riwayat Stok",
                 onClose = onDismiss,
             )
 

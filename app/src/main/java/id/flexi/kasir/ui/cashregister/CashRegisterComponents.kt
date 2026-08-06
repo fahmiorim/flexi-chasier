@@ -201,9 +201,11 @@ internal fun RekapKasContent(
         ) {
             // ── Total Saldo Tunai (tampil di kedua state) ──
             item {
-                val saldoGlobal = when (state) {
-                    is CashRegisterUiState.KasAktif -> state.saldoGlobal
-                    is CashRegisterUiState.BelumBuka -> state.saldoGlobal
+                // Saldo yang bermakna lintas platform: saldo shift yang sedang aktif,
+                // atau saldo terakhir shift yang baru ditutup (bukan akumulasi semua shift).
+                val saldoTampil = when (state) {
+                    is CashRegisterUiState.KasAktif -> state.saldoSaatIni
+                    is CashRegisterUiState.BelumBuka -> state.saldoSaatIniTerakhir
                     else -> "Rp0"
                 }
 
@@ -222,7 +224,7 @@ internal fun RekapKasContent(
                 }
 
                 SaldoKasBanner(
-                    saldo = saldoGlobal,
+                    saldo = saldoTampil,
                     penjualanTunai = penjualanTunai,
                     penjualanQRIS = penjualanQRIS,
                     totalPemasukan = totalPemasukan,

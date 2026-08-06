@@ -81,7 +81,7 @@ class PengujianTransactionHistoryViewModel {
         advanceUntilIdle()
 
         assertEquals(FilterTanggalRiwayat.Kustom, pengelolaTampilan.filterTanggal.value)
-        assertEquals("01/01/2024 - 03/01/2024", pengelolaTampilan.labelRentangKustom.value)
+        assertEquals("01 Jan 2024 - 03 Jan 2024", pengelolaTampilan.labelRentangKustom.value)
         pekerjaanPengumpul.cancel()
     }
 
