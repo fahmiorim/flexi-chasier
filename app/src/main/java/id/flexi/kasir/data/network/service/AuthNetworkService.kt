@@ -4,6 +4,9 @@ import id.flexi.kasir.data.network.model.AuthNetworkResponse
 import id.flexi.kasir.data.network.model.KirimUlangVerifikasiRequest
 import id.flexi.kasir.data.network.model.LoginRequest
 import id.flexi.kasir.data.network.model.LogoutNetworkResponse
+import id.flexi.kasir.data.network.model.LupaPasswordRequest
+import id.flexi.kasir.data.network.model.ResetNetworkResponse
+import id.flexi.kasir.data.network.model.ResetPasswordRequest
 import id.flexi.kasir.data.network.model.RefreshNetworkResponse
 import id.flexi.kasir.data.network.model.RefreshRequest
 import id.flexi.kasir.data.network.model.RegisterNetworkResponse
@@ -30,6 +33,12 @@ interface AuthNetworkService {
 
     @POST("api/auth/kirim-ulang-verifikasi")
     suspend fun kirimUlangVerifikasi(@Body body: KirimUlangVerifikasiRequest): VerifikasiNetworkResponse
+
+    @POST("api/auth/lupa-password")
+    suspend fun lupaPassword(@Body body: LupaPasswordRequest): ResetNetworkResponse
+
+    @POST("api/auth/reset-password")
+    suspend fun resetPassword(@Body body: ResetPasswordRequest): ResetNetworkResponse
 
     @POST("api/auth/refresh")
     suspend fun refresh(@Body body: RefreshRequest): RefreshNetworkResponse

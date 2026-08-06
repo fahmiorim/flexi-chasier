@@ -41,6 +41,20 @@ interface AuthRepository {
     suspend fun kirimUlangVerifikasi(email: String): NetworkOperationResult<Unit>
 
     /**
+     * Minta kode reset password ke email terdaftar.
+     */
+    suspend fun lupaPassword(email: String): NetworkOperationResult<Unit>
+
+    /**
+     * Set password baru memakai kode reset 6 digit dari email.
+     */
+    suspend fun resetPassword(
+        email: String,
+        kode: String,
+        passwordBaru: String,
+    ): NetworkOperationResult<Unit>
+
+    /**
      * Memilih gerai aktif dari daftar gerai milik pengguna.
      */
     suspend fun pilihGerai(geraiId: String)

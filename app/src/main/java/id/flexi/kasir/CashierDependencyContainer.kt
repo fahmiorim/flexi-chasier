@@ -82,6 +82,8 @@ import id.flexi.kasir.domain.usecase.KeluarAkun
 import id.flexi.kasir.domain.usecase.LoginUser
 import id.flexi.kasir.domain.usecase.PilihGerai
 import id.flexi.kasir.domain.usecase.KirimUlangVerifikasi
+import id.flexi.kasir.domain.usecase.LupaPassword
+import id.flexi.kasir.domain.usecase.ResetPassword
 import id.flexi.kasir.domain.usecase.VerifikasiEmail
 import id.flexi.kasir.domain.usecase.RegisterAkun
 
@@ -533,6 +535,14 @@ class CashierDependencyContainer(
 
     val kirimUlangVerifikasi: KirimUlangVerifikasi by lazy {
         KirimUlangVerifikasi(AuthRepository)
+    }
+
+    val lupaPassword: LupaPassword by lazy {
+        LupaPassword(AuthRepository)
+    }
+
+    val resetPassword: ResetPassword by lazy {
+        ResetPassword(AuthRepository)
     }
 
     val pilihGerai: PilihGerai by lazy {

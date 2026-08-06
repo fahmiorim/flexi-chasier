@@ -98,6 +98,24 @@ data class LogoutNetworkResponse(
 )
 
 @Serializable
+data class LupaPasswordRequest(
+    val email: String,
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val kode: String,
+    @SerialName("passwordBaru")
+    val passwordBaru: String,
+)
+
+@Serializable
+data class ResetNetworkResponse(
+    val ok: Boolean = false,
+)
+
+@Serializable
 data class ApiErrorResponse(
     val error: String? = null,
 )

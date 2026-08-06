@@ -8,10 +8,11 @@ import id.flexi.kasir.data.network.model.ApiErrorResponse
 import id.flexi.kasir.data.network.model.AuthNetworkResponse
 import id.flexi.kasir.data.network.model.KirimUlangVerifikasiRequest
 import id.flexi.kasir.data.network.model.LoginRequest
+import id.flexi.kasir.data.network.model.LupaPasswordRequest
+import id.flexi.kasir.data.network.model.ResetPasswordRequest
 import id.flexi.kasir.data.network.model.RefreshRequest
 import id.flexi.kasir.data.network.model.RegisterRequest
 import id.flexi.kasir.data.network.model.VerifikasiEmailRequest
-import id.flexi.kasir.data.network.model.VerifikasiNetworkResponse
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.domain.model.AkunUser
 import id.flexi.kasir.domain.model.GeraiSederhana
@@ -97,7 +98,7 @@ class AuthRepositoryImpl(
         email: String,
         kode: String,
     ): NetworkOperationResult<Unit> {
-        return cobaOperasiVerifikasi {
+        return cobaOperasiUnit {
             layananJaringan.verifikasiEmail(
                 VerifikasiEmailRequest(email = email, kode = kode),
             )
@@ -105,9 +106,33 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun kirimUlangVerifikasi(email: String): NetworkOperationResult<Unit> {
-        return cobaOperasiVerifikasi {
+        return cobaOperasiUnit {
             layananJaringan.kirimUlangVerifikasi(
                 KirimUlangVerifikasiRequest(email = email),
+            )
+        }
+    }
+
+    override suspend fun lupaPassword(email: String): NetworkOperationResult<Unit> {
+        return cobaOperasiUnit {
+            layananJaringan.lupaPassword(
+                LupaPasswordRequest(email = email),
+            )
+        }
+    }
+
+    override suspend fun resetPassword(
+        email: String,
+        kode: String,
+        passwordBaru: String,
+    ): NetworkOperationResult<Unit> {
+        return cobaOperasiUnit {
+            layananJaringan.resetPassword(
+                ResetPasswordRequest(
+                    email = email,
+                    kode = kode,
+                    passwordBaru = passwordBaru,
+                ),
             )
         }
     }
@@ -128,8 +153,8 @@ class AuthRepositoryImpl(
         sesiStore.hapus()
     }
 
-    private suspend fun cobaOperasiVerifikasi(
-        operasi: suspend () -> VerifikasiNetworkResponse,
+    private suspend fun <T> cobaOperasiUnit(
+        operasi: suspend () -> T,
     ): NetworkOperationResult<Unit> {
         return try {
             operasi()

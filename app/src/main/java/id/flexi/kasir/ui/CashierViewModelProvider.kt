@@ -205,6 +205,8 @@ object CashierViewModelProvider {
                 registerAkun = aplikasi.kontainer.registerAkun,
                 verifikasiEmail = aplikasi.kontainer.verifikasiEmail,
                 kirimUlangVerifikasi = aplikasi.kontainer.kirimUlangVerifikasi,
+                lupaPassword = aplikasi.kontainer.lupaPassword,
+                resetPassword = aplikasi.kontainer.resetPassword,
                 keluarAkun = aplikasi.kontainer.keluarAkun,
             )
         }
