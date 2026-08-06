@@ -71,6 +71,32 @@ android {
         }
     }
 
+    // Fail-fast: menolak membangun APK RILIS yang masih memakai placeholder,
+    // agar aplikasi produksi tidak diam-diam terhubung ke alamat tidak valid.
+    // Task didaftarkan secara lazy (register) sehingga aman meski tidak ada
+    // task preReleaseBuild bawaan AGP; dependensi ke assembleRelease ditambahkan
+    // hanya jika task tersebut benar-benar dipanggil.
+    // Fail-fast kompatibel configuration cache: properti dijadikan task input
+    // (Gradle men-serialize nilainya, bukan referensi project).
+    val alamatRilisProvider = providers.gradleProperty("ALAMAT_DASAR_API")
+    val cekAlamatRilis by tasks.registering {
+        inputs.property("alamatDasarApi", alamatRilisProvider)
+        doLast {
+            val alamat = alamatRilisProvider.getOrElse("").trim().trimEnd('/')
+            if (alamat.isEmpty() || alamat.contains("belum-dikonfigurasi")) {
+                throw GradleException(
+                    "ALAMAT_DASAR_API belum diatur untuk build rilis. " +
+                        "Gunakan: ./gradlew assembleRelease -PALAMAT_DASAR_API=https://api.domain.com " +
+                        "atau set ALAMAT_DASAR_API di gradle.properties.",
+                )
+            }
+        }
+    }
+
+    tasks.matching { it.name == "assembleRelease" }.configureEach {
+        dependsOn(cekAlamatRilis)
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
