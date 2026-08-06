@@ -313,10 +313,11 @@ class MesinSinkronisasi(
             // ── 2. Transaksi + item (item diganti total per transaksi) ──
             if (perubahan.transaksi.isNotEmpty()) {
                 perubahan.transaksi.forEach { transaksi ->
-                    // Server TIDAK menyimpan field khusus-lokal (potongan, pajak,
-                    // biaya layanan, status, tipe pesanan, meja, nomor antrian, dll).
-                    // Saat pull menimpa transaksi yang SUDAH ada secara lokal, field
-                    // itu dipertahankan agar tidak ter-reset ke nilai default kosong.
+                    // Server kini menyimpan rincian (potongan, biaya layanan, pajak,
+                    // status, tipe pesanan, catatan). Untuk transaksi yang SUDAH ada
+                    // secara lokal, nilai lokal dipertahankan agar data lama (yang
+                    // dibuat sebelum kolom rincian ada di server) tidak tertimpa
+                    // default kosong; untuk data baru nilainya identik di kedua sisi.
                     val adaLokal = transaksiDao
                         .ambilTransactionBerdasarkanId(transaksi.id)
                         ?.Transaction

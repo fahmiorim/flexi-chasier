@@ -63,6 +63,14 @@ data class TransaksiSinkron(
     val total: Long,
     val dibayar: Long,
     val kembalian: Long,
+    val potongan: Long = 0L,
+    @SerialName("biayaLayanan")
+    val biayaLayanan: Long = 0L,
+    val pajak: Long = 0L,
+    val status: String = "Paid",
+    @SerialName("orderType")
+    val orderType: String = "DineIn",
+    val catatan: String? = null,
     val dibatalkan: Boolean = false,
     @SerialName("dibuatOleh")
     val dibuatOleh: String? = null,
