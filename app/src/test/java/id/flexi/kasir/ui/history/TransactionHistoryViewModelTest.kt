@@ -158,7 +158,6 @@ class PengujianTransactionHistoryViewModel {
                 it.waktuTransactionEpochMili >= sejak && it.waktuTransactionEpochMili < sampai
             }
 
-        override fun hitungTotalTunaiSemua(): Flow<Long> = flowOf(0L)
         override fun hitungTotalQRISSemua(): Flow<Long> = flowOf(0L)
         override fun hitungTotalTunaiSejak(sejak: Long): Flow<Long> = flowOf(0L)
         override fun hitungTotalQRISSejak(sejak: Long): Flow<Long> = flowOf(0L)

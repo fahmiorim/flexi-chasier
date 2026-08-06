@@ -1,5 +1,6 @@
 package id.flexi.kasir.print
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
@@ -183,7 +184,11 @@ class ThermalPrinterManager(
 
     /**
      * Mencari printer Bluetooth pertama yang sudah dipasangkan.
+     * Izin BLUETOOTH_CONNECT diperiksa di pemanggil (percetakan membungkus
+     * SecurityException); di sini dianotasikan agar lint tidak menandai
+     * bondedDevices sebagai MissingPermission.
      */
+    @SuppressLint("MissingPermission")
     private fun cariPrinterBluetooth(): BluetoothDevice? {
         val adapter = bluetoothAdapter ?: return null
         if (!adapter.isEnabled) return null

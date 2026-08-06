@@ -76,9 +76,6 @@ interface LocalCashDao {
     @Query("SELECT COALESCE(SUM(nominal), 0) FROM mutasi_kas WHERE shiftId = :kasId AND tipe = :tipe")
     fun hitungTotalMutasiBerdasarkanTipe(kasId: String, tipe: String): Flow<Long>
 
-    @Query("SELECT COALESCE(SUM(nominal), 0) FROM mutasi_kas WHERE tipe = :tipe")
-    fun hitungTotalMutasiSemuaBerdasarkanTipe(tipe: String): Flow<Long>
-
     @Query("SELECT COALESCE(SUM(nominal), 0) FROM setoran_kas WHERE dihapus = 0")
     fun hitungTotalSetoranAktif(): Flow<Long>
 
@@ -88,6 +85,4 @@ interface LocalCashDao {
     @Query("SELECT COALESCE(SUM(nominal), 0) FROM mutasi_kas WHERE shiftId = :kasId AND tipe = :tipe")
     suspend fun ambilTotalMutasiBerdasarkanTipe(kasId: String, tipe: String): Long
 
-    @Query("SELECT COALESCE(SUM(saldoAwal), 0) FROM shift_kas")
-    fun hitungTotalSaldoAwalSemua(): Flow<Long>
 }

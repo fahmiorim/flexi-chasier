@@ -151,9 +151,6 @@ interface TransactionRepository {
     /** Mengambil daftar transaksi dalam rentang waktu (one-shot). */
     suspend fun ambilTransactionRentang(sejak: Long, sampai: Long): List<Transaction>
 
-    /** Total penjualan tunai (semua waktu). */
-    fun hitungTotalTunaiSemua(): Flow<Long>
-
     /** Total penjualan QRIS (semua waktu). */
     fun hitungTotalQRISSemua(): Flow<Long>
 

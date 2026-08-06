@@ -53,9 +53,6 @@ interface CashRepository {
     /** Total mutasi berdasarkan tipe untuk satu shift (reactive). */
     fun hitungTotalMutasiBerdasarkanTipe(kasId: String, tipe: String): Flow<Long>
 
-    /** Total mutasi berdasarkan tipe untuk semua shift (reactive). */
-    fun hitungTotalMutasiSemuaBerdasarkanTipe(tipe: String): Flow<Long>
-
     /** Total setoran aktif (dihapus = 0) untuk satu shift (reactive). */
     fun hitungTotalSetoranBerdasarkanKas(kasId: String): Flow<Long>
 
@@ -64,7 +61,4 @@ interface CashRepository {
 
     /** Total mutasi berdasarkan tipe untuk satu shift (one-shot). */
     suspend fun ambilTotalMutasiBerdasarkanTipe(kasId: String, tipe: String): Long
-
-    /** Total saldoAwal dari seluruh shift (reactive). */
-    fun hitungTotalSaldoAwalSemua(): Flow<Long>
 }

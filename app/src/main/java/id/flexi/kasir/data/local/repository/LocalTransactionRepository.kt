@@ -444,9 +444,6 @@ class TransactionRepositoryLokal(
     // AGGREGATE — SQL SUM langsung, bukan load semua
     // ═══════════════════════════════════════
 
-    override fun hitungTotalTunaiSemua(): Flow<Long> =
-        aksesDataTransaction.hitungTotalTunaiSemua()
-
     override fun hitungTotalQRISSemua(): Flow<Long> =
         aksesDataTransaction.hitungTotalQRISSemua()
 

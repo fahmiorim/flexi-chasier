@@ -162,7 +162,6 @@ class PengujianTransactionDetailViewModel {
         override suspend fun batalkanTransaction(identitasTransaction: String, alasan: String?) {}
 
         override suspend fun ambilTransactionRentang(sejak: Long, sampai: Long): List<Transaction> = emptyList()
-        override fun hitungTotalTunaiSemua(): Flow<Long> = flowOf(0L)
         override fun hitungTotalQRISSemua(): Flow<Long> = flowOf(0L)
         override fun hitungTotalTunaiSejak(sejak: Long): Flow<Long> = flowOf(0L)
         override fun hitungTotalQRISSejak(sejak: Long): Flow<Long> = flowOf(0L)

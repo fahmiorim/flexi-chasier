@@ -548,7 +548,6 @@ class PengujianCashierMainViewModel {
             }
         }
 
-        override fun hitungTotalTunaiSemua(): Flow<Long> = MutableStateFlow(0L)
         override fun hitungTotalQRISSemua(): Flow<Long> = MutableStateFlow(0L)
         override fun hitungTotalTunaiSejak(sejak: Long): Flow<Long> = MutableStateFlow(0L)
         override fun hitungTotalQRISSejak(sejak: Long): Flow<Long> = MutableStateFlow(0L)

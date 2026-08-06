@@ -203,27 +203,6 @@ interface LocalTransactionDao {
     // ═══════════════════════════════════════
 
     /**
-     * Total penjualan tunai (lunas, Cash, tidak dibatalkan) untuk semua waktu.
-     * Menggunakan subtotal item (hargaProduk × jumlah) bukan uangDibayar,
-     * karena uangDibayar bisa lebih besar dari total (uang pas lebih).
-     */
-    @Query(
-        """
-        SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
-        ), 0)
-        FROM Transaction_lokal t
-        LEFT JOIN (
-            SELECT TransactionId, SUM(hargaProduk * jumlah) AS item_subtotal
-            FROM item_Transaction_lokal
-            GROUP BY TransactionId
-        ) i ON t.id = i.TransactionId
-        WHERE t.status != 'Pending' AND t.PaymentMethod = 'Cash' AND t.dibatalkan = 0
-        """
-    )
-    fun hitungTotalTunaiSemua(): Flow<Long>
-
-    /**
      * Total penjualan QRIS (lunas, Qris, tidak dibatalkan) untuk semua waktu.
      */
     @Query(
