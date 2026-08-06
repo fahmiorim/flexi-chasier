@@ -2,6 +2,7 @@ package id.flexi.kasir.ui.main
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -381,15 +382,22 @@ internal fun CashierTabletLayout(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
         ) {
+            val lebarPanel = maxWidth
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             if (modelTampilan.tabTransaksi != 0) {
-                val kolomKatalog = if (modelTampilan.catalogDisplay == CatalogDisplay.Grid) {
-                    GridCells.Fixed(4)
-                } else {
-                    GridCells.Fixed(1)
+                val kolomKatalog = when {
+                    modelTampilan.catalogDisplay == CatalogDisplay.Grid -> GridCells.Fixed(4)
+                    // Ponsel: 2 kolom di layar sempit, 3 kolom di layar lebar
+                    lebarPanel >= 480.dp -> GridCells.Fixed(3)
+                    else -> GridCells.Fixed(2)
                 }
 
                 LazyVerticalGrid(
@@ -494,7 +502,8 @@ internal fun CashierTabletLayout(
                     },
                 )
             }
-        }
+            } // tutup Row
+        } // tutup BoxWithConstraints
     }
 }
 

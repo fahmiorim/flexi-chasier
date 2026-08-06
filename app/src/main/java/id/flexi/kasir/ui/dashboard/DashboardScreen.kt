@@ -9,6 +9,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -110,42 +111,93 @@ fun DashboardScreen(
                 }
 
                 // ── Baris 1: Penjualan + Transaksi + Item + Waktu Tunggu ──
+                // Layar lebar: 4 kartu sejajar; layar sempit: 2×2 agar tetap lega.
                 item(key = "hero_row") {
                     AnimatedSection(delayMs = 100) {
-                        Row(
+                        BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            FlexiStatCard(
-                                label = "Penjualan",
-                                value = modelTampilan.totalPenjualanHariIni,
-                                icon = Icons.Default.ShoppingCart,
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.weight(1.2f),
-                            )
-                            FlexiStatCard(
-                                label = "Transaksi",
-                                value = modelTampilan.jumlahTransactionHariIni,
-                                icon = Icons.Outlined.Assignment,
-                                accentColor = FlexiColors.chartPurple,
-                                modifier = Modifier.weight(1f),
-                            )
-                            FlexiStatCard(
-                                label = "Item",
-                                value = "${modelTampilan.totalProdukTerjualHariIni}",
-                                icon = Icons.Outlined.Fastfood,
-                                accentColor = FlexiColors.chartAmber,
-                                modifier = Modifier.weight(1f),
-                            )
-                            FlexiStatCard(
-                                label = "Waktu Tunggu",
-                                value = modelTampilan.rataWaktuTungguHariIni,
-                                icon = Icons.Outlined.Timer,
-                                accentColor = FlexiColors.success,
-                                modifier = Modifier.weight(1f),
-                            )
+                            if (maxWidth >= 600.dp) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    FlexiStatCard(
+                                        label = "Penjualan",
+                                        value = modelTampilan.totalPenjualanHariIni,
+                                        icon = Icons.Default.ShoppingCart,
+                                        accentColor = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1.2f),
+                                    )
+                                    FlexiStatCard(
+                                        label = "Transaksi",
+                                        value = modelTampilan.jumlahTransactionHariIni,
+                                        icon = Icons.Outlined.Assignment,
+                                        accentColor = FlexiColors.chartPurple,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    FlexiStatCard(
+                                        label = "Item",
+                                        value = "${modelTampilan.totalProdukTerjualHariIni}",
+                                        icon = Icons.Outlined.Fastfood,
+                                        accentColor = FlexiColors.chartAmber,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    FlexiStatCard(
+                                        label = "Waktu Tunggu",
+                                        value = modelTampilan.rataWaktuTungguHariIni,
+                                        icon = Icons.Outlined.Timer,
+                                        accentColor = FlexiColors.success,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        FlexiStatCard(
+                                            label = "Penjualan",
+                                            value = modelTampilan.totalPenjualanHariIni,
+                                            icon = Icons.Default.ShoppingCart,
+                                            accentColor = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        FlexiStatCard(
+                                            label = "Transaksi",
+                                            value = modelTampilan.jumlahTransactionHariIni,
+                                            icon = Icons.Outlined.Assignment,
+                                            accentColor = FlexiColors.chartPurple,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        FlexiStatCard(
+                                            label = "Item",
+                                            value = "${modelTampilan.totalProdukTerjualHariIni}",
+                                            icon = Icons.Outlined.Fastfood,
+                                            accentColor = FlexiColors.chartAmber,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        FlexiStatCard(
+                                            label = "Waktu Tunggu",
+                                            value = modelTampilan.rataWaktuTungguHariIni,
+                                            icon = Icons.Outlined.Timer,
+                                            accentColor = FlexiColors.success,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
