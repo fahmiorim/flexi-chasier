@@ -4,6 +4,7 @@ import id.flexi.kasir.domain.identity.CashKasIdGenerator
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.Uang
 import id.flexi.kasir.domain.repository.CashRepository
+import kotlinx.coroutines.flow.first
 
 class CatatSetoran(
     private val cashRepository: CashRepository,
@@ -12,6 +13,9 @@ class CatatSetoran(
         nominal: Long,
         catatan: String,
     ): Setoran {
+        // Setoran hanya sah bila ada shift kas yang masih terbuka.
+        val kasAktif = cashRepository.amatiKasAktif().first()
+            ?: throw IllegalArgumentException("Tidak ada shift kas terbuka. Buka kas dulu sebelum menyetor.")
         val setoran = Setoran(
             id = CashKasIdGenerator.buatIdentitasSetoranBaru(),
             nominal = Uang.dariRupiah(nominal),

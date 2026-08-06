@@ -50,7 +50,7 @@ fun CartItem.keLokal(TransactionId: String): LocalTransactionItemEntity {
         TransactionId = TransactionId,
         produkId = produk.id,
         namaProduk = produk.nama,
-        hargaProduk = produk.harga,
+        hargaProduk = varian?.harga ?: produk.harga,
         jumlah = jumlah,
         catatanItem = catatan,
         kodePindai = produk.kodePindai,

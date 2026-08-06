@@ -303,8 +303,32 @@ class MesinSinkronisasi(
             // ── 2. Transaksi + item (item diganti total per transaksi) ──
             if (perubahan.transaksi.isNotEmpty()) {
                 perubahan.transaksi.forEach { transaksi ->
+                    // Server TIDAK menyimpan field khusus-lokal (potongan, pajak,
+                    // biaya layanan, status, tipe pesanan, meja, nomor antrian, dll).
+                    // Saat pull menimpa transaksi yang SUDAH ada secara lokal, field
+                    // itu dipertahankan agar tidak ter-reset ke nilai default kosong.
+                    val adaLokal = transaksiDao
+                        .ambilTransactionBerdasarkanId(transaksi.id)
+                        ?.Transaction
+                    val hasilGabung = if (adaLokal == null) {
+                        transaksi
+                    } else {
+                        transaksi.copy(
+                            potongan = adaLokal.potongan,
+                            biayaLayanan = adaLokal.biayaLayanan,
+                            pajak = adaLokal.pajak,
+                            catatan = adaLokal.catatan,
+                            status = adaLokal.status,
+                            OrderType = adaLokal.OrderType,
+                            nomorAntrian = adaLokal.nomorAntrian,
+                            mejaId = adaLokal.mejaId,
+                            waktuDiprosesEpochMili = adaLokal.waktuDiprosesEpochMili,
+                            waktuSelesaiEpochMili = adaLokal.waktuSelesaiEpochMili,
+                            alasanPembatalan = adaLokal.alasanPembatalan,
+                        )
+                    }
                     transaksiDao.simpanTransactionDenganItem(
-                        Transaction = transaksi,
+                        Transaction = hasilGabung,
                         daftarItem = perubahan.itemTransaksi.filter { it.TransactionId == transaksi.id },
                     )
                 }

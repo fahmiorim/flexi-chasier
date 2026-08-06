@@ -68,6 +68,8 @@ object PayloadSinkron {
         dihapus: Boolean = false,
     ): TransaksiSinkron {
         val daftarItem = transaction.daftarCartItem.map { cartItem ->
+            // Harga efektif: varian lebih diutamakan, lalu harga produk dasar.
+            val hargaSatuan = cartItem.varian?.harga ?: cartItem.produk.harga
             ItemTransaksiSinkron(
                 // ID deterministik dari isi baris agar retry & edit ringan tetap idempotent.
                 id = "${transaction.id}-${(cartItem.produk.id + "|" + (cartItem.varian?.nama ?: "")).hashCode() and Int.MAX_VALUE}",
@@ -75,9 +77,9 @@ object PayloadSinkron {
                 transactionId = transaction.id,
                 productId = cartItem.produk.id,
                 namaProduk = cartItem.produk.nama,
-                hargaSatuan = cartItem.produk.harga,
+                hargaSatuan = hargaSatuan,
                 jumlah = cartItem.jumlah,
-                subtotal = cartItem.produk.harga * cartItem.jumlah,
+                subtotal = hargaSatuan * cartItem.jumlah,
             )
         }
         val total = daftarItem.sumOf { it.subtotal } -

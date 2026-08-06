@@ -14,6 +14,7 @@ import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
+import id.flexi.kasir.domain.model.TransactionStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -47,6 +48,10 @@ class OutboxPencatat(
     }
 
     suspend fun catatTransaksi(transaction: Transaction, dihapus: Boolean = false) {
+        // Transaksi Pending (draft/keranjang) belum final — jangan didorong ke
+        // server. Saat status berubah ke lunas/processing atau dibatalkan,
+        // catatTransaksi dipanggil lagi sehingga versi final tetap ter-push.
+        if (transaction.status == TransactionStatus.Pending && !transaction.dibatalkan) return
         catat(ENTITAS_TRANSAKSI, transaction.id) { versi ->
             json.encodeToString(PayloadSinkron.transaksi(transaction, versi, dihapus))
         }

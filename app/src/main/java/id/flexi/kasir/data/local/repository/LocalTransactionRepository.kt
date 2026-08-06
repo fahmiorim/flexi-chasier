@@ -77,9 +77,10 @@ class TransactionRepositoryLokal(
             .mapValues { (_, items) -> items.sumOf { it.jumlah } }
 
         basisData.withTransaction {
-            // Identifikasi produk yang perlu validasi (bertambah jumlahnya)
+            // Identifikasi produk yang perlu validasi (bertambah jumlahnya).
+            // Item manual (id "manual_*") tanpa baris produk lokal dilewati.
             val produkPerluValidasi = newMap.filter { (produkId, newQty) ->
-                newQty > (oldMap[produkId] ?: 0)
+                !apakahItemManual(produkId) && newQty > (oldMap[produkId] ?: 0)
             }.keys.toList()
 
             val daftarProdukLokal = if (produkPerluValidasi.isNotEmpty()) {
@@ -106,7 +107,7 @@ class TransactionRepositoryLokal(
             }
 
             // Terapkan delta stok
-            val allIds = (oldMap.keys + newMap.keys).toSet()
+            val allIds = (oldMap.keys + newMap.keys).filterNot { apakahItemManual(it) }.toSet()
             allIds.forEach { produkId ->
                 val oldQty = oldMap[produkId] ?: 0
                 val newQty = newMap[produkId] ?: 0
@@ -133,6 +134,9 @@ class TransactionRepositoryLokal(
 
             // Simpan transaksi tanpa mengubah stok (stock sudah dihandle oleh delta)
             simpanTransactionTanpaMengubahStok(Transaction)
+
+            // Catat stok terbaru produk terdampak ke outbox (best-effort).
+            catatPerubahanStokKeOutbox(allIds)
         }
     }
 
@@ -149,6 +153,8 @@ class TransactionRepositoryLokal(
             .mapValues { (_, daftarCartItem) ->
                 daftarCartItem.sumOf { CartItem -> CartItem.jumlah }
             }
+            // Item manual ("manual_*") tanpa baris produk lokal dilewati.
+            .filterKeys { identitasProduk -> !apakahItemManual(identitasProduk) }
 
         basisData.withTransaction {
             val daftarProdukLokal = aksesDataProduk
@@ -189,6 +195,9 @@ class TransactionRepositoryLokal(
                     }
                 }
             }
+
+            // Catat stok terbaru produk terdampak ke outbox (best-effort).
+            catatPerubahanStokKeOutbox(daftarJumlahProduk.keys)
         }
     }
 
@@ -204,6 +213,25 @@ class TransactionRepositoryLokal(
 
         // Catat ke outbox agar perubahan ini ter-push ke server (best-effort).
         runCatching { pencatatOutbox?.catatTransaksi(Transaction) }
+    }
+
+    /** Item manual (id "manual_*") dibuat tanpa baris Produk lokal. */
+    private fun apakahItemManual(produkId: String): Boolean = produkId.startsWith("manual_")
+
+    /**
+     * Mencatat stok terbaru produk terdampak ke outbox (best-effort) agar
+     * perubahan stok akibat transaksi/restore ikut ter-push ke server.
+     */
+    private suspend fun catatPerubahanStokKeOutbox(daftarIdProduk: Collection<String>) {
+        if (pencatatOutbox == null) return
+        val idBukanManual = daftarIdProduk.filterNot { apakahItemManual(it) }
+        if (idBukanManual.isEmpty()) return
+        aksesDataProduk
+            .ambilProdukBerdasarkanDaftarIdentitas(idBukanManual)
+            .map { it.keDomain() }
+            .forEach { produk ->
+                runCatching { pencatatOutbox?.catatProduk(produk) }
+            }
     }
 
     /**
@@ -288,6 +316,9 @@ class TransactionRepositoryLokal(
             }
             aksesDataTransaction.hapusTransactionBerdasarkanId(identitasTransaction)
         }
+
+        // Catat stok hasil restore ke outbox (best-effort).
+        catatPerubahanStokKeOutbox(Transaction.daftarItem.map { it.produkId })
 
         // Beri tahu server bahwa transaksi ini dihapus (soft-delete).
         runCatching { pencatatOutbox?.catatTransaksi(Transaction.keDomain(), dihapus = true) }
