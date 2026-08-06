@@ -11,6 +11,8 @@ import androidx.room.PrimaryKey
  * @property satuan Satuan ukuran (e.g., "gram", "ml", "pcs").
  * @property stokTersedia Jumlah stok tersedia.
  * @property hargaPerSatuan Harga per satuan dalam Rupiah.
+ * @property stokMinimum Ambang stok minimum (0 = tidak diberlakukan).
+ * @property aktif Status aktif/nonaktif bahan.
  * @property createdAt Waktu (epoch millis) bahan dibuat.
  */
 @Entity(tableName = "bahan")
@@ -21,5 +23,7 @@ data class LocalBahanEntity(
     val satuan: String = "pcs",
     val stokTersedia: Double = 0.0,
     val hargaPerSatuan: Long = 0L,
+    val stokMinimum: Int = 0,
+    val aktif: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
 )

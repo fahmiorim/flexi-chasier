@@ -109,6 +109,9 @@ class CashRepositoryLokal(
     override fun hitungTotalMutasiSemuaBerdasarkanTipe(tipe: String): Flow<Long> =
         dao.hitungTotalMutasiSemuaBerdasarkanTipe(tipe)
 
+    override fun hitungTotalSetoranBerdasarkanKas(kasId: String): Flow<Long> =
+        dao.hitungTotalSetoranBerdasarkanKas(kasId)
+
     override fun hitungTotalSetoranAktif(): Flow<Long> =
         dao.hitungTotalSetoranAktif()
 

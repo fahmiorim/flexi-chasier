@@ -92,6 +92,8 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             satuan = b.satuan,
             stokTersedia = b.stok.toDouble(),
             hargaPerSatuan = b.hargaBeli,
+            stokMinimum = b.stokMinimum.toInt(),
+            aktif = b.aktif,
             createdAt = 0L,
         )
     }
@@ -186,6 +188,7 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
     val hasilSetoran: List<LocalSetoranEntity> = daftarSetoranAktif.map { st ->
         LocalSetoranEntity(
             id = st.id,
+            shiftId = st.shiftId,
             nominal = st.nominal,
             catatan = st.catatan ?: "",
             waktu = st.waktuEpochMili,

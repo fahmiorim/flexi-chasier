@@ -8,11 +8,13 @@ import androidx.room.PrimaryKey
     tableName = "setoran_kas",
     indices = [
         Index(value = ["dihapus"]),
+        Index(value = ["shiftId"]),
     ],
 )
 data class LocalSetoranEntity(
     @PrimaryKey
     val id: String,
+    val shiftId: String = "",
     val nominal: Long,
     val catatan: String = "",
     val waktu: Long,

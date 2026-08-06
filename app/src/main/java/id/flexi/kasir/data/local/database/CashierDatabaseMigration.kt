@@ -597,4 +597,28 @@ object CashierDatabaseMigration {
             )
         }
     }
+
+    /**
+     * Migrasi dari versi 25 ke versi 26.
+     *
+     * Perubahan:
+     * - menambahkan kolom `stokMinimum` & `aktif` pada tabel `bahan` agar
+     *   sinkronisasi LWW tidak menimpa nilai yang diatur lewat web/server.
+     * - menambahkan kolom `shiftId` pada tabel `setoran_kas` agar setoran
+     *   dikaitkan ke shift kas (selaras dengan server & web).
+     */
+    val DARI_25_KE_26: Migration = object : Migration(25, 26) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL("ALTER TABLE bahan ADD COLUMN stokMinimum INTEGER NOT NULL DEFAULT 0")
+            } catch (_: Exception) { }
+            try {
+                db.execSQL("ALTER TABLE bahan ADD COLUMN aktif INTEGER NOT NULL DEFAULT 1")
+            } catch (_: Exception) { }
+            try {
+                db.execSQL("ALTER TABLE setoran_kas ADD COLUMN shiftId TEXT NOT NULL DEFAULT ''")
+            } catch (_: Exception) { }
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_setoran_shiftId ON setoran_kas(shiftId)")
+        }
+    }
 }

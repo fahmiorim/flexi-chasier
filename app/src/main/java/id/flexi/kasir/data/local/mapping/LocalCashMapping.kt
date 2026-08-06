@@ -64,6 +64,7 @@ fun CashMutation.toEntity(): LocalCashMutationEntity = LocalCashMutationEntity(
  */
 fun LocalSetoranEntity.toDomain(): Setoran = Setoran(
     id = id,
+    shiftId = shiftId,
     nominal = Uang.dariRupiah(nominal),
     catatan = catatan,
     waktu = waktu,
@@ -72,6 +73,7 @@ fun LocalSetoranEntity.toDomain(): Setoran = Setoran(
 
 fun Setoran.toEntity(): LocalSetoranEntity = LocalSetoranEntity(
     id = id,
+    shiftId = shiftId,
     nominal = nominal.nilaiRupiah,
     catatan = catatan,
     waktu = waktu,

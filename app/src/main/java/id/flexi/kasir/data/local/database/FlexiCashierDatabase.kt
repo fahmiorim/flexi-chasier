@@ -48,7 +48,7 @@ import id.flexi.kasir.data.local.entity.SinkronMetaEntity
         OutboxSinkronEntity::class,
         SinkronMetaEntity::class,
     ],
-    version = 25,
+    version = 26,
     exportSchema = true,
 )
 abstract class FlexiCashierDatabase : RoomDatabase() {

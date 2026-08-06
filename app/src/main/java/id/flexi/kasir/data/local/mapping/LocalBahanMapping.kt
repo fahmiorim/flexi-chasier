@@ -16,6 +16,8 @@ fun LocalBahanEntity.keDomain(): Bahan = Bahan(
     satuan = satuan,
     stokTersedia = stokTersedia,
     hargaPerSatuan = hargaPerSatuan,
+    stokMinimum = stokMinimum,
+    aktif = aktif,
     createdAt = createdAt,
 )
 
@@ -26,6 +28,8 @@ fun Bahan.keLokal(): LocalBahanEntity = LocalBahanEntity(
     satuan = satuan,
     stokTersedia = stokTersedia,
     hargaPerSatuan = hargaPerSatuan,
+    stokMinimum = stokMinimum,
+    aktif = aktif,
     createdAt = createdAt,
 )
 

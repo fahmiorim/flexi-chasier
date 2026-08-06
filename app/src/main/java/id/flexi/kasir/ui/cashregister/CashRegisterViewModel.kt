@@ -231,9 +231,16 @@ class CashRegisterViewModel(
                 transactionRepository.hitungTotalQRISSejak(shift.waktuBuka),
                 cashRepository.hitungTotalMutasiBerdasarkanTipe(shift.id, CashMutationType.Pemasukan.name),
                 cashRepository.hitungTotalMutasiBerdasarkanTipe(shift.id, CashMutationType.Pengeluaran.name),
-            ) { daftarMutasi, penjualanTunaiHariIni, penjualanQrisHariIni, totalPemasukan, totalPengeluaran ->
+                cashRepository.hitungTotalSetoranBerdasarkanKas(shift.id),
+            ) { values ->
+                val daftarMutasi = values[0] as List<CashMutation>
+                val penjualanTunaiHariIni = values[1] as Long
+                val penjualanQrisHariIni = values[2] as Long
+                val totalPemasukan = values[3] as Long
+                val totalPengeluaran = values[4] as Long
+                val totalSetoranShift = values[5] as Long
 
-                val saldoSaatIni = penjualanTunaiHariIni + totalPemasukan - totalPengeluaran - totalSetoran
+                val saldoSaatIni = penjualanTunaiHariIni + totalPemasukan - totalPengeluaran - totalSetoranShift
 
                 val currentState = _state.value
                 val existingAktif = if (currentState is CashRegisterUiState.KasAktif) currentState else null
@@ -241,8 +248,8 @@ class CashRegisterViewModel(
                 _state.value = CashRegisterUiState.KasAktif(
                     kas = shift,
                     daftarKasTertutup = daftarKasTertutup,
-                    daftarSetoran = daftarSetoran,
-                    totalSetoran = totalSetoran.sebagaiRupiah(),
+                    daftarSetoran = daftarSetoran.filter { it.shiftId == shift.id },
+                    totalSetoran = totalSetoranShift.sebagaiRupiah(),
                     saldoGlobal = saldoGlobal,
                     kasTerpilih = existingAktif?.kasTerpilih,
                     saldoSaatIni = saldoSaatIni.sebagaiRupiah(),

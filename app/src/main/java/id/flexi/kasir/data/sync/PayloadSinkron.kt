@@ -179,6 +179,8 @@ object PayloadSinkron {
         satuan = bahan.satuan,
         stok = bahan.stokTersedia.roundToInt(),
         hargaBeli = bahan.hargaPerSatuan,
+        stokMinimum = bahan.stokMinimum.toLong(),
+        aktif = bahan.aktif,
         dihapus = dihapus,
     )
 

@@ -82,6 +82,9 @@ interface LocalCashDao {
     @Query("SELECT COALESCE(SUM(nominal), 0) FROM setoran_kas WHERE dihapus = 0")
     fun hitungTotalSetoranAktif(): Flow<Long>
 
+    @Query("SELECT COALESCE(SUM(nominal), 0) FROM setoran_kas WHERE shiftId = :kasId AND dihapus = 0")
+    fun hitungTotalSetoranBerdasarkanKas(kasId: String): Flow<Long>
+
     @Query("SELECT COALESCE(SUM(nominal), 0) FROM mutasi_kas WHERE shiftId = :kasId AND tipe = :tipe")
     suspend fun ambilTotalMutasiBerdasarkanTipe(kasId: String, tipe: String): Long
 

@@ -18,6 +18,7 @@ class CatatSetoran(
             ?: throw IllegalArgumentException("Tidak ada shift kas terbuka. Buka kas dulu sebelum menyetor.")
         val setoran = Setoran(
             id = CashKasIdGenerator.buatIdentitasSetoranBaru(),
+            shiftId = kasAktif.id,
             nominal = Uang.dariRupiah(nominal),
             catatan = catatan,
             waktu = System.currentTimeMillis(),

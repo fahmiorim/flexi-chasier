@@ -56,6 +56,9 @@ interface CashRepository {
     /** Total mutasi berdasarkan tipe untuk semua shift (reactive). */
     fun hitungTotalMutasiSemuaBerdasarkanTipe(tipe: String): Flow<Long>
 
+    /** Total setoran aktif (dihapus = 0) untuk satu shift (reactive). */
+    fun hitungTotalSetoranBerdasarkanKas(kasId: String): Flow<Long>
+
     /** Total setoran aktif (dihapus = 0) (reactive). */
     fun hitungTotalSetoranAktif(): Flow<Long>
 
