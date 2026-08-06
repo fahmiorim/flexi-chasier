@@ -149,7 +149,7 @@ class TransactionHistoryViewModel(
         _statusExport.value = StatusExportPdf.SedangMengexport
         viewModelScope.launch {
             try {
-                val namaToko = namaUsaha.ifBlank { "FLEXI CASHIER" }
+                val namaToko = namaUsaha.ifBlank { "FLEXI KASIR" }
 
                 val (sejak, sampai) = if (exportMulai != null && exportSelesai != null) {
                     Pair(exportMulai, exportSelesai)

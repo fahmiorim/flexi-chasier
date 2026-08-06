@@ -47,7 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import id.flexi.kasir.ui.theme.FlexiCashierTheme
+import id.flexi.kasir.ui.theme.FlexiKasirTheme
 import id.flexi.kasir.domain.sample.SampleProductCatalog
 import id.flexi.kasir.domain.model.CartItem
 import id.flexi.kasir.domain.model.Produk
@@ -298,14 +298,14 @@ fun CashierMainScreen(
 private fun PreviewWorkspaceTabletTerangDialogCheckout() {
     val daftarProduk = SampleProductCatalog.daftarAwal()
 
-    FlexiCashierTheme(
+    FlexiKasirTheme(
         modeGelap = false,
         gunakanWarnaDinamis = false,
     ) {
         CashierMainScreen(
             modelTampilan = CashierMainUiState(
                 statusBeranda = HomeStatus(
-                    namaAplikasi = "Flexi Cashier",
+                    namaAplikasi = "Flexi Kasir",
                     sloganAplikasi = "Solusi Digital UMKM Modern",
                     jumlahProdukTersedia = daftarProduk.size,
                     jumlahCartItem = 4,
@@ -501,14 +501,14 @@ private fun VarianPickerDialog(
 private fun PreviewWorkspacePonselGelapHasilCheckout() {
     val daftarProduk = SampleProductCatalog.daftarAwal()
 
-    FlexiCashierTheme(
+    FlexiKasirTheme(
         modeGelap = true,
         gunakanWarnaDinamis = false,
     ) {
         CashierMainScreen(
             modelTampilan = CashierMainUiState(
                 statusBeranda = HomeStatus(
-                    namaAplikasi = "Flexi Cashier",
+                    namaAplikasi = "Flexi Kasir",
                     sloganAplikasi = "Solusi Digital UMKM Modern",
                     jumlahProdukTersedia = daftarProduk.size,
                     jumlahCartItem = 0,

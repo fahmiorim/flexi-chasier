@@ -1,7 +1,7 @@
 package id.flexi.kasir.domain.model
 
 /**
- * Preferensi toko yang dipakai sebagai pengaturan dasar Flexi Cashier.
+ * Preferensi toko yang dipakai sebagai pengaturan dasar Flexi Kasir.
  *
  * Data ini cocok disimpan di DataStore karena ukurannya kecil dan tidak
  * membutuhkan relasi database.
@@ -14,7 +14,7 @@ package id.flexi.kasir.domain.model
  * @property pesanGagalSinkronisasiKatalogTerakhir Pesan kegagalan sinkronisasi katalog terakhir.
  */
 data class StorePreference(
-    val namaToko: String = "Flexi Cashier",
+    val namaToko: String = "Flexi Kasir",
     val alamatToko: String = "",
     val basisPoinPajakDefault: Int = 0,
     val biayaLayananDefault: Long = 0L,

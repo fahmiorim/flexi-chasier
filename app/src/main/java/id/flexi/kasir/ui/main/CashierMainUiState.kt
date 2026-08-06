@@ -139,7 +139,7 @@ data class CheckoutResultStatus(
 data class CashierMainUiState(
     val catalogDisplay: CatalogDisplay = CatalogDisplay.Grid,
     val statusBeranda: HomeStatus = HomeStatus(
-        namaAplikasi = "Flexi Cashier",
+        namaAplikasi = "Flexi Kasir",
         sloganAplikasi = "Solusi Digital UMKM Modern",
         jumlahProdukTersedia = 0,
         jumlahCartItem = 0,

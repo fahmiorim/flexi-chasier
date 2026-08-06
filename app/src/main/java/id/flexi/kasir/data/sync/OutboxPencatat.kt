@@ -1,6 +1,6 @@
 package id.flexi.kasir.data.sync
 
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.network.config.CashierNetworkProvider
 import id.flexi.kasir.data.network.model.SetoranSinkron
@@ -33,7 +33,7 @@ import kotlinx.serialization.encodeToString
  * (data lokal tetap tersimpan normal — hanya tidak tersinkron).
  */
 class OutboxPencatat(
-    private val basisData: FlexiCashierDatabase,
+    private val basisData: FlexiKasirDatabase,
     private val sumberGeraiAktifId: suspend () -> String?,
 ) {
 

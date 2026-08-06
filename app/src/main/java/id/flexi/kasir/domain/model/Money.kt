@@ -1,10 +1,10 @@
 package id.flexi.kasir.domain.model
 
 /**
- * Value object untuk merepresentasikan uang dalam Flexi Cashier.
+ * Value object untuk merepresentasikan uang dalam Flexi Kasir.
  *
  * Nilai uang disimpan sebagai Long dalam satuan Rupiah penuh.
- * Flexi Cashier tidak memakai Double untuk uang karena Double berisiko
+ * Flexi Kasir tidak memakai Double untuk uang karena Double berisiko
  * menghasilkan pembulatan desimal yang tidak cocok untuk Transaction kasir.
  *
  * @property nilaiRupiah Nominal uang dalam Rupiah dan tidak boleh negatif.

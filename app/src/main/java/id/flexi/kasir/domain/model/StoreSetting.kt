@@ -22,7 +22,7 @@ enum class LebarStruk(val mm: Int, val label: String) {
 }
 
 data class StoreSetting(
-    val namaUsaha: String = "Flexi Cashier",
+    val namaUsaha: String = "Flexi Kasir",
     val logoUri: String = "",
     val alamat: String = "",
     val tagline: String = "",

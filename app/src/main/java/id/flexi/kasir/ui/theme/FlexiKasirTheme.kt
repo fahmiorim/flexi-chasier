@@ -101,7 +101,7 @@ private val SkemaWarnaGelap = darkColorScheme(
 
 // ── Typography ──
 
-private val FlexiCashierTypography = Typography(
+private val FlexiKasirTypography = Typography(
     displayLarge = TextStyle(
         fontSize = 34.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp,
     ),
@@ -151,7 +151,7 @@ private val FlexiCashierTypography = Typography(
 
 // ── Shapes ──
 
-private val FlexiCashierShapes = Shapes(
+private val FlexiKasirShapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
@@ -184,7 +184,7 @@ object FlexiColors {
 }
 
 @Composable
-fun FlexiCashierTheme(
+fun FlexiKasirTheme(
     modeGelap: Boolean = isSystemInDarkTheme(),
     gunakanWarnaDinamis: Boolean = false,
     konten: @Composable () -> Unit,
@@ -217,8 +217,8 @@ fun FlexiCashierTheme(
 
     MaterialTheme(
         colorScheme = skemaWarna,
-        typography = FlexiCashierTypography,
-        shapes = FlexiCashierShapes,
+        typography = FlexiKasirTypography,
+        shapes = FlexiKasirShapes,
         content = konten,
     )
 }

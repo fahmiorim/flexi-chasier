@@ -4,7 +4,7 @@ import androidx.navigation.NavHostController
 import kotlinx.serialization.Serializable
 
 /**
- * Kontrak tujuan navigasi type-safe untuk Flexi Cashier.
+ * Kontrak tujuan navigasi type-safe untuk Flexi Kasir.
  *
  * Setiap tujuan layar direpresentasikan sebagai tipe Kotlin, bukan string route.
  * Ini membuat argumen navigasi lebih aman saat compile-time dan lebih mudah

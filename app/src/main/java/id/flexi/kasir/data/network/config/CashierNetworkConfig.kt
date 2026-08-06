@@ -3,7 +3,7 @@ package id.flexi.kasir.data.network.config
 import id.flexi.kasir.BuildConfig
 
 /**
- * Konfigurasi dasar untuk akses jaringan Flexi Cashier.
+ * Konfigurasi dasar untuk akses jaringan Flexi Kasir.
  *
  * Alamat dasar API diambil dari BuildConfig agar setiap varian build dapat
  * memakai endpoint berbeda tanpa mengubah source code jaringan.

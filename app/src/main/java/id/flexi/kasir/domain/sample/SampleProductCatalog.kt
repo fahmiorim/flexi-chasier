@@ -4,7 +4,7 @@ import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Varian
 
 /**
- * Penyedia katalog produk awal untuk Flexi Cashier.
+ * Penyedia katalog produk awal untuk Flexi Kasir.
  *
  * Data seed untuk menu Signature Coffee & Eatery.
  * Produk dengan varian (Ice/Hot) digabung jadi satu produk.

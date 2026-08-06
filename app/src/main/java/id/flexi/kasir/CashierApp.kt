@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Kelas Application utama untuk Flexi Cashier.
+ * Kelas Application utama untuk Flexi Kasir.
  * Berfungsi sebagai titik pusat inisialisasi dan akses dependensi global.
  */
 class CashierApp : Application() {

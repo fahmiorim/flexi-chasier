@@ -2,7 +2,7 @@ package id.flexi.kasir.data.repository
 
 import id.flexi.kasir.data.network.service.ProductNetworkService
 import id.flexi.kasir.data.network.mapping.keDomain
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.network.validation.validasiDaftarProdukJaringan
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
@@ -21,11 +21,11 @@ import java.io.IOException
 /**
  * Implementasi repositori produk yang menggabungkan data lokal dan jaringan.
  *
- * Untuk Flexi Cashier saat ini, Room tetap menjadi sumber data utama.
+ * Untuk Flexi Kasir saat ini, Room tetap menjadi sumber data utama.
  * Jaringan hanya menjadi sumber pembaruan katalog saat scope backend sudah siap.
  */
 class ProductRepositoryLokalRemote(
-    private val basisData: FlexiCashierDatabase,
+    private val basisData: FlexiKasirDatabase,
     private val layananJaringan: ProductNetworkService,
     private val sumberGeraiAktifId: suspend () -> String?,
     private val pencatatOutbox: OutboxPencatat? = null,

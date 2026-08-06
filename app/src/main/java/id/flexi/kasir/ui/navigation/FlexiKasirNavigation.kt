@@ -57,7 +57,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 @Composable
-fun NavigasiFlexiCashierApp() {
+fun NavigasiFlexiKasirApp() {
     val context = LocalContext.current
     val aplikasi = context.applicationContext as CashierApp
     val cakupanKorutin = rememberCoroutineScope()

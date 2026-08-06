@@ -1,6 +1,6 @@
 package id.flexi.kasir.data.sync
 
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.domain.model.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -44,7 +44,7 @@ data class SinkronStatusLokal(
  *   hasilnya otomatis terlihat lewat [status] (mesin menulis metadata).
  */
 class SinkronStatusPengamat(
-    basisData: FlexiCashierDatabase,
+    basisData: FlexiKasirDatabase,
     private val mesin: MesinSinkronisasi,
 ) {
 

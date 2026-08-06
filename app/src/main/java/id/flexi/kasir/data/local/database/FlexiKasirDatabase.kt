@@ -28,7 +28,7 @@ import id.flexi.kasir.data.local.entity.OutboxSinkronEntity
 import id.flexi.kasir.data.local.entity.SinkronMetaEntity
 
 /**
- * Titik masuk utama database Room aplikasi Flexi Cashier.
+ * Titik masuk utama database Room aplikasi Flexi Kasir.
  */
 @Database(
     entities = [
@@ -51,7 +51,7 @@ import id.flexi.kasir.data.local.entity.SinkronMetaEntity
     version = 27,
     exportSchema = true,
 )
-abstract class FlexiCashierDatabase : RoomDatabase() {
+abstract class FlexiKasirDatabase : RoomDatabase() {
     /**
      * Menyediakan akses ke operasi data Transaction.
      */

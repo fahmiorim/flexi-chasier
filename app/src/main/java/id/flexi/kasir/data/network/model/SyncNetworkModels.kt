@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * Model jaringan untuk protokol sinkronisasi (push & pull).
  *
- * Bentuk field PERSIS mengikuti kontrak backend `flexi-chasier-server`
+ * Bentuk field PERSIS mengikuti kontrak backend `flexi-kasir-server`
  * (lihat rute sinkronisasi di backend):
  * - push: POST `/api/sync/<entitas>` dengan body `{ geraiId, items: [...] }`
  * - pull: GET `/api/sync/perubahan?geraiId=&kursor=<peta keyset per entitas>&batas=`

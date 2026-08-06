@@ -121,7 +121,7 @@ class BentukCashierMainUiState {
         return CashierMainUiState(
             catalogDisplay = StoreSetting.catalogDisplay,
             statusBeranda = HomeStatus(
-                namaAplikasi = StoreSetting.namaUsaha.ifBlank { "Flexi Cashier" },
+                namaAplikasi = StoreSetting.namaUsaha.ifBlank { "Flexi Kasir" },
                 sloganAplikasi = StoreSetting.tagline.ifBlank { "Solusi Digital UMKM Modern" },
                 jumlahProdukTersedia = daftarProdukPenuh.size,
                 jumlahCartItem = jumlahItem,

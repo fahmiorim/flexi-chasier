@@ -26,7 +26,7 @@ class RepositoriStoreSettingDataStore(
     override fun ambilPengaturan(): Flow<StoreSetting> {
         return konteks.dataStoreStoreSetting.data.map { prefs ->
             StoreSetting(
-                namaUsaha = prefs[Kunci.namaUsaha] ?: "Flexi Cashier",
+                namaUsaha = prefs[Kunci.namaUsaha] ?: "Flexi Kasir",
                 logoUri = prefs[Kunci.logoUri] ?: "",
                 alamat = prefs[Kunci.alamat] ?: "",
                 tagline = prefs[Kunci.tagline] ?: "",

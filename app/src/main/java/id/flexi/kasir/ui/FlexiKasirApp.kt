@@ -24,8 +24,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.R
-import id.flexi.kasir.ui.navigation.NavigasiFlexiCashierApp
-import id.flexi.kasir.ui.theme.FlexiCashierTheme
+import id.flexi.kasir.ui.navigation.NavigasiFlexiKasirApp
+import id.flexi.kasir.ui.theme.FlexiKasirTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -37,7 +37,7 @@ import kotlinx.coroutines.delay
  * - memasang root navigation aplikasi
  */
 @Composable
-fun FlexiCashierApp() {
+fun FlexiKasirApp() {
     var splashTampil by remember { mutableStateOf(true) }
 
     if (splashTampil) {
@@ -45,21 +45,21 @@ fun FlexiCashierApp() {
             setelahSplash = { splashTampil = false },
         )
     } else {
-        FlexiCashierTheme(
+        FlexiKasirTheme(
             gunakanWarnaDinamis = false,
         ) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background,
             ) {
-                NavigasiFlexiCashierApp()
+                NavigasiFlexiKasirApp()
             }
         }
     }
 }
 
 /**
- * Layar splash kustom dengan logo dan teks Flexi Cashier.
+ * Layar splash kustom dengan logo dan teks Flexi Kasir.
  * Tidak menggunakan SplashScreen API agar teks tidak terpotong lingkaran.
  */
 @Composable
@@ -87,7 +87,7 @@ private fun SplashScreenKustom(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.splash),
-                contentDescription = "Flexi Cashier Logo",
+                contentDescription = "Flexi Kasir Logo",
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 40.dp),

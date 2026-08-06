@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import id.flexi.kasir.ui.FlexiCashierApp
+import id.flexi.kasir.ui.FlexiKasirApp
 
 /**
  * Titik masuk utama aplikasi FlexiKasir.
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             // Memulai fungsi komposabel utama aplikasi
-            FlexiCashierApp()
+            FlexiKasirApp()
         }
     }
 }

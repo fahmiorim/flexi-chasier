@@ -1,7 +1,7 @@
 package id.flexi.kasir.data.local.repository
 
 import androidx.room.withTransaction
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
 import id.flexi.kasir.data.local.relation.TransactionWithLocalItems
@@ -25,10 +25,10 @@ import androidx.paging.map
  * Class ini berada di layer data karena mengetahui detail database lokal.
  * Layer ranah hanya mengenal kontrak [TransactionRepository].
  *
- * @property basisData Instance database lokal Flexi Cashier.
+ * @property basisData Instance database lokal Flexi Kasir.
  */
 class TransactionRepositoryLokal(
-    private val basisData: FlexiCashierDatabase,
+    private val basisData: FlexiKasirDatabase,
     private val pencatatOutbox: OutboxPencatat? = null,
 ) : TransactionRepository {
 

@@ -13,7 +13,7 @@ import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 
 /**
- * Penyedia objek jaringan inti untuk Flexi Cashier.
+ * Penyedia objek jaringan inti untuk Flexi Kasir.
  *
  * Tanggung jawab:
  * - membuat konfigurasi Json

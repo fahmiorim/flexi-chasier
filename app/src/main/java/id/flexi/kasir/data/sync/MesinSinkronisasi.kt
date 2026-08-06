@@ -1,7 +1,7 @@
 package id.flexi.kasir.data.sync
 
 import androidx.room.withTransaction
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.entity.OutboxSinkronEntity
 import id.flexi.kasir.data.network.config.CashierNetworkProvider
 import id.flexi.kasir.data.network.model.PushBahanRequest
@@ -49,7 +49,7 @@ data class HasilSinkronisasi(
  * Seluruh endpoint memakai klien ber-AuthInterceptor (Bearer + refresh 401).
  */
 class MesinSinkronisasi(
-    private val basisData: FlexiCashierDatabase,
+    private val basisData: FlexiKasirDatabase,
     private val layanan: SyncNetworkService,
     private val sumberGeraiAktifId: suspend () -> String?,
     private val repositoriStoreSetting: RepositoriStoreSetting,

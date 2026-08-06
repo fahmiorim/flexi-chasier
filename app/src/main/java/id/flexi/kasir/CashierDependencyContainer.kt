@@ -11,7 +11,7 @@ import id.flexi.kasir.data.network.interceptor.AuthInterceptor
 import id.flexi.kasir.data.network.service.AuthNetworkService
 import id.flexi.kasir.data.network.service.ProductNetworkService
 import id.flexi.kasir.data.network.service.SyncNetworkService
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.database.CashierDatabaseMigration
 import id.flexi.kasir.data.sync.MesinSinkronisasi
 import id.flexi.kasir.data.sync.OutboxPencatat
@@ -97,7 +97,7 @@ import id.flexi.kasir.domain.usecase.AmatiMutasiRekening
 import id.flexi.kasir.domain.usecase.HitungSaldoRekening
 
 /**
- * Kontainer dependensi manual (Service Locator) untuk aplikasi Flexi Cashier.
+ * Kontainer dependensi manual (Service Locator) untuk aplikasi Flexi Kasir.
  * Mengelola siklus hidup singleton basis data, repositori, kasus penggunaan, dan layanan jaringan.
  *
  * @param konteks Konteks aplikasi untuk inisialisasi Room dan sumber daya lainnya.
@@ -109,10 +109,10 @@ class CashierDependencyContainer(
     /**
      * Instansi tunggal (singleton) untuk basis data Room.
      */
-    private val basisData: FlexiCashierDatabase by lazy {
+    private val basisData: FlexiKasirDatabase by lazy {
         Room.databaseBuilder(
             konteks.applicationContext,
-            FlexiCashierDatabase::class.java,
+            FlexiKasirDatabase::class.java,
             "kasir.db",
         )
             .addMigrations(

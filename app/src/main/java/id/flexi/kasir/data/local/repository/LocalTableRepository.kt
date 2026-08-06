@@ -1,6 +1,6 @@
 package id.flexi.kasir.data.local.repository
 
-import id.flexi.kasir.data.local.database.FlexiCashierDatabase
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.entity.LocalTableEntity
 import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.domain.model.Meja
@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class TableRepositoryLokal(
-    private val basisData: FlexiCashierDatabase,
+    private val basisData: FlexiKasirDatabase,
     private val pencatatOutbox: OutboxPencatat? = null,
 ) : TableRepository {
 

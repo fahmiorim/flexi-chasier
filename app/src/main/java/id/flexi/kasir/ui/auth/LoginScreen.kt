@@ -86,7 +86,7 @@ fun LoginScreen(
                     AuthUiState.Mode.Verifikasi -> "Verifikasi Email"
                     AuthUiState.Mode.LupaPassword -> "Lupa Password"
                     AuthUiState.Mode.AturPasswordBaru -> "Atur Password Baru"
-                    else -> "Flexi Cashier"
+                    else -> "Flexi Kasir"
                 },
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,

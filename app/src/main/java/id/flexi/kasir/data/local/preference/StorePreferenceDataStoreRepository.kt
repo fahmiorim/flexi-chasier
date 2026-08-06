@@ -30,7 +30,7 @@ class RepositoriStorePreferenceDataStore(
     override fun amatiStorePreference(): Flow<StorePreference> {
         return konteks.dataStoreStorePreference.data.map { preferensi ->
             StorePreference(
-                namaToko = preferensi[KunciPreferensi.namaToko] ?: "Flexi Cashier",
+                namaToko = preferensi[KunciPreferensi.namaToko] ?: "Flexi Kasir",
                 alamatToko = preferensi[KunciPreferensi.alamatToko] ?: "",
                 basisPoinPajakDefault = preferensi[KunciPreferensi.basisPoinPajakDefault] ?: 0,
                 biayaLayananDefault = preferensi[KunciPreferensi.biayaLayananDefault] ?: 0L,

@@ -118,7 +118,7 @@ fun SidebarKasir(
                     Column {
                         // Nama usaha sebagai header utama
                         Text(
-                            text = namaUsaha.ifBlank { "Flexi Cashier" },
+                            text = namaUsaha.ifBlank { "Flexi Kasir" },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -132,7 +132,7 @@ fun SidebarKasir(
                             text = if (namaUsaha.isBlank()) {
                                 "Versi ${BuildConfig.VERSION_NAME}"
                             } else {
-                                "Flexi Cashier — v${BuildConfig.VERSION_NAME}"
+                                "Flexi Kasir — v${BuildConfig.VERSION_NAME}"
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),

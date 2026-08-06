@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import id.flexi.kasir.ui.theme.FlexiCashierTheme
+import id.flexi.kasir.ui.theme.FlexiKasirTheme
 
 /**
  * Komponen untuk menampilkan status data kosong atau hasil pencarian nihil.
@@ -157,7 +157,7 @@ fun SimpleLoadingPlaceholder(
 )
 @Composable
 private fun PreviewSimpleEmptyStatus() {
-    FlexiCashierTheme {
+    FlexiKasirTheme {
         SimpleEmptyStatus(
             judul = "Belum ada produk",
             deskripsi = "Tambahkan produk pertama untuk mulai berjualan.",
@@ -173,7 +173,7 @@ private fun PreviewSimpleEmptyStatus() {
 )
 @Composable
 private fun PreviewSimpleLoadingPlaceholder() {
-    FlexiCashierTheme {
+    FlexiKasirTheme {
         SimpleLoadingPlaceholder(
             modifier = Modifier.padding(16.dp),
         )

@@ -1,5 +1,5 @@
 <resources>
-    <!-- Tema dasar aplikasi Flexi Cashier (Mode Terang).
+    <!-- Tema dasar aplikasi Flexi Kasir (Mode Terang).
          Menggunakan Material 3 sebagai basis desain untuk tampilan yang modern. -->
     <style name="Theme.FlexiKasir" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Menjadikan status bar dan navigation bar transparan untuk mendukung Edge-to-Edge. -->

@@ -848,7 +848,7 @@ internal fun DialogPreviewStruk(
                     )
 
                     // Header — Nama Usaha
-                    val namaToko = namaUsaha.ifBlank { "FLEXI CASHIER" }
+                    val namaToko = namaUsaha.ifBlank { "FLEXI KASIR" }
                     Text(centerText(namaToko.uppercase()), style = monoStyle.copy(fontWeight = FontWeight.Bold))
 
                     // Tagline (jika ada)

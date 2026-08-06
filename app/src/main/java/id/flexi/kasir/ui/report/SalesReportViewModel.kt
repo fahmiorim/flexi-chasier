@@ -88,7 +88,7 @@ class SalesReportViewModel(
             try {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     OutputStreamWriter(outputStream, "UTF-8").use { writer ->
-                        val namaToko = namaUsaha.ifBlank { "Flexi Cashier" }
+                        val namaToko = namaUsaha.ifBlank { "Flexi Kasir" }
                         // Header CSV
                         writer.write("Laporan Penjualan $namaToko\n")
                         writer.write("Periode: ${state.labelRentangKustom.ifBlank { periodeLabel(state.periode) }}\n")

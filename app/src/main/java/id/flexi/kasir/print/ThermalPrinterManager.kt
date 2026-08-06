@@ -430,7 +430,7 @@ class ThermalPrinterManager(
 
         // ── Header ──
         lines.add(EscPos.ALIGN_CENTER)
-        val namaUsahaHeader = namaUsaha.ifBlank { "FLEXI CASHIER" }
+        val namaUsahaHeader = namaUsaha.ifBlank { "FLEXI KASIR" }
         lines.add(EscPos.FONT_SIZE_BIG)
         lines.add(namaUsahaHeader.toByteArray(charset("US-ASCII")))
         lines.add(EscPos.LF)
@@ -573,7 +573,7 @@ class ThermalPrinterManager(
 
         // ── Header ──
         lines.add(EscPos.ALIGN_CENTER)
-        val namaHeader = settings.namaUsaha.ifBlank { "FLEXI CASHIER" }
+        val namaHeader = settings.namaUsaha.ifBlank { "FLEXI KASIR" }
         lines.add(EscPos.FONT_SIZE_BIG)
         lines.add(namaHeader.toByteArray(charset("US-ASCII")))
         lines.add(EscPos.LF)

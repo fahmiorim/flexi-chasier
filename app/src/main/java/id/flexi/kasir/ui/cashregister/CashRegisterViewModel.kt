@@ -888,7 +888,7 @@ class CashRegisterViewModel(
 
                 val pdfHasil = withContext(Dispatchers.IO) {
                     CashReportPdfGenerator().generateDetailKas(
-                        namaToko = namaUsaha.ifBlank { "FLEXI CASHIER" },
+                        namaToko = namaUsaha.ifBlank { "FLEXI KASIR" },
                         alamat = alamat,
                         tagline = tagline,
                         logoBitmap = logoBitmap,
@@ -966,7 +966,7 @@ class CashRegisterViewModel(
 
                 val pdfHasil = withContext(Dispatchers.IO) {
                     CashReportPdfGenerator().generateRekapKas(
-                        namaToko = namaUsaha.ifBlank { "FLEXI CASHIER" },
+                        namaToko = namaUsaha.ifBlank { "FLEXI KASIR" },
                         alamat = alamat,
                         tagline = tagline,
                         logoBitmap = logoBitmap,
