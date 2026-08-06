@@ -4,7 +4,9 @@ import id.flexi.kasir.data.local.entity.LocalBahanEntity
 import id.flexi.kasir.data.local.entity.LocalBahanResepEntity
 import id.flexi.kasir.data.local.entity.LocalCashKasEntity
 import id.flexi.kasir.data.local.entity.LocalCashMutationEntity
+import id.flexi.kasir.data.local.entity.LocalMutasiRekeningEntity
 import id.flexi.kasir.data.local.entity.LocalPembelianBahanEntity
+import id.flexi.kasir.data.local.entity.LocalPenyesuaianStokEntity
 import id.flexi.kasir.data.local.entity.LocalProductEntity
 import id.flexi.kasir.data.local.entity.LocalResepEntity
 import id.flexi.kasir.data.local.entity.LocalSetoranEntity
@@ -41,6 +43,10 @@ data class PerubahanLokal(
     val resepBahan: List<LocalBahanResepEntity>,
     val resepDihapus: List<String>,
     val pengaturanToko: List<PengaturanTokoSinkron> = emptyList(),
+    val penyesuaianStok: List<LocalPenyesuaianStokEntity> = emptyList(),
+    val penyesuaianStokDihapus: List<String> = emptyList(),
+    val mutasiRekening: List<LocalMutasiRekeningEntity> = emptyList(),
+    val mutasiRekeningDihapus: List<String> = emptyList(),
 )
 
 /**
@@ -68,7 +74,7 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             deskripsi = p.deskripsi ?: "",
             apakahAktif = p.aktif,
             kategori = p.kategori ?: "",
-            fotoUri = null,
+            fotoUri = p.fotoUri,
             favorit = p.favorit,
             hargaModal = null,
             varianJson = null,
@@ -225,6 +231,36 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
         }
     }
 
+    // ── Penyesuaian stok ──
+    val daftarPenyesuaianAktif = penyesuaianStok.filter { item -> !item.dihapus }
+    val idPenyesuaianDihapus = penyesuaianStok.filter { item -> item.dihapus }.map { item -> item.id }
+    val hasilPenyesuaian: List<LocalPenyesuaianStokEntity> = daftarPenyesuaianAktif.map { ps ->
+        LocalPenyesuaianStokEntity(
+            id = ps.id,
+            jenis = ps.jenis,
+            entitasId = ps.entitasId,
+            namaEntitas = ps.namaEntitas ?: "",
+            stokSebelum = ps.stokSebelum,
+            stokSesudah = ps.stokSesudah,
+            selisih = ps.selisih,
+            alasan = ps.alasan ?: "",
+            waktu = ps.waktuEpochMili,
+        )
+    }
+
+    // ── Mutasi rekening ──
+    val daftarMutasiRekeningAktif = mutasiRekening.filter { item -> !item.dihapus }
+    val idMutasiRekeningDihapus = mutasiRekening.filter { item -> item.dihapus }.map { item -> item.id }
+    val hasilMutasiRekening: List<LocalMutasiRekeningEntity> = daftarMutasiRekeningAktif.map { mr ->
+        LocalMutasiRekeningEntity(
+            id = mr.id,
+            tipe = mr.tipe,
+            nominal = mr.nominal,
+            catatan = mr.catatan ?: "",
+            waktu = mr.waktuEpochMili,
+        )
+    }
+
     return PerubahanLokal(
         produk = hasilProduk,
         produkDihapus = idProdukDihapus,
@@ -247,6 +283,10 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
         resepBahan = hasilResepBahan,
         resepDihapus = idResepDihapus,
         pengaturanToko = storeSettings,
+        penyesuaianStok = hasilPenyesuaian,
+        penyesuaianStokDihapus = idPenyesuaianDihapus,
+        mutasiRekening = hasilMutasiRekening,
+        mutasiRekeningDihapus = idMutasiRekeningDihapus,
     )
 }
 

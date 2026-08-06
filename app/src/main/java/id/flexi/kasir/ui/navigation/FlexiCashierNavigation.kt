@@ -263,6 +263,9 @@ private fun KasirAppUtama(
                 val modelTampilanDetail =
                     ProductDetailViewModel.modelTampilan.collectAsStateWithLifecycle()
 
+                val stateAturStokDetail =
+                    ProductDetailViewModel.stateAturStok.collectAsStateWithLifecycle()
+
                 LaunchedEffect(ProductDetailViewModel) {
                     ProductDetailViewModel.efek.collectLatest { efek ->
                         when (efek) {
@@ -287,10 +290,19 @@ private fun KasirAppUtama(
 
                 ProductDetailScreen(
                     modelTampilan = modelTampilanDetail.value,
+                    stateAturStok = stateAturStokDetail.value,
                     saatKembali = {
                         pengendaliNavigasi.navigateUp()
                     },
                     saatAksiDikirim = ProductDetailViewModel::tanganiAksi,
+                    bukaDialogAturStok = ProductDetailViewModel::bukaDialogAturStok,
+                    tutupDialogAturStok = ProductDetailViewModel::tutupDialogAturStok,
+                    perbaruiStokBaru = ProductDetailViewModel::perbaruiStokBaru,
+                    perbaruiAlasanAturStok = ProductDetailViewModel::perbaruiAlasanAturStok,
+                    simpanAturStok = ProductDetailViewModel::simpanAturStok,
+                    bukaDialogRiwayat = ProductDetailViewModel::bukaDialogRiwayat,
+                    tutupDialogRiwayat = ProductDetailViewModel::tutupDialogRiwayat,
+                    bersihkanPesan = ProductDetailViewModel::bersihkanPesan,
                 )
             }
 
@@ -478,11 +490,13 @@ private fun KasirAppUtama(
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 val tutupBerhasil by viewModel.tutupBerhasil.collectAsStateWithLifecycle()
                 val statusExport by viewModel.statusExport.collectAsStateWithLifecycle()
+                val stateRekening by viewModel.stateRekening.collectAsStateWithLifecycle()
 
                 CashRegisterScreen(
                     state = state,
                     tutupBerhasil = tutupBerhasil,
                     statusExport = statusExport,
+                    stateRekening = stateRekening,
                     saatExportPdfDetail = { shiftId, uri ->
                         viewModel.exportPdfDetailKas(context, uri, shiftId, pengaturanToko.namaUsaha, pengaturanToko.alamat, pengaturanToko.tagline, pengaturanToko.logoUri)
                     },
@@ -531,6 +545,17 @@ private fun KasirAppUtama(
                     tutupDialogEditSetoran = viewModel::tutupDialogEditSetoran,
                     perbaruiCatatanEditSetoran = viewModel::perbaruiCatatanEditSetoran,
                     simpanEditSetoran = viewModel::simpanEditSetoran,
+                    bukaDialogSaldoAwalRekening = viewModel::bukaDialogSaldoAwalRekening,
+                    tutupDialogSaldoAwalRekening = viewModel::tutupDialogSaldoAwalRekening,
+                    perbaruiNominalSaldoAwalRekening = viewModel::perbaruiNominalSaldoAwalRekening,
+                    perbaruiCatatanSaldoAwalRekening = viewModel::perbaruiCatatanSaldoAwalRekening,
+                    simpanSaldoAwalRekening = viewModel::simpanSaldoAwalRekening,
+                    bukaDialogMutasiRekening = viewModel::bukaDialogMutasiRekening,
+                    tutupDialogMutasiRekening = viewModel::tutupDialogMutasiRekening,
+                    perbaruiNominalMutasiRekening = viewModel::perbaruiNominalMutasiRekening,
+                    perbaruiCatatanMutasiRekening = viewModel::perbaruiCatatanMutasiRekening,
+                    simpanMutasiRekening = viewModel::simpanMutasiRekening,
+                    bersihkanPesanRekening = viewModel::bersihkanPesanRekening,
                 )
             }
         }

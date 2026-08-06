@@ -5,8 +5,10 @@ import id.flexi.kasir.data.network.model.BahanSinkron
 import id.flexi.kasir.data.network.model.ItemTransaksiSinkron
 import id.flexi.kasir.data.network.model.MejaSinkron
 import id.flexi.kasir.data.network.model.MutasiKasSinkron
+import id.flexi.kasir.data.network.model.MutasiRekeningSinkron
 import id.flexi.kasir.data.network.model.PembelianBahanSinkron
 import id.flexi.kasir.data.network.model.PengaturanTokoSinkron
+import id.flexi.kasir.data.network.model.PenyesuaianStokSinkron
 import id.flexi.kasir.data.network.model.ProdukSinkron
 import id.flexi.kasir.data.network.model.ResepSinkron
 import id.flexi.kasir.data.network.model.SetoranSinkron
@@ -16,7 +18,9 @@ import id.flexi.kasir.domain.model.Bahan
 import id.flexi.kasir.domain.model.CashKas
 import id.flexi.kasir.domain.model.CashMutation
 import id.flexi.kasir.domain.model.Meja
+import id.flexi.kasir.domain.model.MutasiRekening
 import id.flexi.kasir.domain.model.PembelianBahan
+import id.flexi.kasir.domain.model.PenyesuaianStok
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
@@ -57,6 +61,7 @@ object PayloadSinkron {
         stok = produk.stokTersedia,
         kategori = produk.kategori.ifBlank { null },
         deskripsi = produk.deskripsi.ifBlank { null },
+        fotoUri = produk.fotoUri,
         favorit = produk.favorit,
         aktif = produk.aktif,
         dihapus = dihapus,
@@ -211,6 +216,38 @@ object PayloadSinkron {
         alamat = pengaturan.alamat.ifBlank { null },
         tagline = pengaturan.tagline.ifBlank { null },
         logoUri = pengaturan.logoUri.ifBlank { null },
+    )
+
+    fun penyesuaianStok(
+        penyesuaian: PenyesuaianStok,
+        versi: Long,
+        dihapus: Boolean = false,
+    ): PenyesuaianStokSinkron = PenyesuaianStokSinkron(
+        id = penyesuaian.id,
+        versi = versi,
+        jenis = penyesuaian.jenis.name, // "Bahan" | "Produk"
+        entitasId = penyesuaian.entitasId,
+        namaEntitas = penyesuaian.namaEntitas.ifBlank { null },
+        stokSebelum = penyesuaian.stokSebelum,
+        stokSesudah = penyesuaian.stokSesudah,
+        selisih = penyesuaian.selisih,
+        alasan = penyesuaian.alasan.ifBlank { null },
+        waktuEpochMili = penyesuaian.waktu,
+        dihapus = dihapus,
+    )
+
+    fun mutasiRekening(
+        mutasi: MutasiRekening,
+        versi: Long,
+        dihapus: Boolean = false,
+    ): MutasiRekeningSinkron = MutasiRekeningSinkron(
+        id = mutasi.id,
+        versi = versi,
+        tipe = mutasi.tipe.name, // "SaldoAwal" | "Pemasukan" | "Penarikan"
+        nominal = mutasi.nominal.nilaiRupiah,
+        catatan = mutasi.catatan.ifBlank { null },
+        waktuEpochMili = mutasi.waktu,
+        dihapus = dihapus,
     )
 
     /**

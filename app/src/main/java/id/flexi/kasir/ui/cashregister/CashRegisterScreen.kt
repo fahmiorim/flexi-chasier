@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import id.flexi.kasir.domain.model.CashExpenseCategory
 import id.flexi.kasir.domain.model.CashMutationType
 import id.flexi.kasir.domain.model.CashKas
+import id.flexi.kasir.domain.model.MutasiRekeningTipe
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.ui.history.StatusExportPdf
 
@@ -62,6 +63,18 @@ fun CashRegisterScreen(
     tutupDialogEditSetoran: () -> Unit = {},
     perbaruiCatatanEditSetoran: (String) -> Unit = {},
     simpanEditSetoran: () -> Unit = {},
+    stateRekening: RekeningUiState = RekeningUiState(),
+    bukaDialogSaldoAwalRekening: () -> Unit = {},
+    tutupDialogSaldoAwalRekening: () -> Unit = {},
+    perbaruiNominalSaldoAwalRekening: (String) -> Unit = {},
+    perbaruiCatatanSaldoAwalRekening: (String) -> Unit = {},
+    simpanSaldoAwalRekening: () -> Unit = {},
+    bukaDialogMutasiRekening: (MutasiRekeningTipe) -> Unit = {},
+    tutupDialogMutasiRekening: () -> Unit = {},
+    perbaruiNominalMutasiRekening: (String) -> Unit = {},
+    perbaruiCatatanMutasiRekening: (String) -> Unit = {},
+    simpanMutasiRekening: () -> Unit = {},
+    bersihkanPesanRekening: () -> Unit = {},
     statusExport: StatusExportPdf? = null,
     saatExportPdfDetail: (String, Uri) -> Unit = { _, _ -> },
     saatExportPdfRekap: (Uri, Long, Long) -> Unit = { _, _, _ -> },
@@ -81,6 +94,13 @@ fun CashRegisterScreen(
                 saatBersihkanStatusExport()
             }
             else -> {}
+        }
+    }
+
+    LaunchedEffect(stateRekening.pesanSnackbar) {
+        stateRekening.pesanSnackbar?.let {
+            snackbarState.showSnackbar(it)
+            bersihkanPesanRekening()
         }
     }
 
@@ -137,6 +157,17 @@ fun CashRegisterScreen(
                         onEditSetoran = bukaDialogEditSetoran,
                         saatExportPdf = saatExportPdfRekap,
                         sedangExport = statusExport is StatusExportPdf.SedangMengexport,
+                        stateRekening = stateRekening,
+                        bukaDialogSaldoAwalRekening = bukaDialogSaldoAwalRekening,
+                        tutupDialogSaldoAwalRekening = tutupDialogSaldoAwalRekening,
+                        perbaruiNominalSaldoAwalRekening = perbaruiNominalSaldoAwalRekening,
+                        perbaruiCatatanSaldoAwalRekening = perbaruiCatatanSaldoAwalRekening,
+                        simpanSaldoAwalRekening = simpanSaldoAwalRekening,
+                        bukaDialogMutasiRekening = bukaDialogMutasiRekening,
+                        tutupDialogMutasiRekening = tutupDialogMutasiRekening,
+                        perbaruiNominalMutasiRekening = perbaruiNominalMutasiRekening,
+                        perbaruiCatatanMutasiRekening = perbaruiCatatanMutasiRekening,
+                        simpanMutasiRekening = simpanMutasiRekening,
                         modifier = Modifier.padding(padding),
                     )
                 }
@@ -201,6 +232,17 @@ fun CashRegisterScreen(
                         pilihKas = pilihKas,
                         saatExportPdf = saatExportPdfRekap,
                         sedangExport = statusExport is StatusExportPdf.SedangMengexport,
+                        stateRekening = stateRekening,
+                        bukaDialogSaldoAwalRekening = bukaDialogSaldoAwalRekening,
+                        tutupDialogSaldoAwalRekening = tutupDialogSaldoAwalRekening,
+                        perbaruiNominalSaldoAwalRekening = perbaruiNominalSaldoAwalRekening,
+                        perbaruiCatatanSaldoAwalRekening = perbaruiCatatanSaldoAwalRekening,
+                        simpanSaldoAwalRekening = simpanSaldoAwalRekening,
+                        bukaDialogMutasiRekening = bukaDialogMutasiRekening,
+                        tutupDialogMutasiRekening = tutupDialogMutasiRekening,
+                        perbaruiNominalMutasiRekening = perbaruiNominalMutasiRekening,
+                        perbaruiCatatanMutasiRekening = perbaruiCatatanMutasiRekening,
+                        simpanMutasiRekening = simpanMutasiRekening,
                         modifier = Modifier.padding(padding),
                     )
                 }

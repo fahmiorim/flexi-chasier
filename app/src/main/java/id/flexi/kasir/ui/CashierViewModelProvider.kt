@@ -77,6 +77,8 @@ object CashierViewModelProvider {
                 ObserveProductById = aplikasi.kontainer.ObserveProductById,
                 AmatiResepByProduk = aplikasi.kontainer.AmatiResepByProduk,
                 LoadBahanCatalog = aplikasi.kontainer.LoadBahanCatalog,
+                aturStokProduk = aplikasi.kontainer.aturStokProduk,
+                amatiRiwayatPenyesuaian = aplikasi.kontainer.amatiRiwayatPenyesuaian,
                 statusTersimpan = createSavedStateHandle(),
             )
         }
@@ -159,6 +161,10 @@ object CashierViewModelProvider {
                 amatiSetoran = aplikasi.kontainer.amatiSetoran,
                 hapusSetoran = aplikasi.kontainer.hapusSetoran,
                 perbaruiSetoran = aplikasi.kontainer.perbaruiSetoran,
+                aturSaldoAwalRekening = aplikasi.kontainer.aturSaldoAwalRekening,
+                catatMutasiRekening = aplikasi.kontainer.catatMutasiRekening,
+                amatiMutasiRekening = aplikasi.kontainer.amatiMutasiRekening,
+                hitungSaldoRekening = aplikasi.kontainer.hitungSaldoRekening,
                 transactionRepository = aplikasi.kontainer.TransactionRepository,
                 cashRepository = aplikasi.kontainer.CashRepository,
             )
@@ -195,6 +201,10 @@ object CashierViewModelProvider {
                 CatatPembelianBahan = aplikasi.kontainer.CatatPembelianBahan,
                 AmatiPembelianBahan = aplikasi.kontainer.AmatiPembelianBahan,
                 HapusPembelianBahan = aplikasi.kontainer.HapusPembelianBahan,
+                aturStokBahan = aplikasi.kontainer.aturStokBahan,
+                amatiRiwayatPenyesuaian = aplikasi.kontainer.amatiRiwayatPenyesuaian,
+                amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
+                catatMutasiKas = aplikasi.kontainer.catatMutasiKas,
             )
         }
 

@@ -4,8 +4,10 @@ import id.flexi.kasir.data.network.model.PerubahanResponse
 import id.flexi.kasir.data.network.model.PushBahanRequest
 import id.flexi.kasir.data.network.model.PushMejaRequest
 import id.flexi.kasir.data.network.model.PushMutasiKasRequest
+import id.flexi.kasir.data.network.model.PushMutasiRekeningRequest
 import id.flexi.kasir.data.network.model.PushPembelianBahanRequest
 import id.flexi.kasir.data.network.model.PushPengaturanTokoRequest
+import id.flexi.kasir.data.network.model.PushPenyesuaianStokRequest
 import id.flexi.kasir.data.network.model.PushProdukRequest
 import id.flexi.kasir.data.network.model.PushResepRequest
 import id.flexi.kasir.data.network.model.PushResponse
@@ -76,4 +78,10 @@ interface SyncNetworkService {
 
     @POST("api/sync/pengaturan-toko")
     suspend fun dorongPengaturanToko(@Body body: PushPengaturanTokoRequest): PushResponse
+
+    @POST("api/sync/penyesuaian-stok")
+    suspend fun dorongPenyesuaianStok(@Body body: PushPenyesuaianStokRequest): PushResponse
+
+    @POST("api/sync/mutasi-rekening")
+    suspend fun dorongMutasiRekening(@Body body: PushMutasiRekeningRequest): PushResponse
 }

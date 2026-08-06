@@ -540,4 +540,61 @@ object CashierDatabaseMigration {
             )
         }
     }
+
+    /**
+     * Migrasi dari versi 24 ke versi 25.
+     *
+     * Perubahan:
+     * - menambahkan tabel `penyesuaian_stok` untuk riwayat reset/penyesuaian stok
+     *   bahan & produk lintas perangkat.
+     * - menambahkan tabel `mutasi_rekening` untuk saldo rekening (saldo awal,
+     *   pemasukan, penarikan) lintas perangkat.
+     */
+    val DARI_24_KE_25: Migration = object : Migration(24, 25) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `penyesuaian_stok` (
+                    `id` TEXT NOT NULL,
+                    `jenis` TEXT NOT NULL,
+                    `entitasId` TEXT NOT NULL,
+                    `namaEntitas` TEXT NOT NULL DEFAULT '',
+                    `stokSebelum` INTEGER NOT NULL,
+                    `stokSesudah` INTEGER NOT NULL,
+                    `selisih` INTEGER NOT NULL,
+                    `alasan` TEXT NOT NULL DEFAULT '',
+                    `waktu` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_penyesuaian_stok_entitas ON penyesuaian_stok(jenis, entitasId)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_penyesuaian_stok_waktu ON penyesuaian_stok(waktu)",
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `mutasi_rekening` (
+                    `id` TEXT NOT NULL,
+                    `tipe` TEXT NOT NULL,
+                    `nominal` INTEGER NOT NULL,
+                    `catatan` TEXT NOT NULL DEFAULT '',
+                    `waktu` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_mutasi_rekening_tipe ON mutasi_rekening(tipe)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_mutasi_rekening_waktu ON mutasi_rekening(waktu)",
+            )
+        }
+    }
 }

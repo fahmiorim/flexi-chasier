@@ -25,7 +25,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -40,11 +43,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +67,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.domain.model.CashMutationType
 import id.flexi.kasir.domain.model.CashKas
+import id.flexi.kasir.domain.model.MutasiRekening
+import id.flexi.kasir.domain.model.MutasiRekeningTipe
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.PaymentMethod
@@ -103,6 +110,17 @@ internal fun RekapKasContent(
     hapusMutasi: (String) -> Unit = {},
     saatExportPdf: (Uri, Long, Long) -> Unit = { _, _, _ -> },
     sedangExport: Boolean = false,
+    stateRekening: RekeningUiState = RekeningUiState(),
+    bukaDialogSaldoAwalRekening: () -> Unit = {},
+    tutupDialogSaldoAwalRekening: () -> Unit = {},
+    perbaruiNominalSaldoAwalRekening: (String) -> Unit = {},
+    perbaruiCatatanSaldoAwalRekening: (String) -> Unit = {},
+    simpanSaldoAwalRekening: () -> Unit = {},
+    bukaDialogMutasiRekening: (MutasiRekeningTipe) -> Unit = {},
+    tutupDialogMutasiRekening: () -> Unit = {},
+    perbaruiNominalMutasiRekening: (String) -> Unit = {},
+    perbaruiCatatanMutasiRekening: (String) -> Unit = {},
+    simpanMutasiRekening: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val formatTanggal = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")) }
@@ -220,6 +238,23 @@ internal fun RekapKasContent(
                 item {
                     BelumBukaBanner(bukaDialogBuka = bukaDialogBuka)
                 }
+            }
+
+            // ── Rekening ──
+            item {
+                SeksiRekening(
+                    state = stateRekening,
+                    bukaDialogSaldoAwal = bukaDialogSaldoAwalRekening,
+                    bukaDialogMutasi = bukaDialogMutasiRekening,
+                    tutupDialogSaldoAwal = tutupDialogSaldoAwalRekening,
+                    perbaruiNominalSaldoAwal = perbaruiNominalSaldoAwalRekening,
+                    perbaruiCatatanSaldoAwal = perbaruiCatatanSaldoAwalRekening,
+                    simpanSaldoAwal = simpanSaldoAwalRekening,
+                    tutupDialogMutasi = tutupDialogMutasiRekening,
+                    perbaruiNominalMutasi = perbaruiNominalMutasiRekening,
+                    perbaruiCatatanMutasi = perbaruiCatatanMutasiRekening,
+                    simpanMutasi = simpanMutasiRekening,
+                )
             }
 
             // ── Riwayat Kas ──
@@ -1461,4 +1496,261 @@ private fun DetailStatBox(
             )
         }
     }
+}
+
+// ═══════════════════════════════════════
+// SEKSI REKENING — saldo & mutasi rekening
+// ═══════════════════════════════════════
+
+@Composable
+internal fun SeksiRekening(
+    state: RekeningUiState,
+    bukaDialogSaldoAwal: () -> Unit,
+    bukaDialogMutasi: (MutasiRekeningTipe) -> Unit,
+    tutupDialogSaldoAwal: () -> Unit,
+    perbaruiNominalSaldoAwal: (String) -> Unit,
+    perbaruiCatatanSaldoAwal: (String) -> Unit,
+    simpanSaldoAwal: () -> Unit,
+    tutupDialogMutasi: () -> Unit,
+    perbaruiNominalMutasi: (String) -> Unit,
+    perbaruiCatatanMutasi: (String) -> Unit,
+    simpanMutasi: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val formatTanggal = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Saldo Rekening",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = bukaDialogSaldoAwal,
+                        modifier = Modifier.height(32.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Saldo Awal", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = state.saldoAkhir.sebagaiRupiah(),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = { bukaDialogMutasi(MutasiRekeningTipe.Pemasukan) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Icon(Icons.Default.ArrowUpward, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Pemasukan", fontWeight = FontWeight.Medium)
+                    }
+                    FilledTonalButton(
+                        onClick = { bukaDialogMutasi(MutasiRekeningTipe.Penarikan) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Icon(Icons.Default.ArrowDownward, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Penarikan", fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                if (state.daftarMutasi.isNotEmpty()) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(vertical = 12.dp),
+                    )
+                    state.daftarMutasi.take(8).forEach { mutasi ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    text = labelMutasiRekening(mutasi.tipe),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                if (mutasi.catatan.isNotBlank()) {
+                                    Text(
+                                        text = mutasi.catatan,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    text = formatTanggal.format(Date(mutasi.waktu)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            val menambah = mutasi.tipe != MutasiRekeningTipe.Penarikan
+                            Text(
+                                text = if (menambah) "+${mutasi.nominal.nilaiRupiah.sebagaiRupiah()}" else "-${mutasi.nominal.nilaiRupiah.sebagaiRupiah()}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (menambah) GreenAksen else RedAksen,
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Belum ada mutasi rekening. Atur saldo awal untuk mulai mencatat.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    if (state.apakahDialogSaldoAwalTampil) {
+        FlexiDialog(onDismissRequest = tutupDialogSaldoAwal) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                FlexiDialogHeader(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    title = "Atur Saldo Awal",
+                    subtitle = "Menetapkan modal awal rekening",
+                    onClose = tutupDialogSaldoAwal,
+                )
+
+                OutlinedTextField(
+                    value = state.nominalSaldoAwal,
+                    onValueChange = { perbaruiNominalSaldoAwal(it) },
+                    label = { Text("Nominal") },
+                    placeholder = { Text("Contoh: 1000000") },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = state.catatanSaldoAwal,
+                    onValueChange = { perbaruiCatatanSaldoAwal(it) },
+                    label = { Text("Catatan (opsional)") },
+                    placeholder = { Text("Contoh: Saldo awal bulan ini") },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                FlexiDialogActions(
+                    onBatal = tutupDialogSaldoAwal,
+                    labelBatal = "Batal",
+                    onKonfirmasi = simpanSaldoAwal,
+                    labelKonfirmasi = "Simpan",
+                    konfirmasiIcon = Icons.Default.Add,
+                    enabled = state.nominalSaldoAwal.isNotBlank() && !state.apakahSedangMenyimpan,
+                )
+            }
+        }
+    }
+
+    if (state.apakahDialogMutasiTampil) {
+        val isPemasukan = state.tipeMutasi == MutasiRekeningTipe.Pemasukan
+        FlexiDialog(onDismissRequest = tutupDialogMutasi) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                FlexiDialogHeader(
+                    icon = if (isPemasukan) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                    title = if (isPemasukan) "Pemasukan" else "Penarikan",
+                    subtitle = "Catat mutasi rekening",
+                    onClose = tutupDialogMutasi,
+                    iconTint = if (isPemasukan) GreenAksen else RedAksen,
+                )
+
+                OutlinedTextField(
+                    value = state.nominalMutasi,
+                    onValueChange = { perbaruiNominalMutasi(it) },
+                    label = { Text("Nominal") },
+                    placeholder = { Text("Contoh: 50000") },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = state.catatanMutasi,
+                    onValueChange = { perbaruiCatatanMutasi(it) },
+                    label = { Text("Catatan (opsional)") },
+                    placeholder = { Text("Contoh: Transfer dari kas") },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                FlexiDialogActions(
+                    onBatal = tutupDialogMutasi,
+                    labelBatal = "Batal",
+                    onKonfirmasi = simpanMutasi,
+                    labelKonfirmasi = "Simpan",
+                    konfirmasiIcon = Icons.Default.Add,
+                    enabled = state.nominalMutasi.isNotBlank() && !state.apakahSedangMenyimpan,
+                )
+            }
+        }
+    }
+}
+
+private fun labelMutasiRekening(tipe: MutasiRekeningTipe): String = when (tipe) {
+    MutasiRekeningTipe.SaldoAwal -> "Saldo Awal"
+    MutasiRekeningTipe.Pemasukan -> "Pemasukan"
+    MutasiRekeningTipe.Penarikan -> "Penarikan"
 }

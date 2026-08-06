@@ -8,7 +8,9 @@ import id.flexi.kasir.domain.model.Bahan
 import id.flexi.kasir.domain.model.CashKas
 import id.flexi.kasir.domain.model.CashMutation
 import id.flexi.kasir.domain.model.Meja
+import id.flexi.kasir.domain.model.MutasiRekening
 import id.flexi.kasir.domain.model.PembelianBahan
+import id.flexi.kasir.domain.model.PenyesuaianStok
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
@@ -137,6 +139,18 @@ class OutboxPencatat(
         }
     }
 
+    suspend fun catatPenyesuaianStok(penyesuaian: PenyesuaianStok, dihapus: Boolean = false) {
+        catat(ENTITAS_PENYESUAIAN_STOK, penyesuaian.id) { versi ->
+            json.encodeToString(PayloadSinkron.penyesuaianStok(penyesuaian, versi, dihapus))
+        }
+    }
+
+    suspend fun catatMutasiRekening(mutasi: MutasiRekening, dihapus: Boolean = false) {
+        catat(ENTITAS_MUTASI_REKENING, mutasi.id) { versi ->
+            json.encodeToString(PayloadSinkron.mutasiRekening(mutasi, versi, dihapus))
+        }
+    }
+
     /** Menulis satu baris outbox (insert/timpa) dengan versi monotonik. */
     private suspend fun catat(
         entitas: String,
@@ -165,6 +179,8 @@ class OutboxPencatat(
         const val ENTITAS_PEMBELIAN_BAHAN = "pembelian-bahan"
         const val ENTITAS_RESEP = "resep"
         const val ENTITAS_PENGATURAN_TOKO = "pengaturan-toko"
+        const val ENTITAS_PENYESUAIAN_STOK = "penyesuaian-stok"
+        const val ENTITAS_MUTASI_REKENING = "mutasi-rekening"
 
         /** ID deterministik pengaturan toko per gerai (satu baris per gerai). */
         fun idPengaturanToko(geraiId: String): String = "pengaturan-toko-$geraiId"

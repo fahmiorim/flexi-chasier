@@ -26,6 +26,8 @@ data class ProdukSinkron(
     val stok: Int,
     val kategori: String? = null,
     val deskripsi: String? = null,
+    @SerialName("fotoUri")
+    val fotoUri: String? = null,
     val favorit: Boolean = false,
     val aktif: Boolean = true,
     val dihapus: Boolean = false,
@@ -194,6 +196,50 @@ data class PengaturanTokoSinkron(
     val logoUri: String? = null,
 )
 
+/**
+ * Riwayat penyesuaian/reset stok (bahan maupun produk) lintas perangkat.
+ *
+ * Bentuk field PERSIS kontrak backend `POST /api/sync/penyesuaian-stok` dan
+ * bagian `penyesuaianStok` pada `GET /api/sync/perubahan`.
+ */
+@Serializable
+data class PenyesuaianStokSinkron(
+    val id: String,
+    val versi: Long,
+    val jenis: String, // "Bahan" | "Produk"
+    @SerialName("entitasId")
+    val entitasId: String,
+    @SerialName("namaEntitas")
+    val namaEntitas: String? = null,
+    @SerialName("stokSebelum")
+    val stokSebelum: Int,
+    @SerialName("stokSesudah")
+    val stokSesudah: Int,
+    val selisih: Int,
+    val alasan: String? = null,
+    @SerialName("waktuEpochMili")
+    val waktuEpochMili: Long,
+    val dihapus: Boolean = false,
+)
+
+/**
+ * Mutasi rekening (saldo awal, pemasukan, penarikan) lintas perangkat.
+ *
+ * Bentuk field PERSIS kontrak backend `POST /api/sync/mutasi-rekening` dan
+ * bagian `mutasiRekening` pada `GET /api/sync/perubahan`.
+ */
+@Serializable
+data class MutasiRekeningSinkron(
+    val id: String,
+    val versi: Long,
+    val tipe: String, // "SaldoAwal" | "Pemasukan" | "Penarikan"
+    val nominal: Long,
+    val catatan: String? = null,
+    @SerialName("waktuEpochMili")
+    val waktuEpochMili: Long,
+    val dihapus: Boolean = false,
+)
+
 // ── Envelope push (body request) ──
 
 @Serializable
@@ -266,6 +312,20 @@ data class PushPengaturanTokoRequest(
     val items: List<PengaturanTokoSinkron>,
 )
 
+@Serializable
+data class PushPenyesuaianStokRequest(
+    @SerialName("geraiId")
+    val geraiId: String,
+    val items: List<PenyesuaianStokSinkron>,
+)
+
+@Serializable
+data class PushMutasiRekeningRequest(
+    @SerialName("geraiId")
+    val geraiId: String,
+    val items: List<MutasiRekeningSinkron>,
+)
+
 /** Respons push: jumlah item yang diterima server (LWW) vs total yang dikirim. */
 @Serializable
 data class PushResponse(
@@ -304,4 +364,8 @@ data class PerubahanResponse(
     val resepBahan: List<BahanResepSinkron> = emptyList(),
     @SerialName("storeSettings")
     val storeSettings: List<PengaturanTokoSinkron> = emptyList(),
+    @SerialName("penyesuaianStok")
+    val penyesuaianStok: List<PenyesuaianStokSinkron> = emptyList(),
+    @SerialName("mutasiRekening")
+    val mutasiRekening: List<MutasiRekeningSinkron> = emptyList(),
 )

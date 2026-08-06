@@ -7,18 +7,24 @@ import androidx.navigation.toRoute
 import id.flexi.kasir.ui.navigation.CashierNavigationDestination
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.domain.usecase.AmatiResepByProduk
+import id.flexi.kasir.domain.usecase.AmatiRiwayatPenyesuaian
+import id.flexi.kasir.domain.usecase.AturStokProduk
 import id.flexi.kasir.domain.usecase.LoadBahanCatalog
 import id.flexi.kasir.domain.usecase.ObserveProductById
 import id.flexi.kasir.domain.model.Bahan
+import id.flexi.kasir.domain.model.PenyesuaianStok
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.Resep
+import id.flexi.kasir.domain.model.StokJenis
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -26,7 +32,22 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
+
+/** Status tambahan layar detail produk (dialog Atur Stok & Riwayat Penyesuaian). */
+data class ProductAturStokUiState(
+    val apakahDialogAturStokTampil: Boolean = false,
+    val stokBaru: String = "",
+    val alasanAturStok: String = "",
+    val apakahSedangMenyimpanStok: Boolean = false,
+    val apakahDialogRiwayatTampil: Boolean = false,
+    val riwayatPenyesuaian: List<PenyesuaianStok> = emptyList(),
+    val pesanSnackbar: String? = null,
+)
 
 /**
  * Pengelola status layar detail produk.
@@ -36,6 +57,8 @@ class ProductDetailViewModel(
     private val ObserveProductById: ObserveProductById,
     private val AmatiResepByProduk: AmatiResepByProduk,
     private val LoadBahanCatalog: LoadBahanCatalog,
+    private val aturStokProduk: AturStokProduk,
+    private val amatiRiwayatPenyesuaian: AmatiRiwayatPenyesuaian,
     statusTersimpan: SavedStateHandle,
 ) : ViewModel() {
 
@@ -43,6 +66,18 @@ class ProductDetailViewModel(
         statusTersimpan.toRoute<CashierNavigationDestination.DetailProduk>().identitasProduk
 
     private val nomorPermintaanMuatUlang = MutableStateFlow(0)
+
+    private val _stateAturStok = MutableStateFlow(ProductAturStokUiState())
+    val stateAturStok: StateFlow<ProductAturStokUiState> = _stateAturStok.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            amatiRiwayatPenyesuaian(StokJenis.Produk, identitasProduk)
+                .collect { riwayat ->
+                    _stateAturStok.update { it.copy(riwayatPenyesuaian = riwayat) }
+                }
+        }
+    }
 
     /** Semua bahan baku (untuk cari harga per satuan). */
     private val daftarBahan = LoadBahanCatalog()
@@ -195,5 +230,78 @@ class ProductDetailViewModel(
                 namaProduk = statusMuatSaatIni.namaProduk,
             ),
         )
+    }
+
+    // ── Atur Stok ──
+
+    fun bukaDialogAturStok() {
+        _stateAturStok.update {
+            it.copy(
+                apakahDialogAturStokTampil = true,
+                stokBaru = "",
+                alasanAturStok = "",
+                apakahSedangMenyimpanStok = false,
+            )
+        }
+    }
+
+    fun tutupDialogAturStok() {
+        _stateAturStok.update { it.copy(apakahDialogAturStokTampil = false) }
+    }
+
+    fun perbaruiStokBaru(value: String) {
+        _stateAturStok.update { it.copy(stokBaru = value.filter { c -> c.isDigit() }) }
+    }
+
+    fun perbaruiAlasanAturStok(value: String) {
+        _stateAturStok.update { it.copy(alasanAturStok = value) }
+    }
+
+    fun simpanAturStok() {
+        if (_stateAturStok.value.apakahSedangMenyimpanStok) return
+        val stokBaru = _stateAturStok.value.stokBaru.toIntOrNull()
+        if (stokBaru == null || stokBaru < 0) {
+            _stateAturStok.update { it.copy(pesanSnackbar = "Masukkan jumlah stok yang valid.") }
+            return
+        }
+
+        _stateAturStok.update { it.copy(apakahSedangMenyimpanStok = true) }
+        viewModelScope.launch {
+            try {
+                aturStokProduk(
+                    produkId = identitasProduk,
+                    stokBaru = stokBaru,
+                    alasan = _stateAturStok.value.alasanAturStok.trim(),
+                )
+                _stateAturStok.update {
+                    it.copy(
+                        apakahDialogAturStokTampil = false,
+                        apakahSedangMenyimpanStok = false,
+                        pesanSnackbar = "Stok produk berhasil diatur.",
+                    )
+                }
+            } catch (e: Exception) {
+                _stateAturStok.update {
+                    it.copy(
+                        apakahSedangMenyimpanStok = false,
+                        pesanSnackbar = "Gagal mengatur stok: ${e.message}",
+                    )
+                }
+            }
+        }
+    }
+
+    // ── Riwayat Penyesuaian ──
+
+    fun bukaDialogRiwayat() {
+        _stateAturStok.update { it.copy(apakahDialogRiwayatTampil = true) }
+    }
+
+    fun tutupDialogRiwayat() {
+        _stateAturStok.update { it.copy(apakahDialogRiwayatTampil = false) }
+    }
+
+    fun bersihkanPesan() {
+        _stateAturStok.update { it.copy(pesanSnackbar = null) }
     }
 }

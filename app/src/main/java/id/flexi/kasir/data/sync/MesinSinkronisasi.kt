@@ -7,9 +7,11 @@ import id.flexi.kasir.data.network.config.CashierNetworkProvider
 import id.flexi.kasir.data.network.model.PushBahanRequest
 import id.flexi.kasir.data.network.model.PushMejaRequest
 import id.flexi.kasir.data.network.model.PushMutasiKasRequest
+import id.flexi.kasir.data.network.model.PushMutasiRekeningRequest
 import id.flexi.kasir.data.network.model.PushPembelianBahanRequest
 import id.flexi.kasir.data.network.model.PushPengaturanTokoRequest
 import id.flexi.kasir.data.network.model.PengaturanTokoSinkron
+import id.flexi.kasir.data.network.model.PushPenyesuaianStokRequest
 import id.flexi.kasir.data.network.model.PushProdukRequest
 import id.flexi.kasir.data.network.model.PushResepRequest
 import id.flexi.kasir.data.network.model.PushResponse
@@ -62,6 +64,8 @@ class MesinSinkronisasi(
     private val mejaDao = basisData.LocalTableDao()
     private val kasDao = basisData.LocalCashDao()
     private val bahanDao = basisData.BahanDao()
+    private val penyesuaianStokDao = basisData.PenyesuaianStokDao()
+    private val mutasiRekeningDao = basisData.MutasiRekeningDao()
 
     /**
      * Kunci bersama agar hanya SATU siklus sinkronisasi berjalan pada satu waktu
@@ -162,6 +166,12 @@ class MesinSinkronisasi(
         }
         diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PENGATURAN_TOKO) { g, items ->
             layanan.dorongPengaturanToko(PushPengaturanTokoRequest(g, items))
+        }
+        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PENYESUAIAN_STOK) { g, items ->
+            layanan.dorongPenyesuaianStok(PushPenyesuaianStokRequest(g, items))
+        }
+        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_MUTASI_REKENING) { g, items ->
+            layanan.dorongMutasiRekening(PushMutasiRekeningRequest(g, items))
         }
         return diterima
     }
@@ -380,6 +390,10 @@ class MesinSinkronisasi(
                 }
             }
 
+            // ── 5b. Penyesuaian stok & mutasi rekening (mandiri, tanpa induk) ──
+            perubahan.penyesuaianStok.forEach { penyesuaianStokDao.simpan(it) }
+            perubahan.mutasiRekening.forEach { mutasiRekeningDao.simpan(it) }
+
             // ── 6. Pembersihan item yang dihapus server (anak dulu) ──
             perubahan.resepDihapus.forEach { bahanDao.hapusResep(it) } // cascade bahan_resep
             perubahan.transaksiDihapus.forEach { transaksiDao.hapusTransactionBerdasarkanId(it) } // cascade item
@@ -390,6 +404,8 @@ class MesinSinkronisasi(
             perubahan.bahanDihapus.forEach { bahanDao.hapusBahan(it) } // cascade pembelian & bahan_resep
             perubahan.mejaDihapus.forEach { mejaDao.DeleteTable(it) }
             perubahan.produkDihapus.forEach { produkDao.DeleteProduct(it) }
+            perubahan.penyesuaianStokDihapus.forEach { penyesuaianStokDao.hapus(it) }
+            perubahan.mutasiRekeningDihapus.forEach { mutasiRekeningDao.hapus(it) }
         }
     }
 
@@ -425,6 +441,7 @@ class MesinSinkronisasi(
         private val ENTITAS_PULL = listOf(
             "produk", "transaksi", "meja", "shiftKas", "mutasiKas",
             "setoran", "bahan", "pembelianBahan", "resep", "pengaturanToko",
+            "penyesuaianStok", "mutasiRekening",
         )
 
         /** Kunci meta: epoch mili saat siklus dimulai (kosong bila tidak berjalan). */

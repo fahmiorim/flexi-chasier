@@ -11,16 +11,22 @@ import id.flexi.kasir.domain.model.CashMutation
 import id.flexi.kasir.domain.model.CashMutationType
 import id.flexi.kasir.domain.model.CashKas
 import id.flexi.kasir.domain.model.CashKasStatus
+import id.flexi.kasir.domain.model.MutasiRekening
+import id.flexi.kasir.domain.model.MutasiRekeningTipe
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.usecase.AmatiMutasiKas
+import id.flexi.kasir.domain.usecase.AmatiMutasiRekening
 import id.flexi.kasir.domain.usecase.AmatiSemuaKas
 import id.flexi.kasir.domain.usecase.AmatiSetoran
 import id.flexi.kasir.domain.usecase.AmatiKasAktif
+import id.flexi.kasir.domain.usecase.AturSaldoAwalRekening
 import id.flexi.kasir.domain.usecase.BukaKas
 import id.flexi.kasir.domain.usecase.CatatMutasiKas
+import id.flexi.kasir.domain.usecase.CatatMutasiRekening
 import id.flexi.kasir.domain.usecase.CatatSetoran
 import id.flexi.kasir.domain.usecase.HapusMutasiKas
 import id.flexi.kasir.domain.usecase.HapusSetoran
+import id.flexi.kasir.domain.usecase.HitungSaldoRekening
 import id.flexi.kasir.domain.usecase.PerbaruiSetoran
 import id.flexi.kasir.domain.usecase.TutupKas
 import id.flexi.kasir.domain.util.sebagaiRupiah
@@ -33,8 +39,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -43,6 +51,21 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+/** Status seksi Rekening di layar kas (terpisah dari state utama). */
+data class RekeningUiState(
+    val saldoAkhir: Long = 0L,
+    val daftarMutasi: List<MutasiRekening> = emptyList(),
+    val apakahDialogSaldoAwalTampil: Boolean = false,
+    val nominalSaldoAwal: String = "",
+    val catatanSaldoAwal: String = "",
+    val apakahDialogMutasiTampil: Boolean = false,
+    val tipeMutasi: MutasiRekeningTipe = MutasiRekeningTipe.Pemasukan,
+    val nominalMutasi: String = "",
+    val catatanMutasi: String = "",
+    val apakahSedangMenyimpan: Boolean = false,
+    val pesanSnackbar: String? = null,
+)
 
 class CashRegisterViewModel(
     private val bukaKas: BukaKas,
@@ -56,12 +79,19 @@ class CashRegisterViewModel(
     private val amatiSetoran: AmatiSetoran,
     private val hapusSetoran: HapusSetoran,
     private val perbaruiSetoran: PerbaruiSetoran,
+    private val aturSaldoAwalRekening: AturSaldoAwalRekening,
+    private val catatMutasiRekening: CatatMutasiRekening,
+    private val amatiMutasiRekening: AmatiMutasiRekening,
+    private val hitungSaldoRekening: HitungSaldoRekening,
     private val transactionRepository: TransactionRepository,
     private val cashRepository: id.flexi.kasir.domain.repository.CashRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CashRegisterUiState>(CashRegisterUiState.Memuat)
     val state: StateFlow<CashRegisterUiState> = _state
+
+    private val _stateRekening = MutableStateFlow(RekeningUiState())
+    val stateRekening: StateFlow<RekeningUiState> = _stateRekening.asStateFlow()
 
     private var shiftIdAktif: String? = null
     private var observasiMutasiJob: Job? = null
@@ -86,6 +116,20 @@ class CashRegisterViewModel(
     private var sedangTutup = false
 
     init {
+        viewModelScope.launch {
+            combine(
+                amatiMutasiRekening(),
+                hitungSaldoRekening(),
+            ) { daftar, saldo ->
+                _stateRekening.update {
+                    it.copy(
+                        saldoAkhir = saldo,
+                        daftarMutasi = daftar.sortedByDescending { mutasi -> mutasi.waktu },
+                    )
+                }
+            }.collectLatest { }
+        }
+
         // Observe global cumulative saldo using aggregate queries (SQL SUM langsung)
         viewModelScope.launch {
             combine(
@@ -979,6 +1023,128 @@ class CashRegisterViewModel(
                 }
             }
         } catch (_: Exception) { null }
+    }
+
+    // ── Rekening ──
+
+    fun bukaDialogSaldoAwalRekening() {
+        _stateRekening.update {
+            it.copy(
+                apakahDialogSaldoAwalTampil = true,
+                nominalSaldoAwal = "",
+                catatanSaldoAwal = "",
+                apakahSedangMenyimpan = false,
+                pesanSnackbar = null,
+            )
+        }
+    }
+
+    fun tutupDialogSaldoAwalRekening() {
+        _stateRekening.update { it.copy(apakahDialogSaldoAwalTampil = false) }
+    }
+
+    fun perbaruiNominalSaldoAwalRekening(value: String) {
+        _stateRekening.update { it.copy(nominalSaldoAwal = value.filter { c -> c.isDigit() }) }
+    }
+
+    fun perbaruiCatatanSaldoAwalRekening(value: String) {
+        _stateRekening.update { it.copy(catatanSaldoAwal = value) }
+    }
+
+    fun simpanSaldoAwalRekening() {
+        if (_stateRekening.value.apakahSedangMenyimpan) return
+        val nominal = _stateRekening.value.nominalSaldoAwal.toLongOrNull()
+        if (nominal == null || nominal <= 0L) {
+            _stateRekening.update { it.copy(pesanSnackbar = "Masukkan nominal yang valid.") }
+            return
+        }
+
+        _stateRekening.update { it.copy(apakahSedangMenyimpan = true) }
+        viewModelScope.launch {
+            try {
+                aturSaldoAwalRekening(
+                    nominal = nominal,
+                    catatan = _stateRekening.value.catatanSaldoAwal.trim(),
+                )
+                _stateRekening.update {
+                    it.copy(
+                        apakahDialogSaldoAwalTampil = false,
+                        apakahSedangMenyimpan = false,
+                        pesanSnackbar = "Saldo awal rekening berhasil diatur.",
+                    )
+                }
+            } catch (e: Exception) {
+                _stateRekening.update {
+                    it.copy(
+                        apakahSedangMenyimpan = false,
+                        pesanSnackbar = "Gagal mengatur saldo awal: ${e.message}",
+                    )
+                }
+            }
+        }
+    }
+
+    fun bukaDialogMutasiRekening(tipe: MutasiRekeningTipe) {
+        _stateRekening.update {
+            it.copy(
+                apakahDialogMutasiTampil = true,
+                tipeMutasi = tipe,
+                nominalMutasi = "",
+                catatanMutasi = "",
+                apakahSedangMenyimpan = false,
+                pesanSnackbar = null,
+            )
+        }
+    }
+
+    fun tutupDialogMutasiRekening() {
+        _stateRekening.update { it.copy(apakahDialogMutasiTampil = false) }
+    }
+
+    fun perbaruiNominalMutasiRekening(value: String) {
+        _stateRekening.update { it.copy(nominalMutasi = value.filter { c -> c.isDigit() }) }
+    }
+
+    fun perbaruiCatatanMutasiRekening(value: String) {
+        _stateRekening.update { it.copy(catatanMutasi = value) }
+    }
+
+    fun simpanMutasiRekening() {
+        if (_stateRekening.value.apakahSedangMenyimpan) return
+        val nominal = _stateRekening.value.nominalMutasi.toLongOrNull()
+        if (nominal == null || nominal <= 0L) {
+            _stateRekening.update { it.copy(pesanSnackbar = "Masukkan nominal yang valid.") }
+            return
+        }
+
+        _stateRekening.update { it.copy(apakahSedangMenyimpan = true) }
+        viewModelScope.launch {
+            try {
+                catatMutasiRekening(
+                    tipe = _stateRekening.value.tipeMutasi,
+                    nominal = nominal,
+                    catatan = _stateRekening.value.catatanMutasi.trim(),
+                )
+                _stateRekening.update {
+                    it.copy(
+                        apakahDialogMutasiTampil = false,
+                        apakahSedangMenyimpan = false,
+                        pesanSnackbar = "Mutasi rekening berhasil dicatat.",
+                    )
+                }
+            } catch (e: Exception) {
+                _stateRekening.update {
+                    it.copy(
+                        apakahSedangMenyimpan = false,
+                        pesanSnackbar = "Gagal mencatat mutasi: ${e.message}",
+                    )
+                }
+            }
+        }
+    }
+
+    fun bersihkanPesanRekening() {
+        _stateRekening.update { it.copy(pesanSnackbar = null) }
     }
 
 }

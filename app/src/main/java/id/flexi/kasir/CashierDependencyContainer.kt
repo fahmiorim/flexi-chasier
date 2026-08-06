@@ -22,6 +22,7 @@ import id.flexi.kasir.data.local.preference.RepositoriStorePreferenceDataStore
 import id.flexi.kasir.data.local.repository.CashRepositoryLokal
 import id.flexi.kasir.data.local.repository.TableRepositoryLokal
 import id.flexi.kasir.data.local.repository.TransactionRepositoryLokal
+import id.flexi.kasir.data.local.repository.StokRekeningRepositoryLokal
 import id.flexi.kasir.data.repository.ProductRepositoryLokalRemote
 import id.flexi.kasir.data.repository.AuthRepositoryImpl
 import id.flexi.kasir.domain.usecase.AmatiMutasiKas
@@ -77,6 +78,7 @@ import id.flexi.kasir.domain.repository.RepositoriStorePreference
 import id.flexi.kasir.domain.repository.ProductRepository
 import id.flexi.kasir.domain.repository.TransactionRepository
 import id.flexi.kasir.domain.repository.AuthRepository
+import id.flexi.kasir.domain.repository.StokRekeningRepository
 import id.flexi.kasir.domain.usecase.AmatiSesi
 import id.flexi.kasir.domain.usecase.KeluarAkun
 import id.flexi.kasir.domain.usecase.LoginUser
@@ -86,6 +88,13 @@ import id.flexi.kasir.domain.usecase.LupaPassword
 import id.flexi.kasir.domain.usecase.ResetPassword
 import id.flexi.kasir.domain.usecase.VerifikasiEmail
 import id.flexi.kasir.domain.usecase.RegisterAkun
+import id.flexi.kasir.domain.usecase.AturStokProduk
+import id.flexi.kasir.domain.usecase.AturStokBahan
+import id.flexi.kasir.domain.usecase.AmatiRiwayatPenyesuaian
+import id.flexi.kasir.domain.usecase.AturSaldoAwalRekening
+import id.flexi.kasir.domain.usecase.CatatMutasiRekening
+import id.flexi.kasir.domain.usecase.AmatiMutasiRekening
+import id.flexi.kasir.domain.usecase.HitungSaldoRekening
 
 /**
  * Kontainer dependensi manual (Service Locator) untuk aplikasi Flexi Cashier.
@@ -130,6 +139,7 @@ class CashierDependencyContainer(
                 CashierDatabaseMigration.DARI_21_KE_22,
                 CashierDatabaseMigration.DARI_22_KE_23,
                 CashierDatabaseMigration.DARI_23_KE_24,
+                CashierDatabaseMigration.DARI_24_KE_25,
             )
             .fallbackToDestructiveMigration(false)
             .build()
@@ -459,6 +469,44 @@ class CashierDependencyContainer(
 
     val AmatiResepByProduk: AmatiResepByProduk by lazy {
         AmatiResepByProduk(bahanRepository)
+    }
+
+    // ── Penyesuaian Stok & Rekening ──
+
+    val stokRekeningRepository: StokRekeningRepository by lazy {
+        StokRekeningRepositoryLokal(
+            penyesuaianStokDao = basisData.PenyesuaianStokDao(),
+            mutasiRekeningDao = basisData.MutasiRekeningDao(),
+            pencatatOutbox = OutboxPencatat,
+        )
+    }
+
+    val aturStokProduk: AturStokProduk by lazy {
+        AturStokProduk(ProductRepository, stokRekeningRepository)
+    }
+
+    val aturStokBahan: AturStokBahan by lazy {
+        AturStokBahan(bahanRepository, stokRekeningRepository)
+    }
+
+    val amatiRiwayatPenyesuaian: AmatiRiwayatPenyesuaian by lazy {
+        AmatiRiwayatPenyesuaian(stokRekeningRepository)
+    }
+
+    val aturSaldoAwalRekening: AturSaldoAwalRekening by lazy {
+        AturSaldoAwalRekening(stokRekeningRepository)
+    }
+
+    val catatMutasiRekening: CatatMutasiRekening by lazy {
+        CatatMutasiRekening(stokRekeningRepository)
+    }
+
+    val amatiMutasiRekening: AmatiMutasiRekening by lazy {
+        AmatiMutasiRekening(stokRekeningRepository)
+    }
+
+    val hitungSaldoRekening: HitungSaldoRekening by lazy {
+        HitungSaldoRekening(stokRekeningRepository, TransactionRepository, CashRepository)
     }
 
     // ── Autentikasi (SaaS multi-tenant) ──

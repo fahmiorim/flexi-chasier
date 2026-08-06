@@ -1,4 +1,4 @@
-package id.flexi.kasir.ui.detail
+﻿package id.flexi.kasir.ui.detail
 
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -17,27 +17,41 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import id.flexi.kasir.domain.model.PenyesuaianStok
 import id.flexi.kasir.ui.component.FlexiCard
+import id.flexi.kasir.ui.component.FlexiDialog
+import id.flexi.kasir.ui.component.FlexiDialogActions
+import id.flexi.kasir.ui.component.FlexiDialogHeader
+import id.flexi.kasir.ui.component.FlexiDialogSingleAction
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import id.flexi.kasir.ui.component.FlexiInfoRow
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,18 +61,40 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.ui.component.SimpleEmptyStatus
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     modelTampilan: ProductDetailUiState,
+    stateAturStok: ProductAturStokUiState,
     saatKembali: () -> Unit,
     saatAksiDikirim: (ProductDetailAction) -> Unit,
+    bukaDialogAturStok: () -> Unit,
+    tutupDialogAturStok: () -> Unit,
+    perbaruiStokBaru: (String) -> Unit,
+    perbaruiAlasanAturStok: (String) -> Unit,
+    simpanAturStok: () -> Unit,
+    bukaDialogRiwayat: () -> Unit,
+    tutupDialogRiwayat: () -> Unit,
+    bersihkanPesan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(stateAturStok.pesanSnackbar) {
+        stateAturStok.pesanSnackbar?.let {
+            snackbarHostState.showSnackbar(it)
+            bersihkanPesan()
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingDalam ->
         when (val statusMuat = modelTampilan.statusMuat) {
             ProductDetailLoadStatus.Memuat -> {
@@ -84,6 +120,8 @@ fun ProductDetailScreen(
                     saatTambahKeKeranjang = {
                         saatAksiDikirim(ProductDetailAction.CobaTambahKeKeranjang)
                     },
+                    saatAturStok = bukaDialogAturStok,
+                    saatLihatRiwayat = bukaDialogRiwayat,
                 )
             }
 
@@ -107,6 +145,28 @@ fun ProductDetailScreen(
                     },
                 )
             }
+        }
+
+        if (stateAturStok.apakahDialogAturStokTampil) {
+            val stokSaatIni = (modelTampilan.statusMuat as? ProductDetailLoadStatus.Berhasil)
+                ?.stokTersedia
+            DialogAturStokProduk(
+                stokBaru = stateAturStok.stokBaru,
+                alasan = stateAturStok.alasanAturStok,
+                stokSaatIni = stokSaatIni,
+                sedangMenyimpan = stateAturStok.apakahSedangMenyimpanStok,
+                onStokBerubah = perbaruiStokBaru,
+                onAlasanBerubah = perbaruiAlasanAturStok,
+                onDismiss = tutupDialogAturStok,
+                onSimpan = simpanAturStok,
+            )
+        }
+
+        if (stateAturStok.apakahDialogRiwayatTampil) {
+            DialogRiwayatPenyesuaianProduk(
+                daftar = stateAturStok.riwayatPenyesuaian,
+                onDismiss = tutupDialogRiwayat,
+            )
         }
     }
 }
@@ -176,6 +236,8 @@ private fun KontenDetailProduk(
     marginProduk: String? = null,
     statusAksi: ProductDetailActionStatus,
     saatTambahKeKeranjang: () -> Unit,
+    saatAturStok: () -> Unit,
+    saatLihatRiwayat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -319,6 +381,34 @@ private fun KontenDetailProduk(
                     )
                 }
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = saatAturStok,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp),
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Atur Stok", fontWeight = FontWeight.Medium)
+                    }
+                    FilledTonalButton(
+                        onClick = saatLihatRiwayat,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp),
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Riwayat", fontWeight = FontWeight.Medium)
+                    }
+                }
+
                 Button(
                     onClick = saatTambahKeKeranjang,
                     enabled = statusAksi.aktif,
@@ -398,6 +488,150 @@ private fun KontenGagalMemuatDetailProduk(
             Text(
                 text = "Coba Lagi",
                 style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DialogAturStokProduk(
+    stokBaru: String,
+    alasan: String,
+    stokSaatIni: Int?,
+    sedangMenyimpan: Boolean,
+    onStokBerubah: (String) -> Unit,
+    onAlasanBerubah: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSimpan: () -> Unit,
+) {
+    val stokBaruInt = stokBaru.toIntOrNull()
+    val valid = stokBaruInt != null && stokBaruInt >= 0
+
+    FlexiDialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            FlexiDialogHeader(
+                icon = Icons.Default.Tune,
+                title = "Atur Stok Produk",
+                subtitle = stokSaatIni?.let { "Stok saat ini: $it item" },
+                onClose = onDismiss,
+            )
+
+            OutlinedTextField(
+                value = stokBaru,
+                onValueChange = { onStokBerubah(it) },
+                label = { Text("Stok Baru") },
+                placeholder = { Text("Contoh: 100") },
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = alasan,
+                onValueChange = { onAlasanBerubah(it) },
+                label = { Text("Alasan (opsional)") },
+                placeholder = { Text("Contoh: Opname fisik, reset stok") },
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            FlexiDialogActions(
+                onBatal = onDismiss,
+                labelBatal = "Batal",
+                onKonfirmasi = onSimpan,
+                labelKonfirmasi = "Simpan",
+                konfirmasiIcon = Icons.Default.Add,
+                enabled = valid && !sedangMenyimpan,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DialogRiwayatPenyesuaianProduk(
+    daftar: List<PenyesuaianStok>,
+    onDismiss: () -> Unit,
+) {
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")) }
+
+    FlexiDialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            FlexiDialogHeader(
+                icon = Icons.Default.History,
+                title = "Riwayat Penyesuaian Stok",
+                onClose = onDismiss,
+            )
+
+            if (daftar.isEmpty()) {
+                Text(
+                    text = "Belum ada penyesuaian stok untuk produk ini.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    daftar.forEach { penyesuaian ->
+                        FlexiCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = dateFormat.format(Date(penyesuaian.waktu)),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = if (penyesuaian.selisih >= 0) "+${penyesuaian.selisih} item" else "${penyesuaian.selisih} item",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (penyesuaian.selisih >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                Text(
+                                    text = "${penyesuaian.stokSebelum} → ${penyesuaian.stokSesudah} item",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                if (penyesuaian.alasan.isNotBlank()) {
+                                    Text(
+                                        text = penyesuaian.alasan,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            FlexiDialogSingleAction(
+                label = "Tutup",
+                onClick = onDismiss,
             )
         }
     }
