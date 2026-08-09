@@ -10,9 +10,9 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Alamat API untuk build RILIS. Default placeholder — WAJIB di-override saat
-// membangun APK produksi agar aplikasi bisa terhubung ke backend nyata:
-//   ./gradlew assembleRelease -PALAMAT_DASAR_API=https://api.kasir.domain.com
+// Alamat API untuk build RILIS (produksi: https://api.flexinet.id/).
+// Nilai diambil dari gradle.properties (ALAMAT_DASAR_API) dan bisa di-override
+// per-bangun dengan: ./gradlew assembleRelease -PALAMAT_DASAR_API=https://api.lain.example
 val alamatDasarApiRelease: String =
     (findProperty("ALAMAT_DASAR_API") as? String)?.trim()?.trimEnd('/')
         ?: "https://flexi-kasir-belum-dikonfigurasi.invalid"
