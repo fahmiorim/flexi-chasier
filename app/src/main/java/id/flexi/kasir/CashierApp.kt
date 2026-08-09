@@ -5,7 +5,8 @@ import id.flexi.kasir.data.sync.SinkronisasiPenjadwal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -31,12 +32,19 @@ class CashierApp : Application() {
         // Sinkronisasi berkala di latar belakang (outbox push + pull perubahan).
         SinkronisasiPenjadwal.jadwalkanBerkala(this)
 
-        // Jika sudah ada sesi dengan gerai aktif, langsung minta sinkronisasi sekali.
+        // Minta sinkronisasi segera setiap kali gerai aktif tersedia: saat aplikasi
+        // dibuka dengan sesi aktif, atau setelah login/pilih gerai. Dengan begitu
+        // katalog produk & data lain langsung terisi dari server — pengguna baru
+        // tidak perlu menunggu siklus berkala untuk melihat katalognya.
         scope.launch {
-            val sesi = kontainer.SesiStore.amatiSesi().first()
-            if (sesi?.geraiAktifId != null) {
-                SinkronisasiPenjadwal.mintaSinkronisasiSekarang(this@CashierApp)
-            }
+            kontainer.SesiStore.amatiSesi()
+                .map { sesi -> sesi?.geraiAktifId }
+                .distinctUntilChanged()
+                .collect { geraiId ->
+                    if (geraiId != null) {
+                        SinkronisasiPenjadwal.mintaSinkronisasiSekarang(this@CashierApp)
+                    }
+                }
         }
     }
 }
