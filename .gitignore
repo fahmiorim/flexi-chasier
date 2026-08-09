@@ -30,6 +30,9 @@ local.properties
 *.p12
 *.pem
 google-services.json
+# Kredensial signing release (password keystore) — JANGAN pernah di-commit
+keystore.properties
+keystore/
 
 # Berkas sistem operasi
 .DS_Store

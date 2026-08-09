@@ -2,12 +2,35 @@
  * Konfigurasi Build Modul Aplikasi (:app).
  * Mengatur dependensi, versi SDK, dan aturan pengemasan aplikasi.
  */
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     // Menerapkan plugin yang didefinisikan di tingkat root
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+}
+
+// Kredensial signing release dibaca dari keystore.properties (TIDAK di-commit;
+// di-ignore oleh git). Bila file tidak ada, build release tetap berjalan dan
+// menghasilkan APK unsigned — aman untuk developer/kontributor. Signing aktif
+// otomatis begitu keystore.properties tersedia.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    // Validasi isi: file rusak/tidak lengkap harus gagal dengan pesan jelas,
+    // bukan error ClassCast/NPE yang membingungkan saat konfigurasi.
+    val kunciWajib = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    val kunciHilang = kunciWajib.filter { keystoreProperties.getProperty(it).isNullOrBlank() }
+    if (kunciHilang.isNotEmpty()) {
+        throw GradleException(
+            "keystore.properties tidak lengkap — kunci hilang: ${kunciHilang.joinToString()}. " +
+                "Perbaiki atau hapus file agar build berjalan unsigned.",
+        )
+    }
 }
 
 // Alamat API untuk build RILIS (produksi: https://api.flexinet.id/).
@@ -41,6 +64,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Memberikan pembeda visual/sistem untuk versi pengembangan
@@ -57,6 +91,14 @@ android {
         release {
             // Optimasi kode (ProGuard/R8) untuk rilis publik
             isMinifyEnabled = true // Diaktifkan untuk keamanan & efisiensi
+
+            // Signing otomatis bila keystore.properties ada; sebaliknya APK
+            // unsigned (identik dengan perilaku sebelum konfigurasi ini).
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
 
             buildConfigField(
                 "String",
