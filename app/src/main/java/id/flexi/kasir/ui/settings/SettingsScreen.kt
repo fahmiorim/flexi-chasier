@@ -60,6 +60,8 @@ fun SettingsScreen(
     perbaruiJumlahCopyCetak: (String) -> Unit,
     perbaruiTampilkanLogoDiStruk: (Boolean) -> Unit,
     perbaruiTampilkanPajakDiStruk: (Boolean) -> Unit,
+    perbaruiBasisPoinPajak: (String) -> Unit,
+    perbaruiBiayaLayanan: (String) -> Unit,
     saatSimpan: () -> Unit,
     saatSinkronkan: () -> Unit = {},
     saatBersihkanPesanSinkronisasi: () -> Unit = {},
@@ -198,6 +200,13 @@ fun SettingsScreen(
                     perbaruiSuaraNotifikasi = perbaruiSuaraNotifikasi,
                     perbaruiSatuanStokDefault = perbaruiSatuanStokDefault,
                     perbaruiJumlahTopFavorit = perbaruiJumlahTopFavorit,
+                )
+                BagianPajakDanBiaya(
+                    modifier = Modifier.weight(1f),
+                    basisPoinPajak = state.basisPoinPajak,
+                    biayaLayanan = state.biayaLayanan,
+                    perbaruiBasisPoinPajak = perbaruiBasisPoinPajak,
+                    perbaruiBiayaLayanan = perbaruiBiayaLayanan,
                 )
             }
 

@@ -56,8 +56,17 @@ class AuthViewModel(
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
     fun gantiMode(mode: AuthUiState.Mode) {
+        // Form field lama (password/kode/dll) dibersihkan agar tidak bocor
+        // lintas mode (mis. Register → Login masih menampilkan password lama).
         _state.value = _state.value.copy(
             mode = mode,
+            email = "",
+            password = "",
+            namaUsaha = "",
+            namaUser = "",
+            kodeVerifikasi = "",
+            passwordBaru = "",
+            konfirmasiPassword = "",
             pesanError = null,
             pesanInfo = null,
         )
@@ -380,6 +389,13 @@ class AuthViewModel(
         if (!email.contains("@")) return "Format email tidak valid."
         if (state.mode == AuthUiState.Mode.LupaPassword) {
             // Cukup email untuk meminta kode reset.
+            return null
+        }
+        if (state.mode == AuthUiState.Mode.Verifikasi ||
+            state.mode == AuthUiState.Mode.AturPasswordBaru
+        ) {
+            // Layar ini tidak memiliki kolom password; validasi kode &
+            // kecocokan kata sandi ditangani verifikasiKode()/simpanPasswordBaru().
             return null
         }
         if (password.isBlank()) return "Kata sandi wajib diisi."

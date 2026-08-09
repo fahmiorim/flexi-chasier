@@ -24,6 +24,8 @@ data class ProdukSinkron(
     val nama: String,
     val harga: Long,
     val stok: Int,
+    @SerialName("kodePindai")
+    val kodePindai: String? = null,
     val kategori: String? = null,
     val deskripsi: String? = null,
     @SerialName("fotoUri")
@@ -142,7 +144,7 @@ data class BahanSinkron(
     val versi: Long,
     val nama: String,
     val satuan: String,
-    val stok: Int,
+    val stok: Double,
     @SerialName("hargaBeli")
     val hargaBeli: Long,
     @SerialName("stokMinimum")
@@ -159,7 +161,7 @@ data class PembelianBahanSinkron(
     val bahanId: String,
     @SerialName("namaBahan")
     val namaBahan: String,
-    val jumlah: Int,
+    val jumlah: Double,
     @SerialName("hargaTotal")
     val hargaTotal: Long,
     @SerialName("waktuEpochMili")
@@ -177,7 +179,7 @@ data class BahanResepSinkron(
     val bahanId: String,
     @SerialName("namaBahan")
     val namaBahan: String,
-    val jumlah: Int,
+    val jumlah: Double,
 )
 
 @Serializable

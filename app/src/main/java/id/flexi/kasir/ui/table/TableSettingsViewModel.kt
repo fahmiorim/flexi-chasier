@@ -113,13 +113,12 @@ class SettingsScreenMejaViewModel(
             if (nomor == null) {
                 hapusMeja(id)
             } else {
-                val sudahAda = _state.value.daftarMeja.any { it.id == id }
-                if (!sudahAda) {
-                    val duplikat = _state.value.daftarMeja.any { it.nomor == nomor }
-                    if (duplikat) {
-                        _state.update { it.copy(pesanError = "Nomor meja $nomor sudah ada.") }
-                        return@launch
-                    }
+                // Cek duplikat terhadap meja LAIN (termasuk saat rename) agar
+                // dua meja tidak bisa memakai nomor yang sama.
+                val duplikat = _state.value.daftarMeja.any { it.id != id && it.nomor == nomor }
+                if (duplikat) {
+                    _state.update { it.copy(pesanError = "Nomor meja $nomor sudah ada.") }
+                    return@launch
                 }
                 SaveTable(
                     Meja(

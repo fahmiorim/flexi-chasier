@@ -1,6 +1,8 @@
 package id.flexi.kasir.data.local.repository
 
+import androidx.room.withTransaction
 import id.flexi.kasir.data.local.dao.BahanDao
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
 import id.flexi.kasir.data.sync.OutboxPencatat
@@ -14,9 +16,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class BahanRepositoryLokal(
-    private val BahanDao: BahanDao,
+    private val basisData: FlexiKasirDatabase,
     private val pencatatOutbox: OutboxPencatat? = null,
 ) : BahanRepository {
+
+    private val BahanDao: BahanDao = basisData.BahanDao()
 
     override fun amatiSemuaBahan(): Flow<List<Bahan>> {
         return BahanDao.amatiSemuaBahan().map { entities ->
@@ -33,15 +37,21 @@ class BahanRepositoryLokal(
     }
 
     override suspend fun saveBahan(bahan: Bahan) {
-        BahanDao.simpanBahan(bahan.keLokal())
-        runCatching { pencatatOutbox?.catatBahan(bahan) }
+        // Tulis lokal + antrian outbox dalam SATU transaksi agar crash di
+        // antara keduanya tidak meninggalkan data yang tidak pernah ter-push.
+        basisData.withTransaction {
+            BahanDao.simpanBahan(bahan.keLokal())
+            runCatching { pencatatOutbox?.catatBahan(bahan) }
+        }
     }
 
     override suspend fun deleteBahan(id: String) {
-        val bahan = BahanDao.ambilBahanBerdasarkanId(id)?.keDomain()
-        BahanDao.hapusBahan(id)
-        if (bahan != null) {
-            runCatching { pencatatOutbox?.catatBahan(bahan, dihapus = true) }
+        basisData.withTransaction {
+            val bahan = BahanDao.ambilBahanBerdasarkanId(id)?.keDomain()
+            BahanDao.hapusBahan(id)
+            if (bahan != null) {
+                runCatching { pencatatOutbox?.catatBahan(bahan, dihapus = true) }
+            }
         }
     }
 
@@ -54,15 +64,19 @@ class BahanRepositoryLokal(
     }
 
     override suspend fun savePembelian(pembelian: PembelianBahan) {
-        BahanDao.simpanPembelian(pembelian.keLokal())
-        runCatching { pencatatOutbox?.catatPembelianBahan(pembelian) }
+        basisData.withTransaction {
+            BahanDao.simpanPembelian(pembelian.keLokal())
+            runCatching { pencatatOutbox?.catatPembelianBahan(pembelian) }
+        }
     }
 
     override suspend fun deletePembelian(id: String) {
-        val pembelian = BahanDao.ambilPembelianBerdasarkanId(id)?.keDomain()
-        BahanDao.hapusPembelian(id)
-        if (pembelian != null) {
-            runCatching { pencatatOutbox?.catatPembelianBahan(pembelian, dihapus = true) }
+        basisData.withTransaction {
+            val pembelian = BahanDao.ambilPembelianBerdasarkanId(id)?.keDomain()
+            BahanDao.hapusPembelian(id)
+            if (pembelian != null) {
+                runCatching { pencatatOutbox?.catatPembelianBahan(pembelian, dihapus = true) }
+            }
         }
     }
 
@@ -99,18 +113,22 @@ class BahanRepositoryLokal(
     }
 
     override suspend fun saveResep(resep: Resep) {
-        BahanDao.simpanResep(resep.keLokal())
-        runCatching { pencatatOutbox?.catatResep(resep) }
+        basisData.withTransaction {
+            BahanDao.simpanResep(resep.keLokal())
+            runCatching { pencatatOutbox?.catatResep(resep) }
+        }
     }
 
     override suspend fun deleteResep(id: String) {
-        val resep = BahanDao.ambilResepBerdasarkanId(id)
-        BahanDao.hapusResep(id)
-        if (resep != null) {
-            val resepDomain = resep.keDomain(
-                daftarBahan = BahanDao.ambilBahanResepBerdasarkanResep(id).map { it.keDomain() },
-            )
-            runCatching { pencatatOutbox?.catatResep(resepDomain, dihapus = true) }
+        basisData.withTransaction {
+            val resep = BahanDao.ambilResepBerdasarkanId(id)
+            BahanDao.hapusResep(id)
+            if (resep != null) {
+                val resepDomain = resep.keDomain(
+                    daftarBahan = BahanDao.ambilBahanResepBerdasarkanResep(id).map { it.keDomain() },
+                )
+                runCatching { pencatatOutbox?.catatResep(resepDomain, dihapus = true) }
+            }
         }
     }
 

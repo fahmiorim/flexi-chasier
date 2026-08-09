@@ -120,6 +120,7 @@ internal fun BagianFotoProduk(
     nama: String,
     harga: String,
     kategori: String,
+    kodePindai: String,
     daftarKategori: List<String>,
     pesanKesalahanNama: String?,
     pesanKesalahanHarga: String?,
@@ -128,6 +129,7 @@ internal fun BagianFotoProduk(
     onUbahNama: (String) -> Unit,
     onUbahHarga: (String) -> Unit,
     onUbahKategori: (String) -> Unit,
+    onUbahKodePindai: (String) -> Unit,
     onPilihFoto: (String) -> Unit,
     onHapusFoto: () -> Unit,
 ) {
@@ -250,6 +252,15 @@ internal fun BagianFotoProduk(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = kodePindai, onValueChange = onUbahKodePindai,
+            label = { Text("Barcode / Kode") }, modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ketuk atau pindai kode produk") },
+            singleLine = true, shape = RoundedCornerShape(12.dp),
+        )
     }
 }
 

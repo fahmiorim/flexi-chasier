@@ -70,7 +70,7 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             nama = p.nama,
             harga = p.harga,
             stokTersedia = p.stok,
-            kodePindai = null,
+            kodePindai = p.kodePindai,
             deskripsi = p.deskripsi ?: "",
             apakahAktif = p.aktif,
             kategori = p.kategori ?: "",

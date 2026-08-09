@@ -9,6 +9,7 @@ sealed interface ProductFormAction {
     data class UbahStok(val stok: String) : ProductFormAction
     data class UbahDeskripsi(val deskripsi: String) : ProductFormAction
     data class UbahKategori(val kategori: String) : ProductFormAction
+    data class UbahKodePindai(val kodePindai: String) : ProductFormAction
     data class PilihFoto(val uri: String) : ProductFormAction
     data object HapusFoto : ProductFormAction
     data object ToggleFavorit : ProductFormAction

@@ -523,10 +523,11 @@ class CashRegisterViewModel(
             val penjualanQRIS = transactionRepository.hitungTotalQRISRentang(sejakBukaShift, sampaiTutupShift)
             val totalPemasukan = cashRepository.ambilTotalMutasiBerdasarkanTipe(shift.id, CashMutationType.Pemasukan.name)
             val totalPengeluaran = cashRepository.ambilTotalMutasiBerdasarkanTipe(shift.id, CashMutationType.Pengeluaran.name)
+            val totalSetoran = cashRepository.hitungTotalSetoranBerdasarkanKas(shift.id).first()
             val daftarMutasi = amatiMutasiKas(shift.id).first()
             val daftarTransaksi = transactionRepository.ambilTransactionRentang(sejakBukaShift, sampaiTutupShift)
 
-            val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran
+            val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
 
             val current = _state.value
             when {
@@ -881,7 +882,8 @@ class CashRegisterViewModel(
                     .sumOf { it.nominal.nilaiRupiah }
                 val totalPengeluaran = daftarMutasi.filter { it.tipe == CashMutationType.Pengeluaran }
                     .sumOf { it.nominal.nilaiRupiah }
-                val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran
+                val totalSetoran = cashRepository.hitungTotalSetoranBerdasarkanKas(shift.id).first()
+                val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
 
                 val logoBitmap = muatLogoKas(context, logoUri)
                 val waktuCetak = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")).format(Date())

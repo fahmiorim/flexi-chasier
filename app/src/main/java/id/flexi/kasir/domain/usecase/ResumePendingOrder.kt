@@ -36,10 +36,16 @@ class ResumePendingOrder(
 
         val produkSaatIni = daftarProdukSaatIni.associateBy { it.id }
 
-        val daftarItemBaru = Transaction.daftarCartItem.mapNotNull { item ->
-            val produkSaatIniItem = produkSaatIni[item.produk.id] ?: return@mapNotNull null
-            // Reset apakahSelesai ke false agar item bisa dimodifikasi lagi
-            item.copy(produk = produkSaatIniItem, apakahSelesai = false)
+        val daftarItemBaru = Transaction.daftarCartItem.map { item ->
+            val produkSaatIniItem = produkSaatIni[item.produk.id]
+            // Produk yang sudah dihapus dari katalog TIDAK di-drop diam-diam:
+            // pakai snapshot tersimpan agar item tetap muncul & bisa dilanjutkan
+            // (DB masih menyimpan item tersebut, sehingga menjatuhkannya hanya
+            // akan membuat baris yatim yang tidak pernah bisa dilihat/diubah).
+            item.copy(
+                produk = produkSaatIniItem ?: item.produk,
+                apakahSelesai = false,
+            )
         }
 
         if (daftarItemBaru.isEmpty()) {

@@ -328,16 +328,32 @@ class TransactionRepositoryLokal(
         identitasTransaction: String,
         alasan: String?,
     ) {
-        aksesDataTransaction.tandaiDibatalkan(identitasTransaction, alasan)
-        val transaction = aksesDataTransaction
-            .ambilTransactionBerdasarkanId(identitasTransaction)
-            ?.keDomain()
-        if (transaction != null) {
-            runCatching {
-                pencatatOutbox?.catatTransaksi(
-                    transaction.copy(dibatalkan = true, alasanPembatalan = alasan),
+        val transactionLokal = aksesDataTransaction.ambilTransactionBerdasarkanId(identitasTransaction)
+            ?: return
+        val Transaction = transactionLokal.keDomain()
+        // Transaksi yang sudah dibatalkan tidak boleh dibatalkan lagi — bila
+        // tidak, stok akan dikembalikan dua kali.
+        if (Transaction.dibatalkan) return
+
+        basisData.withTransaction {
+            // Transaksi dibatalkan → barang tidak jadi terjual → stok dikembalikan.
+            transactionLokal.daftarItem.forEach { item ->
+                aksesDataProduk.tambahStok(
+                    identitasProduk = item.produkId,
+                    jumlahPenambah = item.jumlah,
                 )
             }
+            aksesDataTransaction.tandaiDibatalkan(identitasTransaction, alasan)
+        }
+
+        // Catat stok hasil restore ke outbox (best-effort).
+        catatPerubahanStokKeOutbox(transactionLokal.daftarItem.map { it.produkId })
+
+        // Beri tahu server bahwa transaksi ini dibatalkan.
+        runCatching {
+            pencatatOutbox?.catatTransaksi(
+                Transaction.copy(dibatalkan = true, alasanPembatalan = alasan),
+            )
         }
     }
 

@@ -1,7 +1,9 @@
 package id.flexi.kasir.data.local.repository
 
+import androidx.room.withTransaction
 import id.flexi.kasir.data.local.dao.MutasiRekeningDao
 import id.flexi.kasir.data.local.dao.PenyesuaianStokDao
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
 import id.flexi.kasir.data.sync.OutboxPencatat
@@ -15,13 +17,16 @@ import kotlinx.coroutines.flow.map
 /**
  * Implementasi lokal [StokRekeningRepository] berbasis Room + outbox sinkron.
  *
- * Setiap penulisan menyimpan entitas lalu mencatat outbox (best-effort).
+ * Penulisan entitas + antrian outbox dibungkus SATU transaksi agar crash di
+ * tengah tidak meninggalkan data yang tidak pernah ter-push.
  */
 class StokRekeningRepositoryLokal(
-    private val penyesuaianStokDao: PenyesuaianStokDao,
-    private val mutasiRekeningDao: MutasiRekeningDao,
+    private val basisData: FlexiKasirDatabase,
     private val pencatatOutbox: OutboxPencatat? = null,
 ) : StokRekeningRepository {
+
+    private val penyesuaianStokDao: PenyesuaianStokDao = basisData.PenyesuaianStokDao()
+    private val mutasiRekeningDao: MutasiRekeningDao = basisData.MutasiRekeningDao()
 
     override fun amatiSemuaPenyesuaian(): Flow<List<PenyesuaianStok>> {
         return penyesuaianStokDao.amatiSemua().map { daftar -> daftar.map { it.keDomain() } }
@@ -36,8 +41,10 @@ class StokRekeningRepositoryLokal(
     }
 
     override suspend fun simpanPenyesuaian(penyesuaian: PenyesuaianStok) {
-        penyesuaianStokDao.simpan(penyesuaian.keLokal())
-        runCatching { pencatatOutbox?.catatPenyesuaianStok(penyesuaian) }
+        basisData.withTransaction {
+            penyesuaianStokDao.simpan(penyesuaian.keLokal())
+            runCatching { pencatatOutbox?.catatPenyesuaianStok(penyesuaian) }
+        }
     }
 
     override fun amatiMutasiRekening(): Flow<List<MutasiRekening>> {
@@ -49,7 +56,9 @@ class StokRekeningRepositoryLokal(
     }
 
     override suspend fun simpanMutasiRekening(mutasi: MutasiRekening) {
-        mutasiRekeningDao.simpan(mutasi.keLokal())
-        runCatching { pencatatOutbox?.catatMutasiRekening(mutasi) }
+        basisData.withTransaction {
+            mutasiRekeningDao.simpan(mutasi.keLokal())
+            runCatching { pencatatOutbox?.catatMutasiRekening(mutasi) }
+        }
     }
 }

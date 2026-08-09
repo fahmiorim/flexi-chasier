@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.flexi.kasir.domain.usecase.AmbilStoreSetting
 import id.flexi.kasir.domain.usecase.SimpanStoreSetting
+import id.flexi.kasir.domain.usecase.AmatiStorePreference
+import id.flexi.kasir.domain.usecase.SimpanStorePreference
 import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.LebarStruk
 import id.flexi.kasir.domain.model.PrinterType
@@ -15,12 +17,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val ambilStoreSetting: AmbilStoreSetting,
     private val simpanStoreSetting: SimpanStoreSetting,
+    private val amatiStorePreference: AmatiStorePreference,
+    private val simpanStorePreference: SimpanStorePreference,
     private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
 ) : ViewModel() {
 
@@ -63,6 +68,17 @@ class SettingsViewModel(
                         tampilkanLogoDiStruk = pengaturan.tampilkanLogoDiStruk,
                         tampilkanPajakDiStruk = pengaturan.tampilkanPajakDiStruk,
                         apakahSedangMemuat = false,
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            amatiStorePreference().collect { preferensi ->
+                _state.update {
+                    it.copy(
+                        basisPoinPajak = preferensi.basisPoinPajakDefault.toString(),
+                        biayaLayanan = preferensi.biayaLayananDefault.toString(),
                     )
                 }
             }
@@ -150,6 +166,14 @@ class SettingsViewModel(
         _state.update { it.copy(tampilkanPajakDiStruk = tampil) }
     }
 
+    fun perbaruiBasisPoinPajak(basisPoin: String) {
+        _state.update { it.copy(basisPoinPajak = basisPoin.filter { c -> c.isDigit() }.take(4)) }
+    }
+
+    fun perbaruiBiayaLayanan(nominal: String) {
+        _state.update { it.copy(biayaLayanan = nominal.filter { c -> c.isDigit() }.take(10)) }
+    }
+
     fun simpan() {
         val s = _state.value
         _state.update { it.copy(apakahSedangMenyimpan = true, pesanBerhasil = null) }
@@ -179,6 +203,15 @@ class SettingsViewModel(
                             tampilkanPajakDiStruk = s.tampilkanPajakDiStruk,
                         ),
                     )
+                // Pajak & biaya layanan disimpan terpisah di StorePreference
+                // (dipakai mesin kasir saat menghitung transaksi).
+                val preferensiSekarang = amatiStorePreference().first()
+                simpanStorePreference(
+                    preferensiSekarang.copy(
+                        basisPoinPajakDefault = s.basisPoinPajak.filter { it.isDigit() }.take(4).toIntOrNull() ?: 0,
+                        biayaLayananDefault = s.biayaLayanan.filter { it.isDigit() }.take(10).toLongOrNull() ?: 0L,
+                    ),
+                )
                 _state.update { it.copy(apakahSedangMenyimpan = false, pesanBerhasil = "Pengaturan berhasil disimpan") }
             } catch (_: Exception) {
                 _state.update { it.copy(apakahSedangMenyimpan = false) }

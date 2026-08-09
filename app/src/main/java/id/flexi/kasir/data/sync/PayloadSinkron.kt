@@ -26,7 +26,6 @@ import id.flexi.kasir.domain.model.Resep
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
-import kotlin.math.floor
 import kotlin.math.max
 
 /**
@@ -59,6 +58,7 @@ object PayloadSinkron {
         nama = produk.nama,
         harga = produk.harga,
         stok = produk.stokTersedia,
+        kodePindai = produk.kodePindai?.ifBlank { null },
         kategori = produk.kategori.ifBlank { null },
         deskripsi = produk.deskripsi.ifBlank { null },
         fotoUri = produk.fotoUri,
@@ -183,7 +183,7 @@ object PayloadSinkron {
         versi = versi,
         nama = bahan.nama,
         satuan = bahan.satuan,
-        stok = floor(bahan.stokTersedia).toInt(),
+        stok = bahan.stokTersedia,
         hargaBeli = bahan.hargaPerSatuan,
         stokMinimum = bahan.stokMinimum.toLong(),
         aktif = bahan.aktif,
@@ -200,7 +200,7 @@ object PayloadSinkron {
         versi = versi,
         bahanId = pembelian.bahanId,
         namaBahan = namaBahan,
-        jumlah = floor(pembelian.jumlah).toInt(),
+        jumlah = pembelian.jumlah,
         hargaTotal = pembelian.totalHarga,
         waktuEpochMili = pembelian.tanggalBeli,
         dihapus = dihapus,
@@ -282,7 +282,7 @@ object PayloadSinkron {
                 resepId = resep.id,
                 bahanId = bahanResep.bahanId,
                 namaBahan = namaBahan[bahanResep.bahanId] ?: "Bahan",
-                jumlah = floor(bahanResep.jumlah).toInt(),
+                jumlah = bahanResep.jumlah,
             )
         },
     )

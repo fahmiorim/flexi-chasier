@@ -394,6 +394,8 @@ private fun KasirAppUtama(
                     perbaruiJumlahCopyCetak = viewModel::perbaruiJumlahCopyCetak,
                     perbaruiTampilkanLogoDiStruk = viewModel::perbaruiTampilkanLogoDiStruk,
                     perbaruiTampilkanPajakDiStruk = viewModel::perbaruiTampilkanPajakDiStruk,
+                    perbaruiBasisPoinPajak = viewModel::perbaruiBasisPoinPajak,
+                    perbaruiBiayaLayanan = viewModel::perbaruiBiayaLayanan,
                     saatSimpan = viewModel::simpan,
                     saatSinkronkan = viewModel::sinkronkanSekarang,
                     saatBersihkanPesanSinkronisasi = viewModel::bersihkanPesanSinkronisasi,

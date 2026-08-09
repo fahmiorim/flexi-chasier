@@ -124,6 +124,8 @@ object CashierViewModelProvider {
             SettingsViewModel(
                 ambilStoreSetting = aplikasi.kontainer.ambilStoreSetting,
                 simpanStoreSetting = aplikasi.kontainer.simpanStoreSetting,
+                amatiStorePreference = aplikasi.kontainer.amatiStorePreference,
+                simpanStorePreference = aplikasi.kontainer.simpanStorePreference,
                 sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
             )
         }

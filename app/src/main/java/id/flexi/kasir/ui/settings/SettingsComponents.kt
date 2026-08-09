@@ -554,6 +554,44 @@ internal fun BagianKas(
 }
 
 // ═══════════════════════════════════════
+// SECTION: PAJAK & BIAYA LAYANAN
+// ═══════════════════════════════════════
+
+@Composable
+internal fun BagianPajakDanBiaya(
+    modifier: Modifier = Modifier,
+    basisPoinPajak: String,
+    biayaLayanan: String,
+    perbaruiBasisPoinPajak: (String) -> Unit,
+    perbaruiBiayaLayanan: (String) -> Unit,
+) {
+    KartuBagian(judul = "Pajak & Biaya Layanan", modifier = modifier) {
+        OutlinedTextField(
+            value = basisPoinPajak,
+            onValueChange = perbaruiBasisPoinPajak,
+            label = { Text("Pajak (basis poin)") },
+            placeholder = { Text("mis. 1100 untuk 11%") },
+            supportingText = { Text("0 berarti tanpa pajak. Diterapkan otomatis per transaksi.") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+        )
+        OutlinedTextField(
+            value = biayaLayanan,
+            onValueChange = perbaruiBiayaLayanan,
+            label = { Text("Biaya Layanan (Rp)") },
+            placeholder = { Text("mis. 2000") },
+            supportingText = { Text("Biaya tetap yang dibebankan per transaksi.") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+        )
+    }
+}
+
+// ═══════════════════════════════════════
 // SECTION: PENGATURAN STRUK
 // ═══════════════════════════════════════
 

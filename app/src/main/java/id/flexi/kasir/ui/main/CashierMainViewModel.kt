@@ -816,11 +816,13 @@ class CashierMainViewModel(
                     // Gagal hitung favorit — tidak perlu ganggu pengguna
                 }
 
-                // Cetak struk setelah checkout
+                // Cetak struk setelah checkout. Keranjang sudah dikosongkan di
+                // atas, jadi kirim daftar item yang tadi dibayar secara eksplisit —
+                // kalau tidak, cetak selalu gagal ("Tidak ada item untuk dicetak").
                 if (apakahCetakStruk ||
                     (status == TransactionStatus.Processing && StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic)
                 ) {
-                    cetakStruk()
+                    cetakStruk(daftarKeranjangSaatIni)
                 }
             } catch (kesalahanValidasi: IllegalArgumentException) {
                 _statusElemenLayar.update { statusLama ->

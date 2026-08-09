@@ -133,7 +133,9 @@ fun LoginScreen(
                 Spacer(Modifier.height(12.dp))
             }
 
-            if (state.mode == AuthUiState.Mode.Verifikasi ||
+            if (state.mode == AuthUiState.Mode.Login ||
+                state.mode == AuthUiState.Mode.Register ||
+                state.mode == AuthUiState.Mode.Verifikasi ||
                 state.mode == AuthUiState.Mode.LupaPassword ||
                 state.mode == AuthUiState.Mode.AturPasswordBaru
             ) {
@@ -142,7 +144,8 @@ fun LoginScreen(
                     onValueChange = viewModel::perbaruiEmail,
                     label = { Text("Email") },
                     singleLine = true,
-                    readOnly = state.mode != AuthUiState.Mode.LupaPassword,
+                    readOnly = state.mode == AuthUiState.Mode.Verifikasi ||
+                        state.mode == AuthUiState.Mode.AturPasswordBaru,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(12.dp))

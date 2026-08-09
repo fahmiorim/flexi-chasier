@@ -1,6 +1,8 @@
 package id.flexi.kasir.data.local.repository
 
+import androidx.room.withTransaction
 import id.flexi.kasir.data.local.dao.LocalCashDao
+import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.mapping.toDomain
 import id.flexi.kasir.data.local.mapping.toEntity
 import id.flexi.kasir.data.sync.OutboxPencatat
@@ -16,24 +18,31 @@ import kotlinx.coroutines.flow.map
  *
  * Menerjemahkan panggilan repositori ranah menjadi operasi DAO,
  * termasuk pemetaan (mapping) antara entitas basis data dan objek ranah.
+ * Penulisan data + antrian outbox dibungkus SATU transaksi agar konsisten.
  */
 class CashRepositoryLokal(
-    private val dao: LocalCashDao,
+    private val basisData: FlexiKasirDatabase,
     private val pencatatOutbox: OutboxPencatat? = null,
 ) : CashRepository {
+
+    private val dao: LocalCashDao = basisData.LocalCashDao()
 
     // ── Kas ──
 
     override suspend fun simpanKas(kas: CashKas) {
-        dao.simpanKas(kas.toEntity())
-        runCatching { pencatatOutbox?.catatShiftKas(kas) }
+        basisData.withTransaction {
+            dao.simpanKas(kas.toEntity())
+            runCatching { pencatatOutbox?.catatShiftKas(kas) }
+        }
     }
 
     override suspend fun tutupKas(id: String, saldoAkhir: Long, catatanTutup: String?) {
-        dao.tutupKas(id, saldoAkhir, System.currentTimeMillis(), catatanTutup)
-        val kas = dao.ambilKasBerdasarkanId(id)?.toDomain()
-        if (kas != null) {
-            runCatching { pencatatOutbox?.catatShiftKas(kas) }
+        basisData.withTransaction {
+            dao.tutupKas(id, saldoAkhir, System.currentTimeMillis(), catatanTutup)
+            val kas = dao.ambilKasBerdasarkanId(id)?.toDomain()
+            if (kas != null) {
+                runCatching { pencatatOutbox?.catatShiftKas(kas) }
+            }
         }
     }
 
@@ -49,8 +58,10 @@ class CashRepositoryLokal(
     // ── Mutasi ──
 
     override suspend fun simpanMutasi(mutasi: CashMutation) {
-        dao.simpanMutasi(mutasi.toEntity())
-        runCatching { pencatatOutbox?.catatMutasiKas(mutasi) }
+        basisData.withTransaction {
+            dao.simpanMutasi(mutasi.toEntity())
+            runCatching { pencatatOutbox?.catatMutasiKas(mutasi) }
+        }
     }
 
     override fun amatiMutasiBerdasarkanKas(kasId: String): Flow<List<CashMutation>> =
@@ -63,18 +74,22 @@ class CashRepositoryLokal(
         dao.ambilMutasiBerdasarkanId(id)?.toDomain()
 
     override suspend fun hapusMutasi(id: String) {
-        val mutasi = dao.ambilMutasiBerdasarkanId(id)?.toDomain()
-        dao.hapusMutasi(id)
-        if (mutasi != null) {
-            runCatching { pencatatOutbox?.catatMutasiKas(mutasi, dihapus = true) }
+        basisData.withTransaction {
+            val mutasi = dao.ambilMutasiBerdasarkanId(id)?.toDomain()
+            dao.hapusMutasi(id)
+            if (mutasi != null) {
+                runCatching { pencatatOutbox?.catatMutasiKas(mutasi, dihapus = true) }
+            }
         }
     }
 
     // ── Setoran ──
 
     override suspend fun simpanSetoran(setoran: Setoran) {
-        dao.simpanSetoran(setoran.toEntity())
-        runCatching { pencatatOutbox?.catatSetoran(setoran) }
+        basisData.withTransaction {
+            dao.simpanSetoran(setoran.toEntity())
+            runCatching { pencatatOutbox?.catatSetoran(setoran) }
+        }
     }
 
     override fun amatiSetoran(): Flow<List<Setoran>> =
@@ -84,18 +99,22 @@ class CashRepositoryLokal(
         dao.ambilSetoranBerdasarkanId(id)?.toDomain()
 
     override suspend fun perbaruiSetoran(id: String, catatanBaru: String) {
-        dao.perbaruiSetoran(id, catatanBaru)
-        val setoran = dao.ambilSetoranBerdasarkanId(id)?.toDomain()?.copy(catatan = catatanBaru)
-        if (setoran != null) {
-            runCatching { pencatatOutbox?.catatSetoran(setoran) }
+        basisData.withTransaction {
+            dao.perbaruiSetoran(id, catatanBaru)
+            val setoran = dao.ambilSetoranBerdasarkanId(id)?.toDomain()?.copy(catatan = catatanBaru)
+            if (setoran != null) {
+                runCatching { pencatatOutbox?.catatSetoran(setoran) }
+            }
         }
     }
 
     override suspend fun hapusSetoran(id: String) {
-        val setoran = dao.ambilSetoranBerdasarkanId(id)?.toDomain()
-        dao.hapusSetoran(id)
-        if (setoran != null) {
-            runCatching { pencatatOutbox?.catatSetoran(setoran.copy(dihapus = true)) }
+        basisData.withTransaction {
+            val setoran = dao.ambilSetoranBerdasarkanId(id)?.toDomain()
+            dao.hapusSetoran(id)
+            if (setoran != null) {
+                runCatching { pencatatOutbox?.catatSetoran(setoran.copy(dihapus = true)) }
+            }
         }
     }
 

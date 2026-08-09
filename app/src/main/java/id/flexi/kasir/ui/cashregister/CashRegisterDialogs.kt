@@ -205,9 +205,13 @@ internal fun DialogTutupKas(
     tutupKas: () -> Unit,
     tutup: () -> Unit,
 ) {
-    // Saldo saat ini (operasional) + saldoAwal (float) = expected fisik di laci
+    // Saldo saat ini (operasional) + saldoAwal (float) = expected fisik di laci.
+    // saldoSaatIni berformat Rupiah ("-Rp1.234" untuk negatif) — buang semua
+    // karakter kecuali digit & tanda minus agar nilai negatif tidak berubah positif.
     val expectedFisikAngka = remember(state.saldoSaatIni, state.kas.saldoAwal) {
-        val operasional = state.saldoSaatIni.filter { it.isDigit() }.toLongOrNull() ?: 0L
+        val operasional = state.saldoSaatIni
+            .replace(Regex("[^0-9-]"), "")
+            .toLongOrNull() ?: 0L
         operasional + state.kas.saldoAwal.nilaiRupiah
     }
     val saldoFisikAngka = remember(state.saldoFisikInput) {

@@ -65,6 +65,7 @@ class ProductFormViewModel(
                         stok = produk.stokTersedia.toString(),
                         deskripsi = produk.deskripsi,
                         kategori = produk.kategori,
+                        kodePindai = produk.kodePindai ?: "",
                         fotoUri = produk.fotoUri,
                         favorit = produk.favorit,
                         hargaModal = produk.hargaModal?.toString() ?: "",
@@ -101,6 +102,9 @@ class ProductFormViewModel(
             }
             is ProductFormAction.UbahKategori -> {
                 _state.update { it.copy(kategori = aksi.kategori) }
+            }
+            is ProductFormAction.UbahKodePindai -> {
+                _state.update { it.copy(kodePindai = aksi.kodePindai) }
             }
             is ProductFormAction.PilihFoto -> {
                 _state.update { it.copy(fotoUri = aksi.uri) }
@@ -188,11 +192,20 @@ class ProductFormViewModel(
     private fun validasiForm() {
         val state = _state.value
         val punyaVarianValid = state.varianDraft.any { it.nama.isNotBlank() && it.harga.isNotBlank() }
+        val hargaSah = state.harga.isEmpty() || state.harga.toLongOrNull() != null
+        val stokSah = state.stok.isEmpty() || state.stok.toIntOrNull() != null
+        val namaVarianDuplikat = state.varianDraft
+            .filter { it.nama.isNotBlank() }
+            .groupBy { it.nama.trim() }
+            .any { it.value.size > 1 }
         _state.update {
             it.copy(
+                pesanKesalahanHarga = if (!hargaSah) "Harga terlalu besar." else null,
+                pesanKesalahanStok = if (!stokSah) "Stok terlalu besar." else null,
                 apakahBisaSimpan = it.nama.isNotBlank() &&
                     (it.harga.isNotBlank() || punyaVarianValid) &&
-                    (it.stok.isNotBlank() || !it.apakahTampilKelolaStok)
+                    (it.stok.isNotBlank() || !it.apakahTampilKelolaStok) &&
+                    hargaSah && stokSah && !namaVarianDuplikat,
             )
         }
     }
@@ -201,7 +214,7 @@ class ProductFormViewModel(
         val stateSekarang = _state.value
         if (!stateSekarang.apakahBisaSimpan) return
 
-        _state.update { it.copy(apakahSedangMenyimpan = true) }
+        _state.update { it.copy(apakahSedangMenyimpan = true, pesanError = null) }
 
         viewModelScope.launch {
             try {
@@ -214,8 +227,14 @@ class ProductFormViewModel(
                     id = idProduk ?: ProductIdGenerator.buatIdentitasBaru(stateSekarang.nama),
                     nama = stateSekarang.nama,
                     harga = stateSekarang.harga.toLongOrNull() ?: 0L,
-                    stokTersedia = if (stateSekarang.apakahTampilKelolaStok) stateSekarang.stok.toIntOrNull() ?: 0 else 0,
-                    kodePindai = produkAsli?.kodePindai,
+                    stokTersedia = if (stateSekarang.apakahTampilKelolaStok) {
+                        stateSekarang.stok.toIntOrNull() ?: 0
+                    } else {
+                        // Mematikan "Kelola Stok" tidak boleh menghapus stok yang
+                        // sudah tersimpan.
+                        produkAsli?.stokTersedia ?: 0
+                    },
+                    kodePindai = stateSekarang.kodePindai.trim().ifBlank { null },
                     deskripsi = stateSekarang.deskripsi,
                     kategori = stateSekarang.kategori,
                     fotoUri = stateSekarang.fotoUri,
@@ -229,21 +248,32 @@ class ProductFormViewModel(
                 SaveProduct.eksekusi(produkBaru)
                 _state.update { it.copy(apakahBerhasilDisimpan = true, apakahSedangMenyimpan = false) }
             } catch (e: Exception) {
-                _state.update { it.copy(apakahSedangMenyimpan = false) }
+                _state.update {
+                    it.copy(
+                        apakahSedangMenyimpan = false,
+                        pesanError = e.message ?: "Gagal menyimpan produk.",
+                    )
+                }
             }
         }
     }
 
     private fun eksekusiHapus() {
         val id = idProduk ?: return
-        _state.update { it.copy(apakahSedangMenyimpan = true) }
+        _state.update { it.copy(apakahSedangMenyimpan = true, pesanError = null) }
 
         viewModelScope.launch {
             try {
                 deleteProduct.eksekusi(id)
                 _state.update { it.copy(apakahBerhasilDisimpan = true, apakahSedangMenyimpan = false) }
-            } catch (_: Exception) {
-                _state.update { it.copy(apakahSedangMenyimpan = false, apakahTampilDialogHapus = false) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        apakahSedangMenyimpan = false,
+                        apakahTampilDialogHapus = false,
+                        pesanError = e.message ?: "Gagal menghapus produk.",
+                    )
+                }
             }
         }
     }

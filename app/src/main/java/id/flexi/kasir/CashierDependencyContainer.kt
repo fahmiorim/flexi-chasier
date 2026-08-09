@@ -223,7 +223,7 @@ class CashierDependencyContainer(
     }
 
     val CashRepository: CashRepository by lazy {
-        CashRepositoryLokal(basisData.LocalCashDao(), OutboxPencatat)
+        CashRepositoryLokal(basisData, OutboxPencatat)
     }
 
     /**
@@ -425,7 +425,7 @@ class CashierDependencyContainer(
     // ── Bahan Baku ──
 
     val bahanRepository: BahanRepository by lazy {
-        BahanRepositoryLokal(basisData.BahanDao(), OutboxPencatat)
+        BahanRepositoryLokal(basisData, OutboxPencatat)
     }
 
     val SimpanBahan: SimpanBahan by lazy {
@@ -472,8 +472,7 @@ class CashierDependencyContainer(
 
     val stokRekeningRepository: StokRekeningRepository by lazy {
         StokRekeningRepositoryLokal(
-            penyesuaianStokDao = basisData.PenyesuaianStokDao(),
-            mutasiRekeningDao = basisData.MutasiRekeningDao(),
+            basisData = basisData,
             pencatatOutbox = OutboxPencatat,
         )
     }

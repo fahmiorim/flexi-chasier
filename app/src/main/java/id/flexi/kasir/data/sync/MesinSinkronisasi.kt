@@ -293,14 +293,33 @@ class MesinSinkronisasi(
         basisData.withTransaction {
             // ── 1. Induk ──
             if (perubahan.produk.isNotEmpty()) {
+                // Pertahankan field yang TIDAK dikirim server (varian, harga modal,
+                // toggle stok) dari produk yang sudah ada secara lokal. Bila tidak,
+                // setiap pull akan menghapus harga varian & HPP lalu memaksa semua
+                // produk "kelola stok" aktif.
+                val produkLokal = produkDao
+                    .ambilProdukBerdasarkanDaftarIdentitas(perubahan.produk.map { it.id })
+                val petaProdukLokal = produkLokal.associateBy { it.id }
+                val hasilGabung = perubahan.produk.map { dariServer ->
+                    val lokal = petaProdukLokal[dariServer.id]
+                    if (lokal == null) {
+                        dariServer
+                    } else {
+                        dariServer.copy(
+                            hargaModal = lokal.hargaModal,
+                            varianJson = lokal.varianJson,
+                            apakahStokDiaktifkan = lokal.apakahStokDiaktifkan,
+                        )
+                    }
+                }
+
                 // Pertahankan favorit lokal: simpanBanyakProduk memakai REPLACE
                 // yang akan menimpa favorit dengan nilai dari server.
-                val idFavoritLokal = produkDao
-                    .ambilProdukBerdasarkanDaftarIdentitas(perubahan.produk.map { it.id })
+                val idFavoritLokal = produkLokal
                     .filter { it.favorit }
                     .map { it.id }
 
-                produkDao.simpanBanyakProduk(perubahan.produk)
+                produkDao.simpanBanyakProduk(hasilGabung)
 
                 if (idFavoritLokal.isNotEmpty()) {
                     produkDao.tandaiSebagaiFavorit(idFavoritLokal)
@@ -335,6 +354,9 @@ class MesinSinkronisasi(
                             mejaId = adaLokal.mejaId,
                             waktuDiprosesEpochMili = adaLokal.waktuDiprosesEpochMili,
                             waktuSelesaiEpochMili = adaLokal.waktuSelesaiEpochMili,
+                            waktuDibayarEpochMili = adaLokal.waktuDibayarEpochMili,
+                            uangDibayar = adaLokal.uangDibayar,
+                            dibatalkan = adaLokal.dibatalkan,
                             alasanPembatalan = adaLokal.alasanPembatalan,
                         )
                     }

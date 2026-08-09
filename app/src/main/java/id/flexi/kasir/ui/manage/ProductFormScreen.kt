@@ -68,6 +68,16 @@ fun ProductFormScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(16.dp))
             }
+            val pesanError = state.pesanError
+            if (pesanError != null) {
+                Text(
+                    text = pesanError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Foto + Nama + Harga + Kategori
             BagianFotoProduk(
@@ -75,6 +85,7 @@ fun ProductFormScreen(
                 nama = state.nama,
                 harga = state.harga,
                 kategori = state.kategori,
+                kodePindai = state.kodePindai,
                 daftarKategori = state.daftarKategori,
                 pesanKesalahanNama = state.pesanKesalahanNama,
                 pesanKesalahanHarga = state.pesanKesalahanHarga,
@@ -83,6 +94,7 @@ fun ProductFormScreen(
                 onUbahNama = { viewModel.tanganiAksi(ProductFormAction.UbahNama(it)) },
                 onUbahHarga = { viewModel.tanganiAksi(ProductFormAction.UbahHarga(it)) },
                 onUbahKategori = { viewModel.tanganiAksi(ProductFormAction.UbahKategori(it)) },
+                onUbahKodePindai = { viewModel.tanganiAksi(ProductFormAction.UbahKodePindai(it)) },
                 onPilihFoto = { viewModel.tanganiAksi(ProductFormAction.PilihFoto(it)) },
                 onHapusFoto = { viewModel.tanganiAksi(ProductFormAction.HapusFoto) },
             )

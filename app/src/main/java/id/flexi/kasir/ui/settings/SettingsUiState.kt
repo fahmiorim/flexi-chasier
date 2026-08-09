@@ -30,6 +30,8 @@ data class SettingsUiState(
     val jumlahCopyCetak: String = "1",
     val tampilkanLogoDiStruk: Boolean = true,
     val tampilkanPajakDiStruk: Boolean = true,
+    val basisPoinPajak: String = "0",
+    val biayaLayanan: String = "0",
     val apakahSedangMemuat: Boolean = true,
     val apakahSedangMenyimpan: Boolean = false,
     val pesanBerhasil: String? = null,    val sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
