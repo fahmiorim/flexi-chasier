@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.flexi.kasir.ui.component.KatalogMemuatStatus
 import id.flexi.kasir.ui.component.SimpleEmptyStatus
 import id.flexi.kasir.domain.model.CatalogDisplay
 
@@ -265,10 +266,14 @@ internal fun CashierPhoneLayout(
 
                 if (modelTampilan.daftarProdukTersaring.isEmpty()) {
                     item {
-                        SimpleEmptyStatus(
-                            judul = "Produk tidak ditemukan",
-                            deskripsi = "Coba gunakan kata kunci lain.",
-                        )
+                        if (modelTampilan.sinkronMesinStatus.apakahSedangBerjalan) {
+                            KatalogMemuatStatus()
+                        } else {
+                            SimpleEmptyStatus(
+                                judul = "Produk tidak ditemukan",
+                                deskripsi = "Coba gunakan kata kunci lain.",
+                            )
+                        }
                     }
                 } else {
                     items(
@@ -416,10 +421,14 @@ internal fun CashierTabletLayout(
 
                     if (modelTampilan.daftarProdukTersaring.isEmpty()) {
                         item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                            SimpleEmptyStatus(
-                                judul = "Produk tidak ditemukan",
-                                deskripsi = "Coba gunakan kata kunci lain.",
-                            )
+                            if (modelTampilan.sinkronMesinStatus.apakahSedangBerjalan) {
+                                KatalogMemuatStatus()
+                            } else {
+                                SimpleEmptyStatus(
+                                    judul = "Produk tidak ditemukan",
+                                    deskripsi = "Coba gunakan kata kunci lain.",
+                                )
+                            }
                         }
                     } else {
                         modelTampilan.daftarProdukTersaring.forEach { produk ->
