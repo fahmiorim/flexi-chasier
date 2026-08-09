@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import id.flexi.kasir.ui.component.KatalogMemuatStatus
 import id.flexi.kasir.ui.component.SimpleEmptyStatus
 import id.flexi.kasir.domain.model.CatalogDisplay
+import id.flexi.kasir.domain.model.SyncStatus
 
 @Composable
 private fun ManualItemForm(
@@ -106,6 +107,57 @@ private fun ManualItemForm(
             ) {
                 Text("Tambah ke Keranjang")
             }
+        }
+    }
+}
+
+/**
+ * Status area katalog saat tidak ada produk yang tampil: loading saat
+ * sinkronisasi berjalan, pesan khusus untuk pencarian tanpa hasil, tab
+ * favorit kosong, atau katalog yang benar-benar belum berisi produk.
+ */
+@Composable
+private fun StatusKatalogKosong(
+    modelTampilan: CashierMainUiState,
+) {
+    when {
+        // Sinkronisasi masih berjalan — produk mungkin sedang dimuat.
+        modelTampilan.sinkronMesinStatus.apakahSedangBerjalan -> {
+            KatalogMemuatStatus()
+        }
+
+        // Ada kata kunci pencarian tapi tidak ada hasil.
+        modelTampilan.kataKunciPencarian.isNotBlank() -> {
+            SimpleEmptyStatus(
+                judul = "Produk tidak ditemukan",
+                deskripsi = "Coba gunakan kata kunci lain.",
+            )
+        }
+
+        // Katalog belum pernah disinkronkan dari server (mis. baru login dan
+        // worker belum sempat berjalan) — jangan langsung bilang "belum ada".
+        modelTampilan.sinkronMesinStatus.status == SyncStatus.Never -> {
+            SimpleEmptyStatus(
+                judul = "Katalog belum dimuat",
+                deskripsi = "Produk akan muncul setelah sinkronisasi. Pastikan koneksi internet, lalu coba sinkronkan.",
+            )
+        }
+
+        // Tab Favorit tanpa produk favorit (hanya bila katalog berisi produk).
+        modelTampilan.tabTransaksi == 2 &&
+            modelTampilan.statusBeranda.jumlahProdukTersedia > 0 -> {
+            SimpleEmptyStatus(
+                judul = "Belum ada produk favorit",
+                deskripsi = "Tandai produk sebagai favorit agar mudah ditemukan kembali.",
+            )
+        }
+
+        // Katalog benar-benar kosong (mis. gerai di server belum punya produk).
+        else -> {
+            SimpleEmptyStatus(
+                judul = "Belum ada produk",
+                deskripsi = "Tambahkan produk atau pastikan gerai di server sudah berisi produk.",
+            )
         }
     }
 }
@@ -266,14 +318,7 @@ internal fun CashierPhoneLayout(
 
                 if (modelTampilan.daftarProdukTersaring.isEmpty()) {
                     item {
-                        if (modelTampilan.sinkronMesinStatus.apakahSedangBerjalan) {
-                            KatalogMemuatStatus()
-                        } else {
-                            SimpleEmptyStatus(
-                                judul = "Produk tidak ditemukan",
-                                deskripsi = "Coba gunakan kata kunci lain.",
-                            )
-                        }
+                        StatusKatalogKosong(modelTampilan)
                     }
                 } else {
                     items(
@@ -421,14 +466,7 @@ internal fun CashierTabletLayout(
 
                     if (modelTampilan.daftarProdukTersaring.isEmpty()) {
                         item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                            if (modelTampilan.sinkronMesinStatus.apakahSedangBerjalan) {
-                                KatalogMemuatStatus()
-                            } else {
-                                SimpleEmptyStatus(
-                                    judul = "Produk tidak ditemukan",
-                                    deskripsi = "Coba gunakan kata kunci lain.",
-                                )
-                            }
+                            StatusKatalogKosong(modelTampilan)
                         }
                     } else {
                         modelTampilan.daftarProdukTersaring.forEach { produk ->
