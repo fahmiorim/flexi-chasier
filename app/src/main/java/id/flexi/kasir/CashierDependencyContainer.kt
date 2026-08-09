@@ -27,7 +27,6 @@ import id.flexi.kasir.data.repository.ProductRepositoryLokalRemote
 import id.flexi.kasir.data.repository.AuthRepositoryImpl
 import id.flexi.kasir.domain.usecase.AmatiMutasiKas
 import id.flexi.kasir.domain.usecase.AmatiSemuaKas
-import id.flexi.kasir.domain.usecase.SeedDemoData
 import id.flexi.kasir.domain.usecase.AmatiSetoran
 import id.flexi.kasir.domain.usecase.AmatiKasAktif
 import id.flexi.kasir.domain.usecase.BukaKas
@@ -403,10 +402,6 @@ class CashierDependencyContainer(
 
     val amatiSemuaKas: AmatiSemuaKas by lazy {
         AmatiSemuaKas(CashRepository)
-    }
-
-    val seedDemoData: SeedDemoData by lazy {
-        SeedDemoData(CashRepository, TransactionRepository)
     }
 
     // ── Setoran ──

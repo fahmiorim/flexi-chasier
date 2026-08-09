@@ -28,12 +28,6 @@ interface LocalProductDao {
     ): Flow<LocalProductEntity?>
 
     /**
-     * Menghitung jumlah produk lokal.
-     */
-    @Query("SELECT COUNT(*) FROM produk")
-    suspend fun hitungJumlahProduk(): Int
-
-    /**
      * Mencari produk berdasarkan kata kunci di nama atau deskripsi.
      */
     @Query(

@@ -7,7 +7,6 @@ import id.flexi.kasir.data.network.validation.validasiDaftarProdukJaringan
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
 import id.flexi.kasir.data.sync.OutboxPencatat
-import id.flexi.kasir.domain.sample.SampleProductCatalog
 import id.flexi.kasir.domain.model.NetworkOperationResult
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.repository.ProductRepository
@@ -57,19 +56,6 @@ class ProductRepositoryLokalRemote(
                 produkLokal.keDomain()
             }
         }
-    }
-
-    override suspend fun pastikanKatalogAwalTersedia() {
-        if (aksesDataProduk.hitungJumlahProduk() > 0) {
-            return
-        }
-
-        val daftarProdukAwal = SampleProductCatalog.daftarAwal()
-            .map { produk ->
-                produk.keLokal()
-            }
-
-        aksesDataProduk.simpanBanyakProduk(daftarProdukAwal)
     }
 
     override suspend fun sinkronkanKatalog(): NetworkOperationResult<Unit> {

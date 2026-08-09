@@ -49,8 +49,16 @@ android {
         applicationId = "id.flexi.kasir"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+
+        // ── Checklist rilis (WAJIB dipatuhi sebelum distribusi APK baru) ──
+        // 1. versionCode HARUS lebih besar dari versi sebelumnya; jika sama,
+        //    Android menolak install update. Sudah terpakai: 1 (v0.1.0).
+        // 2. Naikkan versionName mengikuti versi fitur (label saja).
+        // 3. Build dengan keystore release SAMA (keystore.properties); tanda
+        //    tangan berbeda = update ditolak / data dianggap aplikasi lain.
+        // 4. Bump versionCode hanya sekali per rilis yang didistribusikan.
+        versionCode = 2
+        versionName = "0.1.1"
 
 
         // Optimasi ABI: Hanya menyertakan arsitektur yang relevan untuk efisiensi ukuran APK

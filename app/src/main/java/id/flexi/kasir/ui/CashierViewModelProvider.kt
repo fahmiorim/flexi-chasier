@@ -48,7 +48,6 @@ object CashierViewModelProvider {
                 ObserveProcessingOrders = aplikasi.kontainer.ObserveProcessingOrders,
                 SelesaikanTransaction = aplikasi.kontainer.SelesaikanTransaction,
                 amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
-                seedDemoData = aplikasi.kontainer.seedDemoData,
                 sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
             )
         }

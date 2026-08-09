@@ -22,7 +22,6 @@ import id.flexi.kasir.domain.usecase.SimpanStorePreference
 import id.flexi.kasir.domain.usecase.AddProductToCart
 import id.flexi.kasir.domain.usecase.UpdatePopularFavorites
 import id.flexi.kasir.domain.usecase.AmatiKasAktif
-import id.flexi.kasir.domain.usecase.SeedDemoData
 import id.flexi.kasir.domain.model.TaxRule
 import id.flexi.kasir.domain.model.TransactionCostBreakdown
 import id.flexi.kasir.print.PrintResult
@@ -88,7 +87,6 @@ class CashierMainViewModel(
     private val ObserveProcessingOrders: ObserveProcessingOrders,
     private val SelesaikanTransaction: SelesaikanTransaction,
     private val amatiKasAktif: AmatiKasAktif,
-    private val seedDemoData: SeedDemoData,
     private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
 ) : ViewModel() {
 
@@ -289,9 +287,6 @@ class CashierMainViewModel(
     )
 
     init {
-        pastikanKatalogAwalTersedia()
-        pastikanDemoDataTersedia()
-
         // Auto-pilih kategori pertama saat daftar produk tersedia
         viewModelScope.launch {
             daftarProdukPenuh.collect { produk ->
@@ -396,26 +391,6 @@ class CashierMainViewModel(
 
     private fun perbaruiPencarian(kataKunciBaru: String) {
         _kataKunciPencarian.value = kataKunciBaru
-    }
-
-    private fun pastikanKatalogAwalTersedia() {
-        viewModelScope.launch {
-            try {
-                LoadProductCatalog.pastikanKatalogAwalTersedia()
-            } catch (_: Exception) {
-                kirimPesanSingkat("Katalog awal belum siap. Coba buka ulang aplikasi.")
-            }
-        }
-    }
-
-    private fun pastikanDemoDataTersedia() {
-        viewModelScope.launch {
-            try {
-                seedDemoData()
-            } catch (e: Exception) {
-                android.util.Log.w("CashierMainVM", "Demo data seeding skipped: ${e.message}")
-            }
-        }
     }
 
     private fun resetPencarian() {

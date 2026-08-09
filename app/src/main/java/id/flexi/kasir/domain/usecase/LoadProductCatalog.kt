@@ -20,13 +20,6 @@ class LoadProductCatalog(
     }
 
     /**
-     * Memastikan katalog awal tersedia pada install baru.
-     */
-    suspend fun pastikanKatalogAwalTersedia() {
-        repositori.pastikanKatalogAwalTersedia()
-    }
-
-    /**
      * Memicu pembaruan data dari server ke penyimpanan lokal.
      */
     suspend fun sinkronkan(): NetworkOperationResult<Unit> {

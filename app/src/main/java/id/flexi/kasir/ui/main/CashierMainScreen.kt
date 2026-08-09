@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.ui.theme.FlexiKasirTheme
-import id.flexi.kasir.domain.sample.SampleProductCatalog
 import id.flexi.kasir.domain.model.CartItem
 import id.flexi.kasir.domain.model.Produk
 import id.flexi.kasir.domain.model.SyncStatus
@@ -288,6 +287,13 @@ fun CashierMainScreen(
     }
 }
 
+/** Daftar produk kecil untuk pratinjau Compose (bukan data produksi). */
+private val daftarProdukPratinjau = listOf(
+    Produk(id = "pratinjau-kopi", nama = "Kopi Susu", harga = 20_000, stokTersedia = 0),
+    Produk(id = "pratinjau-cokelat", nama = "Chocolate", harga = 20_000, stokTersedia = 0),
+    Produk(id = "pratinjau-kentang", nama = "Kentang Goreng", harga = 15_000, stokTersedia = 0),
+)
+
 @Preview(
     name = "Workspace tablet terang dialog checkout",
     showBackground = true,
@@ -296,7 +302,7 @@ fun CashierMainScreen(
 )
 @Composable
 private fun PreviewWorkspaceTabletTerangDialogCheckout() {
-    val daftarProduk = SampleProductCatalog.daftarAwal()
+    val daftarProduk = daftarProdukPratinjau
 
     FlexiKasirTheme(
         modeGelap = false,
@@ -499,7 +505,7 @@ private fun VarianPickerDialog(
 )
 @Composable
 private fun PreviewWorkspacePonselGelapHasilCheckout() {
-    val daftarProduk = SampleProductCatalog.daftarAwal()
+    val daftarProduk = daftarProdukPratinjau
 
     FlexiKasirTheme(
         modeGelap = true,

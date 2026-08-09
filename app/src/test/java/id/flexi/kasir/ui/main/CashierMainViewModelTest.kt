@@ -11,7 +11,6 @@ import id.flexi.kasir.domain.usecase.LoadProductCatalog
 import id.flexi.kasir.domain.usecase.CompleteLocalCheckout
 import id.flexi.kasir.domain.usecase.SimpanStorePreference
 import id.flexi.kasir.domain.usecase.UpdatePopularFavorites
-import id.flexi.kasir.domain.usecase.SeedDemoData
 import id.flexi.kasir.domain.model.NetworkOperationResult
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.StorePreference
@@ -28,7 +27,6 @@ import id.flexi.kasir.domain.repository.ProductRepository
 import id.flexi.kasir.print.ThermalPrinterManager
 import id.flexi.kasir.domain.repository.TableRepository
 import id.flexi.kasir.domain.repository.TransactionRepository
-import id.flexi.kasir.domain.repository.CashRepository
 import androidx.paging.PagingData
 import org.mockito.Mockito
 import kotlinx.coroutines.Dispatchers
@@ -84,24 +82,6 @@ class PengujianCashierMainViewModel {
     private val SelesaikanTransaction = id.flexi.kasir.domain.usecase.SelesaikanTransaction(repositoriTransactionPalsu)
     private val GetTableList = GetTableList(repositoriMejaPalsu)
     private val amatiKasAktif = Mockito.mock(id.flexi.kasir.domain.usecase.AmatiKasAktif::class.java)
-    private val cashRepositoryPalsu = Mockito.mock(CashRepository::class.java).apply {
-        Mockito.`when`(amatiSemuaKas()).thenReturn(
-            MutableStateFlow(
-                listOf(
-                    id.flexi.kasir.domain.model.CashKas(
-                        id = "demo-shift-ada",
-                        saldoAwal = Uang(100_000),
-                        waktuBuka = 0L,
-                        status = id.flexi.kasir.domain.model.CashKasStatus.Tutup,
-                    ),
-                ),
-            ),
-        )
-    }
-    private val seedDemoData = SeedDemoData(
-        cashRepository = cashRepositoryPalsu,
-        transactionRepository = repositoriTransactionPalsu,
-    )
 
     private lateinit var pengelolaTampilan: CashierMainViewModel
 
@@ -126,20 +106,12 @@ class PengujianCashierMainViewModel {
             ObserveProcessingOrders = ObserveProcessingOrders,
             SelesaikanTransaction = SelesaikanTransaction,
             amatiKasAktif = amatiKasAktif,
-            seedDemoData = seedDemoData,
         )
     }
 
     @After
     fun bersihkan() {
         Dispatchers.resetMain()
-    }
-
-    @Test
-    fun inisialisasiMemintaKatalogAwalTersedia() = cakupanPengujian.runTest {
-        advanceUntilIdle()
-
-        assertEquals(1, repositoriProdukPalsu.jumlahPermintaanKatalogAwal)
     }
 
     @Test
@@ -397,8 +369,6 @@ class PengujianCashierMainViewModel {
 
     private class ProductRepositoryPalsu : ProductRepository {
         private val daftarProduk = MutableStateFlow<List<Produk>>(emptyList())
-        var jumlahPermintaanKatalogAwal: Int = 0
-            private set
 
         fun aturDaftarProduk(daftarBaru: List<Produk>) {
             daftarProduk.value = daftarBaru
@@ -422,10 +392,6 @@ class PengujianCashierMainViewModel {
                     produk.nama.contains(kataKunci, ignoreCase = true)
                 }
             }
-        }
-
-        override suspend fun pastikanKatalogAwalTersedia() {
-            jumlahPermintaanKatalogAwal += 1
         }
 
         override suspend fun sinkronkanKatalog(): NetworkOperationResult<Unit> {

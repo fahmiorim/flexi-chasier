@@ -27,11 +27,6 @@ interface ProductRepository {
     fun cariProdukLokal(kataKunci: String): Flow<List<Produk>>
 
     /**
-     * Memastikan katalog awal tersedia untuk mode belajar dan install baru.
-     */
-    suspend fun pastikanKatalogAwalTersedia()
-
-    /**
      * Memperbarui katalog lokal dengan mengambil data terbaru dari jaringan.
      */
     suspend fun sinkronkanKatalog(): NetworkOperationResult<Unit>
