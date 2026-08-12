@@ -816,13 +816,12 @@ class CashierMainViewModel(
                     // Gagal hitung favorit — tidak perlu ganggu pengguna
                 }
 
-                // Cetak struk setelah checkout. Keranjang sudah dikosongkan di
-                // atas, jadi kirim daftar item yang tadi dibayar secara eksplisit —
-                // kalau tidak, cetak selalu gagal ("Tidak ada item untuk dicetak").
+                // Cetak struk dari transaksi yang baru saja tersimpan agar id,
+                // potongan, pajak, dan harga item di nota sesuai yang dibayar.
                 if (apakahCetakStruk ||
                     (status == TransactionStatus.Processing && StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic)
                 ) {
-                    cetakStruk(daftarKeranjangSaatIni)
+                    cetakStruk(hasilCheckout.Transaction)
                 }
             } catch (kesalahanValidasi: IllegalArgumentException) {
                 _statusElemenLayar.update { statusLama ->
@@ -983,9 +982,9 @@ class CashierMainViewModel(
                     )
                 }
 
-                // Cetak struk jika setting otomatis
+                // Cetak struk dari transaksi tersimpan (id/potongan/pajak benar).
                 if (StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic) {
-                    cetakStruk(itemGabungan)
+                    cetakStruk(hasilCheckout.Transaction)
                 }
 
                 kirimPesanSingkat("${billLain.size + 1} bill berhasil digabung dan dibayar")
@@ -1148,7 +1147,7 @@ class CashierMainViewModel(
 
         viewModelScope.launch {
             try {
-                PayPendingOrder.eksekusi(identitasTransaction, paymentMethod, uangDibayar)
+                val transactionBayar = PayPendingOrder.eksekusi(identitasTransaction, paymentMethod, uangDibayar)
 
                 val pesanan = daftarPesananPending.value.firstOrNull { it.id == identitasTransaction }
 
@@ -1184,9 +1183,10 @@ class CashierMainViewModel(
 
                 kirimPesanSingkat("Pembayaran ${paymentMethod.label} berhasil")
 
-                // Cetak struk jika setting otomatis
-                if (pesanan != null && StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic) {
-                    cetakStruk(pesanan.daftarCartItem)
+                // Cetak struk jika setting otomatis — pakai transaksi tersimpan
+                // agar id, potongan, pajak, dan waktu di nota benar.
+                if (StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic) {
+                    cetakStruk(transactionBayar)
                 }
             } catch (kesalahan: IllegalArgumentException) {
                 kirimPesanSingkat(kesalahan.message ?: "Payment gagal.")
@@ -1205,45 +1205,20 @@ class CashierMainViewModel(
         }
     }
 
-    private fun cetakStruk(daftarItem: List<CartItem>? = null) {
+    /**
+     * Mencetak struk dari transaksi yang SUDAH tersimpan — memakai id, potongan,
+     * pajak, biaya layanan, dan waktu yang benar. (Sebelumnya transaksi dibangun
+     * ulang dari keranjang: id kosong, potongan diabaikan, pajak dihitung ulang,
+     * dan item memakai harga dasar produk — nota bisa tidak cocok dengan yang
+     * dibayar pelanggan.)
+     */
+    private fun cetakStruk(Transaction: Transaction?) {
         viewModelScope.launch {
-            val daftarKeranjang = daftarItem ?: _TransactionStatus.value.daftarCartItem
-            val elemenLayar = _statusElemenLayar.value
-            val preferensi = StorePreference.value
-            val pengaturan = StoreSetting.value
-
-            if (daftarKeranjang.isEmpty()) {
-                kirimPesanSingkat("Tidak ada item untuk dicetak.")
+            val Transaction = Transaction ?: run {
+                kirimPesanSingkat("Tidak ada transaksi untuk dicetak.")
                 return@launch
             }
-
-            val taxRule = if (preferensi.basisPoinPajakDefault > 0) {
-                id.flexi.kasir.domain.model.TaxRule(
-                    nama = "PPN",
-                    basisPoin = preferensi.basisPoinPajakDefault,
-                    aktif = true,
-                )
-            } else {
-                id.flexi.kasir.domain.model.TaxRule.NoTax
-            }
-            val biayaLayanan = Uang.dariRupiah(preferensi.biayaLayananDefault)
-
-            val rincianPajak = taxRule.hitungDariSubtotal(
-                daftarKeranjang.hitungSubtotalKeranjangUang(),
-            )
-
-            val Transaction = Transaction(
-                id = "",
-                daftarCartItem = daftarKeranjang,
-                potongan = Uang.Nol,
-                biayaLayanan = biayaLayanan,
-                pajak = rincianPajak,
-                waktuTransactionEpochMili = System.currentTimeMillis(),
-                catatan = elemenLayar.catatanCheckout.ifBlank { null },
-                status = TransactionStatus.Pending,
-                orderType = elemenLayar.orderType,
-                mejaId = elemenLayar.mejaId,
-            )
+            val pengaturan = StoreSetting.value
 
             // Gunakan printer yang dikonfigurasi user jika ada, fallback ke auto-detect
             val hasil = if (pengaturan.printerType != id.flexi.kasir.domain.model.PrinterType.None) {
@@ -1372,9 +1347,9 @@ class CashierMainViewModel(
                     )
                 }
 
-                // Cetak struk jika setting otomatis
+                // Cetak struk dari transaksi tersimpan (id/potongan/pajak benar).
                 if (StoreSetting.value.receiptPrintFormat == ReceiptPrintFormat.Automatic) {
-                    cetakStruk(itemDibayar)
+                    cetakStruk(hasilBayar.Transaction)
                 }
             } catch (kesalahan: IllegalArgumentException) {
                 kirimPesanSingkat(kesalahan.message ?: "Split bill gagal.")

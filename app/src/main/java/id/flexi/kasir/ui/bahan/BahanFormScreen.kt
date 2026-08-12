@@ -114,6 +114,14 @@ fun BahanFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Stok Tersedia") },
                 placeholder = { Text("Contoh: 500") },
+                // Stok hanya berubah lewat "Atur Stok" atau "Catat Pembelian"
+                // (konsisten dengan web) — field dibuat read-only saat edit.
+                readOnly = state.apakahModeEdit,
+                supportingText = if (state.apakahModeEdit) {
+                    { Text("Ubah lewat Atur Stok / Catat Pembelian.") }
+                } else {
+                    null
+                },
                 singleLine = true,
                 shape = MaterialTheme.shapes.small,
             )

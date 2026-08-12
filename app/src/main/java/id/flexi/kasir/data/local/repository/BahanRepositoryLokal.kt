@@ -85,11 +85,29 @@ class BahanRepositoryLokal(
     }
 
     override suspend fun perbaruiStokBahan(id: String, jumlah: Double) {
-        BahanDao.perbaruiStokBahan(id, jumlah)
+        // Tulis stok + catat ke outbox dalam SATU transaksi agar perubahan stok
+        // (checkout via resep, catat pembelian, hapus pembelian) ikut tersinkron
+        // ke server — sama seperti catatPerubahanStokKeOutbox untuk produk.
+        basisData.withTransaction {
+            BahanDao.perbaruiStokBahan(id, jumlah)
+            val bahan = BahanDao.ambilBahanBerdasarkanId(id)?.keDomain()
+            if (bahan != null) {
+                runCatching { pencatatOutbox?.catatBahan(bahan) }
+            }
+        }
     }
 
     override suspend fun perbaruiHargaSatuanBahan(id: String, harga: Long) {
-        BahanDao.perbaruiHargaSatuanBahan(id, harga)
+        // Harga beli dikirim server (LWW) — catat juga ke outbox agar hasil
+        // hitung ulang harga (dari pembelian terakhir) tidak tertimpa nilai
+        // basi server saat pull berikutnya.
+        basisData.withTransaction {
+            BahanDao.perbaruiHargaSatuanBahan(id, harga)
+            val bahan = BahanDao.ambilBahanBerdasarkanId(id)?.keDomain()
+            if (bahan != null) {
+                runCatching { pencatatOutbox?.catatBahan(bahan) }
+            }
+        }
     }
 
     // ── Resep ──

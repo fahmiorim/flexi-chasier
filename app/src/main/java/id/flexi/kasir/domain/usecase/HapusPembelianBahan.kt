@@ -1,6 +1,7 @@
 package id.flexi.kasir.domain.usecase
 
 import id.flexi.kasir.domain.repository.BahanRepository
+import kotlin.math.roundToLong
 
 class HapusPembelianBahan(
     private val BahanRepository: BahanRepository,
@@ -33,7 +34,7 @@ class HapusPembelianBahan(
         // Hitung ulang harga per satuan dari pembelian terakhir yang masih ada
         val pembelianTerakhir = BahanRepository.ambilPembelianTerakhir(bahanId)
         if (pembelianTerakhir != null && pembelianTerakhir.jumlah > 0) {
-            val hargaPerSatuan = (pembelianTerakhir.totalHarga.toDouble() / pembelianTerakhir.jumlah).toLong()
+            val hargaPerSatuan = (pembelianTerakhir.totalHarga.toDouble() / pembelianTerakhir.jumlah).roundToLong()
             BahanRepository.perbaruiHargaSatuanBahan(bahanId, hargaPerSatuan)
         } else {
             BahanRepository.perbaruiHargaSatuanBahan(bahanId, 0L)

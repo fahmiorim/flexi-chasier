@@ -31,6 +31,15 @@ data class ProdukSinkron(
     @SerialName("fotoUri")
     val fotoUri: String? = null,
     val favorit: Boolean = false,
+    // Varian, HPP, & toggle kelola stok disinkronkan lintas perangkat.
+    // `varianJson` memakai sentinel "" (tanpa varian) agar server bisa
+    // membedakan "tidak ada varian" dari "belum pernah di-push" (null).
+    @SerialName("varianJson")
+    val varianJson: String? = null,
+    @SerialName("hargaModal")
+    val hargaModal: Long? = null,
+    @SerialName("apakahStokDiaktifkan")
+    val apakahStokDiaktifkan: Boolean = false,
     val aktif: Boolean = true,
     val dihapus: Boolean = false,
 )

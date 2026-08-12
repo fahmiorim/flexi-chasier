@@ -76,10 +76,24 @@ class BahanFormViewModel(
         }
         if (error) return
 
-        val bahan = state.toDomain() ?: return
-
         viewModelScope.launch {
             try {
+                var bahan = state.toDomain() ?: return@launch
+                if (state.apakahModeEdit) {
+                    // Stok, stok minimum, dan status aktif hanya berubah lewat
+                    // aksi khusus (Atur Stok / Catat Pembelian / web), bukan
+                    // dari form ini. Ambil nilai TERBARU dari DB agar edit
+                    // nama/satuan/harga tidak menimpa nilai yang diubah
+                    // perangkat lain sejak form dibuka.
+                    val terkini = ObserveBahanById(state.id).first()
+                    if (terkini != null) {
+                        bahan = bahan.copy(
+                            stokTersedia = terkini.stokTersedia,
+                            stokMinimum = terkini.stokMinimum,
+                            aktif = terkini.aktif,
+                        )
+                    }
+                }
                 SimpanBahan(bahan)
                 _state.update {
                     it.copy(

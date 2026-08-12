@@ -28,6 +28,12 @@ data class LocalCheckoutResult(
     val jumlahItemCheckout: Int,
     val totalCheckout: Long,
     val nomorAntrian: Int? = null,
+    /**
+     * Transaksi yang baru saja disimpan (lengkap: id, potongan, pajak, biaya
+     * layanan, uang dibayar, waktu). Dipakai untuk mencetak struk dari data
+     * tersimpan — bukan membangun ulang dari keranjang yang bisa berbeda.
+     */
+    val Transaction: Transaction? = null,
 )
 
 class CompleteLocalCheckout(
@@ -135,9 +141,10 @@ class CompleteLocalCheckout(
                 oldTransaction = oldTransaction,
             )
 
-            // Kurangi stok bahan baku berdasarkan resep produk yang dibayar
+            // Perbarui stok bahan baku berdasarkan resep produk yang dibayar
+            // (delta-aware: eksekusi ulang tidak memotong bahan dua kali).
             if (BahanRepository != null && sudahDibayar) {
-                kurangiStokBahanDariCheckout(daftarCartItemBersih)
+                perbaruiStokBahanDariCheckout(daftarCartItemBersih, oldTransaction)
             }
         }
 
@@ -171,19 +178,52 @@ class CompleteLocalCheckout(
             jumlahItemCheckout = jumlahItemCheckout,
             totalCheckout = totalCheckout.nilaiRupiah,
             nomorAntrian = nomorAntrian,
+            Transaction = Transaction,
         )
     }
 
-    private suspend fun kurangiStokBahanDariCheckout(daftarCartItem: List<CartItem>) {
+    /**
+     * Memperbarui stok bahan sesuai resep produk yang dibayar, berbasis DELTA
+     * terhadap pemakaian transaksi lama:
+     * - Transaksi baru (null) atau resume dari Pending → potong PENUH, karena
+     *   bahan hanya dipotong saat checkout dibayar (Pending tidak memotong).
+     * - Transaksi lama yang SUDAH dibayar → hanya selisih item lama vs baru,
+     *   sehingga eksekusi ulang (resume/edit/retry) tidak memotong dua kali.
+     */
+    private suspend fun perbaruiStokBahanDariCheckout(
+        daftarCartItem: List<CartItem>,
+        oldTransaction: Transaction?,
+    ) {
+        val pemakaianBaru = hitungPemakaianBahan(daftarCartItem)
+        val pemakaianLama = if (oldTransaction != null &&
+            oldTransaction.status != TransactionStatus.Pending
+        ) {
+            hitungPemakaianBahan(oldTransaction.daftarCartItem)
+        } else {
+            emptyMap()
+        }
+
+        (pemakaianBaru.keys + pemakaianLama.keys).forEach { bahanId ->
+            val delta = (pemakaianBaru[bahanId] ?: 0.0) - (pemakaianLama[bahanId] ?: 0.0)
+            if (delta != 0.0) {
+                BahanRepository?.perbaruiStokBahan(bahanId, -delta)
+            }
+        }
+    }
+
+    /** Total pemakaian tiap bahan (jumlah item × jumlah bahan per resep). */
+    private suspend fun hitungPemakaianBahan(daftarCartItem: List<CartItem>): Map<String, Double> {
+        val pemakaian = mutableMapOf<String, Double>()
         for (item in daftarCartItem) {
             if (item.jumlah <= 0) continue
             val resep = BahanRepository?.ambilResepByProdukId(item.produk.id) ?: continue
             for (bahan in resep.daftarBahan) {
                 if (bahan.jumlah <= 0) continue
                 val totalDipakai = bahan.jumlah * item.jumlah
-                BahanRepository.perbaruiStokBahan(bahan.bahanId, -totalDipakai)
+                pemakaian[bahan.bahanId] = (pemakaian[bahan.bahanId] ?: 0.0) + totalDipakai
             }
         }
+        return pemakaian
     }
 }
 

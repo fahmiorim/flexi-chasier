@@ -1,5 +1,6 @@
 package id.flexi.kasir.data.sync
 
+import id.flexi.kasir.data.jsonVarian
 import id.flexi.kasir.data.network.model.BahanResepSinkron
 import id.flexi.kasir.data.network.model.BahanSinkron
 import id.flexi.kasir.data.network.model.ItemTransaksiSinkron
@@ -27,6 +28,7 @@ import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
 import kotlin.math.max
+import kotlinx.serialization.encodeToString
 
 /**
  * Pembangun payload push sinkronisasi (murni, tanpa akses database).
@@ -63,6 +65,13 @@ object PayloadSinkron {
         deskripsi = produk.deskripsi.ifBlank { null },
         fotoUri = produk.fotoUri,
         favorit = produk.favorit,
+        // Varian diserialisasi ke JSON; sentinel "" saat tanpa varian agar server
+        // tahu "tidak ada varian" (bukan null = belum pernah di-push ulang).
+        varianJson = if (produk.varian.isEmpty()) "" else runCatching {
+            jsonVarian.encodeToString(produk.varian)
+        }.getOrDefault(""),
+        hargaModal = produk.hargaModal,
+        apakahStokDiaktifkan = produk.apakahStokDiaktifkan,
         aktif = produk.aktif,
         dihapus = dihapus,
     )

@@ -25,7 +25,7 @@ class CatatPembelianBahan(
         catatan: String? = null,
         mutasiKasId: String? = null,
     ) {
-        if (jumlah <= 0 || totalHarga <= 0) return
+        if (jumlah <= 0 || totalHarga < 0) return
 
         val pembelian = PembelianBahan(
             id = UUID.randomUUID().toString(),

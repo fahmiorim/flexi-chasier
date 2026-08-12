@@ -76,9 +76,12 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             kategori = p.kategori ?: "",
             fotoUri = p.fotoUri,
             favorit = p.favorit,
-            hargaModal = null,
-            varianJson = null,
-            apakahStokDiaktifkan = true,
+            // Varian, HPP, & toggle stok diambil dari server; bila null (produk
+            // lama yang belum pernah di-push ulang) merge di MesinSinkronisasi
+            // mempertahankan nilai lokal agar data tidak hilang saat upgrade.
+            hargaModal = p.hargaModal,
+            varianJson = p.varianJson,
+            apakahStokDiaktifkan = p.apakahStokDiaktifkan,
         )
     }
 

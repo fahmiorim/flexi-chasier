@@ -92,8 +92,14 @@ interface OutboxDao {
         batas: Int,
     ): List<OutboxSinkronEntity>
 
-    @Query("UPDATE outbox_sinkron SET status = 'Berhasil' WHERE id = :id")
-    suspend fun tandaiBerhasil(id: Long)
+    /**
+     * Menghapus baris outbox yang sudah berhasil dikirim (pola outbox klasik:
+     * hapus setelah deliver sukses) agar tabel tidak tumbuh tanpa batas.
+     * Payload idempotent (id deterministik + versi), jadi perubahan berikutnya
+     * pada item yang sama akan menulis baris baru lewat [tulis].
+     */
+    @Query("DELETE FROM outbox_sinkron WHERE id IN (:daftarId)")
+    suspend fun hapusBanyak(daftarId: List<Long>)
 
     @Query("UPDATE outbox_sinkron SET jumlahPercobaan = jumlahPercobaan + 1 WHERE id = :id")
     suspend fun tambahPercobaan(id: Long)

@@ -1,6 +1,7 @@
 package id.flexi.kasir.domain.usecase
 
 import id.flexi.kasir.domain.model.PaymentMethod
+import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.model.TransactionCostBreakdown
 import id.flexi.kasir.domain.model.Uang
@@ -9,11 +10,16 @@ import id.flexi.kasir.domain.repository.TransactionRepository
 class PayPendingOrder(
     private val TransactionRepository: TransactionRepository,
 ) {
+    /**
+     * @return Transaksi yang baru saja dibayar (state terbaru: Paid, uangDibayar,
+     *         metode bayar, waktu dibayar) — dipakai pemanggil untuk mencetak
+     *         struk dari data tersimpan. null bila reload gagal.
+     */
     suspend fun eksekusi(
         identitasTransaction: String,
         paymentMethod: PaymentMethod = PaymentMethod.Cash,
         uangDibayar: Long? = null,
-    ) {
+    ): Transaction? {
         val Transaction = TransactionRepository.ambilTransactionBerdasarkanIdentitas(identitasTransaction)
             ?: throw IllegalArgumentException("Pesanan tidak ditemukan.")
 
@@ -44,5 +50,8 @@ class PayPendingOrder(
             paymentMethod = paymentMethod,
             waktuDibayarEpochMili = System.currentTimeMillis(),
         )
+
+        // Muat ulang state terbaru (status Paid, uangDibayar, waktu dibayar).
+        return TransactionRepository.ambilTransactionBerdasarkanIdentitas(identitasTransaction)
     }
 }

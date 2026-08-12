@@ -12,6 +12,8 @@ import android.hardware.usb.UsbManager
 import id.flexi.kasir.domain.model.LebarStruk
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
+import id.flexi.kasir.domain.util.hitungKembalian
+import id.flexi.kasir.domain.util.hitungSubtotalKeranjangUang
 import id.flexi.kasir.domain.util.hitungTotalAkhirTransaction
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import kotlinx.coroutines.Dispatchers
@@ -539,7 +541,12 @@ class ThermalPrinterManager(
 
         val formatTanggal = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID"))
         val waktuCetak = formatTanggal.format(Date(Transaction.waktuTransactionEpochMili))
-        val subtotal = Transaction.daftarCartItem.sumOf { item -> item.produk.harga * item.jumlah }
+        // Subtotal memakai harga efektif per item (varian diutamakan, lalu harga
+        // produk dasar) — konsisten dengan hitungSubtotalKeranjangUang() agar
+        // Subtotal dan Total di nota cocok dengan nominal yang dibayar.
+        val subtotal = Transaction.daftarCartItem
+            .hitungSubtotalKeranjangUang()
+            .nilaiRupiah
 
         val singleCopy = buildSingleByteStruk(Transaction, waktuCetak, subtotal, settings, lebar)
 
@@ -619,9 +626,16 @@ class ThermalPrinterManager(
         lines.add(EscPos.ALIGN_LEFT)
         val maxNamaPanjang = (lebar * 0.6).toInt().coerceIn(15, 30)
         Transaction.daftarCartItem.forEach { item ->
-            val nama = item.produk.nama.take(maxNamaPanjang)
-            val hargaStr = item.produk.harga.sebagaiRupiah()
-            val subtotalItem = (item.produk.harga * item.jumlah).sebagaiRupiah()
+            val hargaSatuan = item.varian?.harga ?: item.produk.harga
+            // Sertakan nama varian agar dua varian produk yang sama tidak tampil
+            // sebagai baris identik dengan harga berbeda.
+            val nama = item.varian?.let { "${item.produk.nama} (${it.nama})" }
+                ?: item.produk.nama
+            val namaCetak = nama.take(maxNamaPanjang)
+            val hargaStr = hargaSatuan.sebagaiRupiah()
+            val subtotalItem = (hargaSatuan * item.jumlah).sebagaiRupiah()
+
+            lines.add(namaCetak.toByteArray(charset("US-ASCII")))
 
             lines.add(nama.toByteArray(charset("US-ASCII")))
             lines.add(EscPos.LF)
@@ -658,13 +672,25 @@ class ThermalPrinterManager(
         lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
         lines.add(EscPos.LF)
 
-        // Total
-        val totalVal = subtotal - Transaction.potongan.nilaiRupiah
-            .coerceAtMost(subtotal) + Transaction.biayaLayanan.nilaiRupiah + Transaction.pajak.nilaiRupiah
+        // Total akhir persis sama dengan nilai transaksi tersimpan (termasuk
+        // clamp potongan di TransactionCostBreakdown).
+        val totalVal = Transaction.hitungTotalAkhirTransaction()
         lines.add(EscPos.BOLD_ON)
         lines.add(tulisDuaKolom("Total", totalVal.sebagaiRupiah(), lebar))
         lines.add(EscPos.BOLD_OFF)
         lines.add(EscPos.LF)
+
+        // Pembayaran: metode (Tunai/QRIS), nominal dibayar, dan kembalian.
+        val nominalDibayar = Transaction.uangDibayar.nilaiRupiah
+        if (nominalDibayar > 0) {
+            lines.add(tulisDuaKolom(Transaction.paymentMethod.label, nominalDibayar.sebagaiRupiah(), lebar))
+            lines.add(EscPos.LF)
+            val kembalian = hitungKembalian(nominalDibayar, totalVal)
+            if (kembalian > 0) {
+                lines.add(tulisDuaKolom("Kembalian", kembalian.sebagaiRupiah(), lebar))
+                lines.add(EscPos.LF)
+            }
+        }
 
         // Catatan
         if (!Transaction.catatan.isNullOrBlank()) {

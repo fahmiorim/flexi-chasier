@@ -35,7 +35,13 @@ class SyncPullMappingTest {
     private fun responsContoh(): PerubahanResponse = PerubahanResponse(
         terpotong = false,
         products = listOf(
-            ProdukSinkron(id = "p-1", versi = 5L, nama = "Es Teh", harga = 10_000L, stok = 4, aktif = true, kategori = "Minuman"),
+            ProdukSinkron(
+                id = "p-1", versi = 5L, nama = "Es Teh", harga = 10_000L, stok = 4,
+                aktif = true, kategori = "Minuman",
+                varianJson = """[{"nama":"Ice","harga":10000},{"nama":"Hot","harga":8000}]""",
+                hargaModal = 6_000L,
+                apakahStokDiaktifkan = true,
+            ),
             ProdukSinkron(id = "p-2", versi = 6L, nama = "Kopi", harga = 12_000L, stok = 0, dihapus = true),
         ),
         transactions = listOf(
@@ -94,10 +100,19 @@ class SyncPullMappingTest {
         val hasil = responsContoh().kePerubahanLokal(geraiId)
 
         assertEquals(1, hasil.produk.size)
-        assertEquals("p-1", hasil.produk.single().id)
-        assertEquals(geraiId, hasil.produk.single().geraiId)
-        assertEquals(4, hasil.produk.single().stokTersedia)
-        assertEquals("Minuman", hasil.produk.single().kategori)
+        val produk = hasil.produk.single()
+        assertEquals("p-1", produk.id)
+        assertEquals(geraiId, produk.geraiId)
+        assertEquals(4, produk.stokTersedia)
+        assertEquals("Minuman", produk.kategori)
+        // Varian, HPP, & toggle kelola stok diambil dari server (bukan null/true
+        // hardcoded) agar produk yang dibuat di perangkat lain tampil sama.
+        assertEquals(
+            """[{"nama":"Ice","harga":10000},{"nama":"Hot","harga":8000}]""",
+            produk.varianJson,
+        )
+        assertEquals(6_000L, produk.hargaModal)
+        assertEquals(true, produk.apakahStokDiaktifkan)
         assertEquals(listOf("p-2"), hasil.produkDihapus)
     }
 

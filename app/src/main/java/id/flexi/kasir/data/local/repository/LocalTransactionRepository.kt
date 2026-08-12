@@ -36,6 +36,7 @@ class TransactionRepositoryLokal(
 
     private val aksesDataTransaction = basisData.LocalTransactionDao()
     private val aksesDataProduk = basisData.LocalProductDao()
+    private val aksesDataBahan = basisData.BahanDao()
 
     /**
      * Menyimpan Transaction baru beserta seluruh item terkait ke database secara atomik.
@@ -281,6 +282,41 @@ class TransactionRepositoryLokal(
     }
 
     /**
+     * Mengembalikan stok BAHAN yang dikurangi saat checkout (via resep) —
+     * simetris dengan pengurangan di [id.flexi.kasir.domain.usecase.CompleteLocalCheckout].
+     *
+     * Hanya dipanggil untuk transaksi yang SUDAH dibayar/diproses: transaksi
+     * Pending tidak pernah mengurangi stok bahan (hanya stok produk), jadi
+     * mengembalikannya justru akan menggembungkan stok bahan.
+     */
+    private suspend fun kembalikanStokBahanDariCheckout(daftarItem: List<LocalTransactionItemEntity>) {
+        val jumlahPerProduk = daftarItem
+            .filterNot { apakahItemManual(it.produkId) }
+            .groupingBy { it.produkId }
+            .fold(0) { akumulasi, item -> akumulasi + item.jumlah }
+        if (jumlahPerProduk.isEmpty()) return
+
+        val idBahanTerdampak = mutableSetOf<String>()
+        for ((produkId, jumlah) in jumlahPerProduk) {
+            val resep = aksesDataBahan.ambilResepBerdasarkanProduk(produkId) ?: continue
+            val daftarBahan = aksesDataBahan.ambilBahanResepBerdasarkanResep(resep.id)
+            for (bahan in daftarBahan) {
+                if (bahan.jumlah <= 0) continue
+                aksesDataBahan.perbaruiStokBahan(bahan.bahanId, bahan.jumlah * jumlah)
+                idBahanTerdampak += bahan.bahanId
+            }
+        }
+
+        // Catat stok bahan hasil restore ke outbox (best-effort) agar
+        // perubahan ini ikut ter-push ke server.
+        idBahanTerdampak.forEach { bahanId ->
+            aksesDataBahan.ambilBahanBerdasarkanId(bahanId)?.let { bahanLokal ->
+                runCatching { pencatatOutbox?.catatBahan(bahanLokal.keDomain()) }
+            }
+        }
+    }
+
+    /**
      * Mencatat stok terbaru produk terdampak ke outbox (best-effort) agar
      * perubahan stok akibat transaksi/restore ikut ter-push ke server.
      */
@@ -374,9 +410,18 @@ class TransactionRepositoryLokal(
             ?: return
 
         basisData.withTransaction {
-            // Kembalikan stok hanya untuk produk yang stoknya diaktifkan
-            // (simetris dengan pengurangan stok saat transaksi dijual).
-            kembalikanStokProduk(Transaction.daftarItem)
+            // Transaksi yang sudah dibatalkan stoknya sudah dikembalikan saat
+            // batal — jangan kembalikan lagi (produk & bahan) agar tidak dobel.
+            if (!Transaction.keDomain().dibatalkan) {
+                // Kembalikan stok hanya untuk produk yang stoknya diaktifkan
+                // (simetris dengan pengurangan stok saat transaksi dijual).
+                kembalikanStokProduk(Transaction.daftarItem)
+                // Stok bahan hanya dikurangi saat checkout dibayar — kembalikan
+                // juga, kecuali transaksi Pending yang tidak pernah memotong bahan.
+                if (Transaction.keDomain().status != TransactionStatus.Pending) {
+                    kembalikanStokBahanDariCheckout(Transaction.daftarItem)
+                }
+            }
             aksesDataTransaction.hapusTransactionBerdasarkanId(identitasTransaction)
         }
 
@@ -402,6 +447,11 @@ class TransactionRepositoryLokal(
             // Transaksi dibatalkan → barang tidak jadi terjual → stok dikembalikan
             // (hanya produk yang stoknya diaktifkan — simetris dengan saat jual).
             kembalikanStokProduk(transactionLokal.daftarItem)
+            // Stok bahan hanya dikurangi saat checkout dibayar — kembalikan
+            // juga, kecuali transaksi Pending yang tidak pernah memotong bahan.
+            if (Transaction.status != TransactionStatus.Pending) {
+                kembalikanStokBahanDariCheckout(transactionLokal.daftarItem)
+            }
             aksesDataTransaction.tandaiDibatalkan(identitasTransaction, alasan)
         }
 

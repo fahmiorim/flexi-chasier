@@ -104,7 +104,7 @@ class BahanDetailViewModel(
     ) {
         val jumlahDouble = jumlah.toDoubleOrNull() ?: return
         val totalLong = totalHarga.toLongOrNull() ?: return
-        if (jumlahDouble <= 0 || totalLong <= 0) return
+        if (jumlahDouble <= 0 || totalLong < 0) return
 
         val kasAktif = _state.value.kasAktif
         if (bayarPakaiLaci && kasAktif == null) {
@@ -119,7 +119,8 @@ class BahanDetailViewModel(
                 val satuan = satuanBeli.ifBlank { "pcs" }
                 // Buat mutasi kas BelanjaBahan lebih dulu agar id-nya tersimpan
                 // pada pembelian — saat pembelian dihapus, mutasi ikut dibatalkan.
-                val mutasiKasId = if (bayarPakaiLaci && kasAktif != null) {
+                // Pembelian gratis (totalHarga = 0) tidak perlu mutasi kas nominal 0.
+                val mutasiKasId = if (bayarPakaiLaci && kasAktif != null && totalLong > 0) {
                     val namaBahan = _state.value.bahan?.nama ?: "Bahan"
                     catatMutasiKas(
                         shiftId = kasAktif.id,
@@ -142,7 +143,7 @@ class BahanDetailViewModel(
                 _state.update {
                     it.copy(
                         apakahDialogTambahPembelianTampil = false,
-                        pesanSnackbar = if (bayarPakaiLaci) {
+                        pesanSnackbar = if (mutasiKasId != null) {
                             "Pembelian dicatat dari uang laci."
                         } else {
                             "Pembelian berhasil dicatat."

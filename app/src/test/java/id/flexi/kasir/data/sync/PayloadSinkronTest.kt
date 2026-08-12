@@ -61,6 +61,32 @@ class PayloadSinkronTest {
     )
 
     @Test
+    fun `produk - varian, HPP, dan toggle kelola stok ikut dikirim`() {
+        val produkDenganVarian = produkEsTeh.copy(
+            varian = listOf(
+                Varian(nama = "Ice", harga = 10_000L),
+                Varian(nama = "Hot", harga = 8_000L),
+            ),
+            hargaModal = 6_000L,
+            apakahStokDiaktifkan = true,
+        )
+
+        val payload = PayloadSinkron.produk(produkDenganVarian, versi = 1_000L)
+
+        // varianJson berisi JSON varian (bukan sentinel "").
+        assertTrue(payload.varianJson?.contains("\"Ice\"") == true)
+        assertTrue(payload.varianJson?.contains("\"Hot\"") == true)
+        assertEquals(6_000L, payload.hargaModal)
+        assertEquals(true, payload.apakahStokDiaktifkan)
+
+        // Tanpa varian → sentinel "" (server tahu "tidak ada varian").
+        val payloadPolos = PayloadSinkron.produk(produkEsTeh, versi = 1_000L)
+        assertEquals("", payloadPolos.varianJson)
+        assertEquals(null, payloadPolos.hargaModal)
+        assertEquals(false, payloadPolos.apakahStokDiaktifkan)
+    }
+
+    @Test
     fun `versi monotonik - naik dari waktu, dan lebih besar dari versi tersimpan`() {
         assertEquals(1_000L, PayloadSinkron.hitungVersiBaru(null, 1_000L))
         // Waktu mundur tidak boleh menurunkan versi.

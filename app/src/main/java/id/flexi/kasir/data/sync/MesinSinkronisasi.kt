@@ -184,7 +184,8 @@ class MesinSinkronisasi(
      * - HTTP 2xx dengan `diterima < total` → ada item ditolak LWW/induk belum
      *   ada: baris tetap Antri dan percobaan ditambah (retry batch berikutnya).
      * - HTTP 401/403 → hentikan seluruh sinkronisasi (sesi/akses bermasalah).
-     * - Gagal lain → baris tetap Antri (retry saat WorkManager berikutnya).
+     * - HTTP 4xx lain → setelah MAKS_PERCOBAAN ditandai Gagal (error permanen).
+     * - HTTP 5xx & error jaringan → baris tetap Antri (retry siklus berikutnya).
      */
     private suspend inline fun <reified T> dorongSatu(
         geraiId: String,
@@ -209,15 +210,29 @@ class MesinSinkronisasi(
         } catch (kesalahan: HttpException) {
             val kode = kesalahan.code()
             if (kode == 401 || kode == 403) throw kesalahan
-            siapKirim.forEach { outboxDao.tambahPercobaan(it.first.id) }
+            // 4xx = error permanen klien (payload/kontrak tidak cocok) → berhenti
+            // setelah batas percobaan agar tidak di-retry selamanya. 408/425/429
+            // (timeout/too many requests) bersifat sementara → tetap retry seperti
+            // 5xx dan error jaringan.
+            val permanen = kode in 400..499 && kode != 408 && kode != 425 && kode != 429
+            siapKirim.forEach { (baris, _) ->
+                outboxDao.tambahPercobaan(baris.id)
+                if (permanen && baris.jumlahPercobaan + 1 >= MAKS_PERCOBAAN) {
+                    outboxDao.tandaiGagal(baris.id, "Gagal dikirim (HTTP $kode).")
+                }
+            }
             throw kesalahan
         } catch (kesalahan: Exception) {
+            // Error jaringan = sementara → tetap Antri, dicoba lagi nanti.
             siapKirim.forEach { outboxDao.tambahPercobaan(it.first.id) }
             throw kesalahan
         }
 
         return if (hasil.total > 0 && hasil.diterima >= hasil.total) {
-            siapKirim.forEach { outboxDao.tandaiBerhasil(it.first.id) }
+            // Semua diterima → hapus baris outbox (bukan sekadar tandai 'Berhasil')
+            // agar tabel tidak membengkak. Payload idempotent, jadi perubahan
+            // berikutnya pada item yang sama menulis baris baru.
+            outboxDao.hapusBanyak(siapKirim.map { it.first.id })
             hasil.diterima
         } else {
             // Ditolak sebagian: mungkin versi lebih tua (aman diabaikan) atau
@@ -293,16 +308,18 @@ class MesinSinkronisasi(
         basisData.withTransaction {
             // ── 1. Induk ──
             if (perubahan.produk.isNotEmpty()) {
-                // Pertahankan field yang TIDAK dikirim server (varian, harga modal,
-                // toggle stok) dari produk yang sudah ada secara lokal. Bila tidak,
-                // setiap pull akan menghapus harga varian & HPP lalu memaksa semua
-                // produk "kelola stok" aktif.
+                // Varian, harga modal, & toggle stok kini DISINKRONKAN lintas
+                // perangkat: server otoritatif bila barisnya pernah menerima data
+                // (varianJson terisi, termasuk sentinel "" = tanpa varian). Baris
+                // lama yang `varianJson`-nya null (belum pernah di-push ulang)
+                // mempertahankan nilai lokal agar upgrade tidak menghapus data
+                // yang hanya ada di perangkat ini.
                 val produkLokal = produkDao
                     .ambilProdukBerdasarkanDaftarIdentitas(perubahan.produk.map { it.id })
                 val petaProdukLokal = produkLokal.associateBy { it.id }
                 val hasilGabung = perubahan.produk.map { dariServer ->
                     val lokal = petaProdukLokal[dariServer.id]
-                    if (lokal == null) {
+                    if (lokal == null || dariServer.varianJson != null) {
                         dariServer
                     } else {
                         dariServer.copy(
