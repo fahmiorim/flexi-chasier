@@ -637,4 +637,22 @@ object CashierDatabaseMigration {
             } catch (_: Exception) { }
         }
     }
+
+    /**
+     * Migrasi dari versi 27 ke versi 28.
+     *
+     * Perubahan:
+     * - menambahkan kolom `versi` pada tabel Transaction_lokal agar rincian
+     *   transaksi (potongan, dibatalkan, catatan, status, dll.) bisa
+     *   disinkronkan dengan aturan last-write-wins berbasis versi: server
+     *   menang hanya jika versinya lebih baru, edit lokal yang belum ter-push
+     *   tidak lagi tertimpa.
+     */
+    val DARI_27_KE_28: Migration = object : Migration(27, 28) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL("ALTER TABLE Transaction_lokal ADD COLUMN versi INTEGER NOT NULL DEFAULT 0")
+            } catch (_: Exception) { }
+        }
+    }
 }

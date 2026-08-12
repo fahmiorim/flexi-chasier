@@ -140,13 +140,14 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             status = t.status,
             PaymentMethod = t.metodePembayaran,
             OrderType = t.orderType,
-            nomorAntrian = null,
-            mejaId = null,
+            nomorAntrian = t.nomor.ambilNomorAntrianDariNomorTransaksi(),
+            mejaId = t.mejaId,
             waktuDiprosesEpochMili = null,
             waktuSelesaiEpochMili = null,
             waktuDibayarEpochMili = if (t.dibatalkan) null else t.waktuEpochMili,
             dibatalkan = t.dibatalkan,
             alasanPembatalan = null,
+            versi = t.versi,
         )
     }
     val itemPerTransaksi = transactionItems.groupBy { item -> item.transactionId }
@@ -291,6 +292,52 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
         mutasiRekening = hasilMutasiRekening,
         mutasiRekeningDihapus = idMutasiRekeningDihapus,
     )
+}
+
+/**
+ * Menggabungkan transaksi hasil pull dengan salinan lokal yang sudah ada
+ * memakai LWW BERBASIS VERSI ([LocalTransactionEntity.versi]).
+ *
+ * Aturan:
+ * - Tidak ada salinan lokal → ambil server apa adanya.
+ * - Versi server LEBIH BARU dari lokal → field yang disimpan & dikirim server
+ *   (potongan, biaya layanan, pajak, catatan, status, tipe pesanan, dibayar,
+ *   dibatalkan, MEJA) diambil dari server agar perubahan perangkat lain
+ *   tersinkron; field khusus perangkat (nomor antrian, waktu proses/selesai/
+ *   dibayar, alasan pembatalan) yang TIDAK dikirim server dipertahankan dari lokal.
+ * - Versi server SAMA ATAU LEBIH TUA dari lokal → seluruh data lokal
+ *   dipertahankan (termasuk versi) agar edit lokal yang belum ter-push
+ *   (mis. pull berdiri sendiri saat push gagal) tidak tertimpa data basi.
+ */
+internal fun gabungkanTransaksiDariServer(
+    dariServer: LocalTransactionEntity,
+    adaLokal: LocalTransactionEntity?,
+): LocalTransactionEntity {
+    if (adaLokal == null) return dariServer
+    if (dariServer.versi <= adaLokal.versi) return adaLokal
+    return dariServer.copy(
+        nomorAntrian = adaLokal.nomorAntrian,
+        waktuDiprosesEpochMili = adaLokal.waktuDiprosesEpochMili,
+        waktuSelesaiEpochMili = adaLokal.waktuSelesaiEpochMili,
+        waktuDibayarEpochMili = adaLokal.waktuDibayarEpochMili,
+        alasanPembatalan = adaLokal.alasanPembatalan,
+    )
+}
+
+/**
+ * Mengambil nomor antrian dari nomor transaksi server ("ANTRI-7" → 7).
+ *
+ * Format lain (mis. "TRX-<8id>" untuk pesanan tanpa antrian) menghasilkan null.
+ * Regenerasi nomor saat push ulang di [PayloadSinkron] bersifat deterministik
+ * ("ANTRI-N" dari nomorAntrian, "TRX-<8id>" dari id transaksi), jadi dengan
+ * mempertahankan nomorAntrian ini, nomor transaksi tidak berubah di server
+ * setelah ditarik lalu diedit ulang di perangkat lain.
+ */
+internal fun String?.ambilNomorAntrianDariNomorTransaksi(): Int? {
+    if (this == null) return null
+    val awalan = "ANTRI-"
+    if (!startsWith(awalan)) return null
+    return substring(awalan.length).toIntOrNull()
 }
 
 /**

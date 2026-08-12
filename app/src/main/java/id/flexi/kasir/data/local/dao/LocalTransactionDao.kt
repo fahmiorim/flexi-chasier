@@ -152,6 +152,16 @@ interface LocalTransactionDao {
         status: String,
     )
 
+    /**
+     * Menjaga versi entity tetap monotonik setelah update parsial yang mengubah
+     * field bersama (status/pembayaran). Hanya menaikkan (tidak menurunkan).
+     */
+    @Query("UPDATE Transaction_lokal SET versi = :versi WHERE id = :id AND versi < :versi")
+    suspend fun perbaruiVersiTransaction(
+        id: String,
+        versi: Long,
+    )
+
     @Query("UPDATE item_Transaction_lokal SET apakahSelesai = 1 WHERE TransactionId = :transactionId")
     suspend fun tandaiItemSelesai(transactionId: String)
 

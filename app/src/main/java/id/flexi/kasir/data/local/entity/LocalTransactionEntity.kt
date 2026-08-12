@@ -19,6 +19,8 @@ import androidx.room.PrimaryKey
  * @property waktuTransactionEpochMili Stempel waktu saat Transaction terjadi (Unix Epoch).
  * @property catatan Catatan tambahan untuk Transaction ini.
  * @property status Status Payment Transaction (Pending/Lunas).
+ * @property versi Versi monotonik untuk last-write-wins lintas perangkat
+ * (disinkronkan dengan `versi` server; naik setiap perubahan lokal).
  */
 @Entity(
     tableName = "Transaction_lokal",
@@ -50,4 +52,5 @@ data class LocalTransactionEntity(
     val waktuDibayarEpochMili: Long? = null,
     val dibatalkan: Boolean = false,
     val alasanPembatalan: String? = null,
+    val versi: Long = 0L,
 )

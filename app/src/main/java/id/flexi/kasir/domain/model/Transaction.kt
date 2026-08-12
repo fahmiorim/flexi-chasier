@@ -60,6 +60,12 @@ data class Transaction(
     val waktuDibayarEpochMili: Long? = null,
     val dibatalkan: Boolean = false,
     val alasanPembatalan: String? = null,
+    /**
+     * Versi monotonik untuk last-write-wins lintas perangkat: diisi dari
+     * server saat pull dan dinaikkan setiap perubahan lokal agar edit yang
+     * belum ter-push tidak tertimpa oleh data server yang lebih lama.
+     */
+    val versi: Long = 0L,
 ) {
     /** Status pembayaran — derived dari [status] database. */
     val paymentStatus: PaymentStatus get() = when (status) {

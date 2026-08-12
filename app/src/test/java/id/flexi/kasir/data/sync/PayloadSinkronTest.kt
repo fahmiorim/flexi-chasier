@@ -54,6 +54,7 @@ class PayloadSinkronTest {
         paymentMethod = PaymentMethod.Cash,
         status = TransactionStatus.Paid,
         nomorAntrian = 7,
+        mejaId = "meja-3",
     )
 
     @Test
@@ -78,6 +79,7 @@ class PayloadSinkronTest {
         assertEquals("Cash", payload.metodePembayaran)
         assertEquals(1_700_000_000_000L, payload.waktuEpochMili)
         assertEquals("ANTRI-7", payload.nomor)
+        assertEquals("meja-3", payload.mejaId)
         assertEquals(false, payload.dibatalkan)
     }
 
@@ -112,6 +114,8 @@ class PayloadSinkronTest {
         assertTrue(json.contains("\"namaProduk\""))
         assertTrue(json.contains("\"hargaSatuan\""))
         assertTrue(json.contains("\"items\""))
+        // Meja disinkronkan lintas perangkat → nama field kontrak backend.
+        assertTrue(json.contains("\"mejaId\""))
         // dibuatOleh null tidak ikut dikirim (explicitNulls = false).
         assertTrue(!json.contains("dibuatOleh"))
     }
@@ -230,7 +234,7 @@ class PayloadSinkronTest {
     }
 
     @Test
-    fun `bahan - stok dibulatkan ke Int (kontrak server)`() {
+    fun `bahan - stok pecahan dikirim apa adanya (Double) agar stok gram tidak terpotong`() {
         val payload = PayloadSinkron.bahan(
             bahan = Bahan(
                 id = "b-1",
@@ -242,7 +246,9 @@ class PayloadSinkronTest {
             versi = 1L,
         )
 
-        assertEquals(2, payload.stok) // floor(2.6) — selaras Math.floor di web/server
+        // Kontrak server menerima Float (z.number tanpa .int) & Prisma Float —
+        // membulatkan ke Int saat push akan menghilangkan 0.6 gram dari stok.
+        assertEquals(2.6, payload.stok, 0.001)
         assertEquals(12_000L, payload.hargaBeli)
     }
 
@@ -267,7 +273,7 @@ class PayloadSinkronTest {
         val bahan = payload.bahan.single()
         assertEquals("b-1", bahan.bahanId)
         assertEquals("Gula", bahan.namaBahan)
-        assertEquals(10, bahan.jumlah)
+        assertEquals(10.0, bahan.jumlah, 0.001)
         // id deterministik ketika id lokal kosong
         assertTrue(bahan.id.startsWith("r-1-"))
     }

@@ -109,6 +109,7 @@ object PayloadSinkron {
             pajak = transaction.pajak.nilaiRupiah,
             status = transaction.status.name,
             orderType = transaction.orderType.name,
+            mejaId = transaction.mejaId,
             catatan = transaction.catatan,
             dibatalkan = transaction.dibatalkan,
             dihapus = dihapus,

@@ -72,6 +72,8 @@ data class TransaksiSinkron(
     val status: String = "Paid",
     @SerialName("orderType")
     val orderType: String = "DineIn",
+    @SerialName("mejaId")
+    val mejaId: String? = null,
     val catatan: String? = null,
     val dibatalkan: Boolean = false,
     @SerialName("dibuatOleh")

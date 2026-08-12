@@ -17,6 +17,7 @@ import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.StoreSetting
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.TransactionStatus
+import kotlin.math.max
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -54,7 +55,11 @@ class OutboxPencatat(
         // server. Saat status berubah ke lunas/processing atau dibatalkan,
         // catatTransaksi dipanggil lagi sehingga versi final tetap ter-push.
         if (transaction.status == TransactionStatus.Pending && !transaction.dibatalkan) return
-        catat(ENTITAS_TRANSAKSI, transaction.id) { versi ->
+        // Versi entity dipakai sebagai batas bawah versi outbox: versi entity
+        // sudah pasti lebih besar dari versi server terakhir yang diketahui
+        // (dinaikkan saat simpan lokal), sehingga push selalu dianggap lebih
+        // baru oleh server — bahkan saat jam perangkat tidak sinkron.
+        catat(ENTITAS_TRANSAKSI, transaction.id, versiMinimal = transaction.versi) { versi ->
             json.encodeToString(PayloadSinkron.transaksi(transaction, versi, dihapus))
         }
     }
@@ -155,11 +160,15 @@ class OutboxPencatat(
     private suspend fun catat(
         entitas: String,
         itemId: String,
+        versiMinimal: Long = 0L,
         buatPayload: (versi: Long) -> String,
     ) {
         val geraiId = sumberGeraiAktifId() ?: return
         val versiLama = outboxDao.ambilVersi(entitas, itemId)
-        val versi = PayloadSinkron.hitungVersiBaru(versiLama, System.currentTimeMillis())
+        val versi = max(
+            PayloadSinkron.hitungVersiBaru(versiLama, System.currentTimeMillis()),
+            versiMinimal,
+        )
         val payload = try {
             buatPayload(versi)
         } catch (_: Exception) {

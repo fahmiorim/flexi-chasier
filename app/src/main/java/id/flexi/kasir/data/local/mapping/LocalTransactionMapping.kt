@@ -36,6 +36,7 @@ fun Transaction.keLokal(): LocalTransactionEntity {
         waktuDibayarEpochMili = waktuDibayarEpochMili,
         dibatalkan = dibatalkan,
         alasanPembatalan = alasanPembatalan,
+        versi = versi,
     )
 }
 
@@ -94,7 +95,14 @@ fun TransactionWithLocalItems.keDomain(): Transaction {
         pajak = Uang.dariRupiah(Transaction.pajak),
         waktuTransactionEpochMili = Transaction.waktuTransactionEpochMili,
         catatan = Transaction.catatan,
-        status = TransactionStatus.valueOf(Transaction.status),
+        // Status kini otoritatif dari server (LWW): parse defensif agar status
+        // tak dikenal (mis. hasil edit manual DB) tidak memicu crash — sama
+        // seperti PaymentMethod/OrderType di bawah.
+        status = try {
+            TransactionStatus.valueOf(Transaction.status)
+        } catch (_: IllegalArgumentException) {
+            TransactionStatus.Paid
+        },
         paymentMethod = try {
             PaymentMethod.valueOf(Transaction.PaymentMethod)
         } catch (_: IllegalArgumentException) {
@@ -111,5 +119,6 @@ fun TransactionWithLocalItems.keDomain(): Transaction {
         waktuSelesaiEpochMili = Transaction.waktuSelesaiEpochMili,
         waktuDibayarEpochMili = Transaction.waktuDibayarEpochMili,
         dibatalkan = Transaction.dibatalkan,
+        versi = Transaction.versi,
     )
 }

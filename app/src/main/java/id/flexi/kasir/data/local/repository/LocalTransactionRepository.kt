@@ -2,6 +2,7 @@ package id.flexi.kasir.data.local.repository
 
 import androidx.room.withTransaction
 import id.flexi.kasir.data.local.database.FlexiKasirDatabase
+import id.flexi.kasir.data.local.entity.LocalTransactionItemEntity
 import id.flexi.kasir.data.local.mapping.keDomain
 import id.flexi.kasir.data.local.mapping.keLokal
 import id.flexi.kasir.data.local.relation.TransactionWithLocalItems
@@ -11,6 +12,7 @@ import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Uang
 import id.flexi.kasir.domain.model.OrderType
 import id.flexi.kasir.data.sync.OutboxPencatat
+import id.flexi.kasir.data.sync.PayloadSinkron
 import id.flexi.kasir.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -83,8 +85,14 @@ class TransactionRepositoryLokal(
                 !apakahItemManual(produkId) && newQty > (oldMap[produkId] ?: 0)
             }.keys.toList()
 
-            val daftarProdukLokal = if (produkPerluValidasi.isNotEmpty()) {
-                aksesDataProduk.ambilProdukBerdasarkanDaftarIdentitas(produkPerluValidasi)
+            // Muat data produk untuk SEMUA item terdampak (bertambah ATAU
+            // berkurang). Produk yang berkurang juga butuh datanya agar restore
+            // stok bisa memeriksa apakah stok produk diaktifkan — tanpa ini,
+            // produk dengan stok non-aktif (tak pernah dikurangi saat jual)
+            // akan "menggembung" saat jumlahnya dikurangi/dibatalkan.
+            val allIds = (oldMap.keys + newMap.keys).filterNot { apakahItemManual(it) }.toSet()
+            val daftarProdukLokal = if (allIds.isNotEmpty()) {
+                aksesDataProduk.ambilProdukBerdasarkanDaftarIdentitas(allIds.toList())
                     .associateBy { it.id }
             } else {
                 emptyMap()
@@ -107,7 +115,6 @@ class TransactionRepositoryLokal(
             }
 
             // Terapkan delta stok
-            val allIds = (oldMap.keys + newMap.keys).filterNot { apakahItemManual(it) }.toSet()
             allIds.forEach { produkId ->
                 val oldQty = oldMap[produkId] ?: 0
                 val newQty = newMap[produkId] ?: 0
@@ -115,8 +122,12 @@ class TransactionRepositoryLokal(
 
                 when {
                     delta < 0 -> {
-                        // Item dihapus/dikurangi → restore stok
-                        aksesDataProduk.tambahStok(produkId, -delta)
+                        // Item dihapus/dikurangi → restore stok (hanya jika stok
+                        // diaktifkan — simetris dengan pengurangan saat jual).
+                        val produkLokal = daftarProdukLokal[produkId]
+                        if (produkLokal?.apakahStokDiaktifkan == true) {
+                            aksesDataProduk.tambahStok(produkId, -delta)
+                        }
                     }
                     delta > 0 -> {
                         // Item baru/ditambah → kurangi stok (hanya jika stok diaktifkan)
@@ -201,22 +212,73 @@ class TransactionRepositoryLokal(
         }
     }
 
+    /**
+     * Menghitung versi transaksi baru (monotonik) dari versi tersimpan saat ini:
+     * pasti lebih besar dari versi terakhir yang diketahui — termasuk versi
+     * dari server saat pull — sehingga edit lokal menang LWW saat pull berikutnya.
+     */
+    private suspend fun hitungVersiTransaksiBaru(identitasTransaction: String): Long =
+        PayloadSinkron.hitungVersiBaru(
+            versiTersimpan = aksesDataTransaction
+                .ambilTransactionBerdasarkanId(identitasTransaction)
+                ?.Transaction
+                ?.versi,
+            waktuSekarang = System.currentTimeMillis(),
+        )
+
     private suspend fun simpanTransactionTanpaMengubahStok(
         Transaction: Transaction,
     ) {
-        val entitasTransaction = Transaction.keLokal()
-        val daftarEntitasItem = Transaction.daftarCartItem.map { CartItem ->
-            CartItem.keLokal(Transaction.id)
+        // LWW berbasis versi: setiap perubahan lokal menaikkan versi transaksi.
+        val versiBaru = hitungVersiTransaksiBaru(Transaction.id)
+        val transactionDenganVersi = Transaction.copy(versi = versiBaru)
+        val entitasTransaction = transactionDenganVersi.keLokal()
+        val daftarEntitasItem = transactionDenganVersi.daftarCartItem.map { CartItem ->
+            CartItem.keLokal(transactionDenganVersi.id)
         }
 
         aksesDataTransaction.simpanTransactionDenganItem(entitasTransaction, daftarEntitasItem)
 
         // Catat ke outbox agar perubahan ini ter-push ke server (best-effort).
-        runCatching { pencatatOutbox?.catatTransaksi(Transaction) }
+        runCatching { pencatatOutbox?.catatTransaksi(transactionDenganVersi) }
     }
 
     /** Item manual (id "manual_*") dibuat tanpa baris Produk lokal. */
     private fun apakahItemManual(produkId: String): Boolean = produkId.startsWith("manual_")
+
+    /**
+     * Mengembalikan stok produk yang stoknya DIKETIK diaktifkan
+     * ([LocalProductEntity.apakahStokDiaktifkan] = true) untuk daftar item.
+     *
+     * Simetris dengan pengurangan stok saat penjualan: produk dengan stok
+     * non-aktif tidak pernah dikurangi saat jual, jadi tidak boleh ditambah
+     * saat dibatalkan/dihapus — bila tidak, stok akan "menggembung".
+     * Item manual ("manual_*") tanpa baris produk lokal dilewati.
+     *
+     * Keterbatasan: keputusan memakai flag [LocalProductEntity.apakahStokDiaktifkan]
+     * SAAT INI (sama seperti logika pengurangan saat jual). Bila flag di-toggle
+     * antara saat jual dan saat batal, hasilnya tidak persis: false→true masih
+     * bisa menambah stok yang tak pernah dikurangi; true→false tidak
+     * mengembalikan stok yang pernah dikurangi. Solusi ideal: simpan snapshot
+     * flag per item transaksi — di luar cakupan perbaikan ini.
+     */
+    private suspend fun kembalikanStokProduk(daftarItem: List<LocalTransactionItemEntity>) {
+        val idBukanManual = daftarItem
+            .map { it.produkId }
+            .filterNot { apakahItemManual(it) }
+            .toSet()
+        if (idBukanManual.isEmpty()) return
+
+        val produkLokal = aksesDataProduk
+            .ambilProdukBerdasarkanDaftarIdentitas(idBukanManual.toList())
+            .associateBy { it.id }
+
+        daftarItem.forEach { item ->
+            if (produkLokal[item.produkId]?.apakahStokDiaktifkan == true) {
+                aksesDataProduk.tambahStok(item.produkId, item.jumlah)
+            }
+        }
+    }
 
     /**
      * Mencatat stok terbaru produk terdampak ke outbox (best-effort) agar
@@ -308,12 +370,9 @@ class TransactionRepositoryLokal(
             ?: return
 
         basisData.withTransaction {
-            Transaction.daftarItem.forEach { item ->
-                aksesDataProduk.tambahStok(
-                    identitasProduk = item.produkId,
-                    jumlahPenambah = item.jumlah,
-                )
-            }
+            // Kembalikan stok hanya untuk produk yang stoknya diaktifkan
+            // (simetris dengan pengurangan stok saat transaksi dijual).
+            kembalikanStokProduk(Transaction.daftarItem)
             aksesDataTransaction.hapusTransactionBerdasarkanId(identitasTransaction)
         }
 
@@ -336,13 +395,9 @@ class TransactionRepositoryLokal(
         if (Transaction.dibatalkan) return
 
         basisData.withTransaction {
-            // Transaksi dibatalkan → barang tidak jadi terjual → stok dikembalikan.
-            transactionLokal.daftarItem.forEach { item ->
-                aksesDataProduk.tambahStok(
-                    identitasProduk = item.produkId,
-                    jumlahPenambah = item.jumlah,
-                )
-            }
+            // Transaksi dibatalkan → barang tidak jadi terjual → stok dikembalikan
+            // (hanya produk yang stoknya diaktifkan — simetris dengan saat jual).
+            kembalikanStokProduk(transactionLokal.daftarItem)
             aksesDataTransaction.tandaiDibatalkan(identitasTransaction, alasan)
         }
 
@@ -364,13 +419,21 @@ class TransactionRepositoryLokal(
         paymentMethod: PaymentMethod,
         waktuDibayarEpochMili: Long?,
     ) {
-        aksesDataTransaction.perbaruiStatusDanUangDibayarTransaction(
-            id = identitasTransaction,
-            status = status.name,
-            uangDibayar = uangDibayar.nilaiRupiah,
-            paymentMethod = paymentMethod.name,
-            waktuDibayar = waktuDibayarEpochMili ?: System.currentTimeMillis(),
-        )
+        basisData.withTransaction {
+            // Update parsial mengubah field BERSAMA (status/dibayar/metode) →
+            // versi entity juga dinaikkan (monotonik dari versi lama) agar
+            // perubahan ini dianggap lebih baru dari data server saat pull,
+            // meski push-nya belum berhasil.
+            val versiBaru = hitungVersiTransaksiBaru(identitasTransaction)
+            aksesDataTransaction.perbaruiStatusDanUangDibayarTransaction(
+                id = identitasTransaction,
+                status = status.name,
+                uangDibayar = uangDibayar.nilaiRupiah,
+                paymentMethod = paymentMethod.name,
+                waktuDibayar = waktuDibayarEpochMili ?: System.currentTimeMillis(),
+            )
+            aksesDataTransaction.perbaruiVersiTransaction(identitasTransaction, versiBaru)
+        }
 
         // Data pembayaran berubah → perbarui payload outbox agar server tidak
         // menyimpan versi lama (dibayar = 0 untuk pesanan yang baru dibayar).
@@ -389,18 +452,24 @@ class TransactionRepositoryLokal(
         waktuSelesaiEpochMili: Long?,
         waktuDibayarEpochMili: Long?,
     ) {
-        aksesDataTransaction.perbaruiStatusTransaction(
-            id = identitasTransaction,
-            status = status.name,
-        )
-        waktuDiprosesEpochMili?.let {
-            aksesDataTransaction.perbaruiWaktuDiproses(identitasTransaction, it)
-        }
-        waktuSelesaiEpochMili?.let {
-            aksesDataTransaction.perbaruiWaktuSelesai(identitasTransaction, it)
-        }
-        waktuDibayarEpochMili?.let {
-            aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, it)
+        basisData.withTransaction {
+            // Status dikirim server (LWW) → versi entity ikut dinaikkan agar
+            // perubahan lokal yang belum ter-push tidak tertimpa saat pull.
+            val versiBaru = hitungVersiTransaksiBaru(identitasTransaction)
+            aksesDataTransaction.perbaruiStatusTransaction(
+                id = identitasTransaction,
+                status = status.name,
+            )
+            waktuDiprosesEpochMili?.let {
+                aksesDataTransaction.perbaruiWaktuDiproses(identitasTransaction, it)
+            }
+            waktuSelesaiEpochMili?.let {
+                aksesDataTransaction.perbaruiWaktuSelesai(identitasTransaction, it)
+            }
+            waktuDibayarEpochMili?.let {
+                aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, it)
+            }
+            aksesDataTransaction.perbaruiVersiTransaction(identitasTransaction, versiBaru)
         }
 
         // Bump versi di outbox agar status terbaru ikut ter-push.

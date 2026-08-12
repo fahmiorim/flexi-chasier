@@ -12,11 +12,13 @@ import id.flexi.kasir.data.network.model.ProdukSinkron
 import id.flexi.kasir.data.network.model.ResepSinkron
 import id.flexi.kasir.data.network.model.SetoranSinkron
 import id.flexi.kasir.data.network.model.ShiftKasSinkron
+import id.flexi.kasir.data.local.entity.LocalTransactionEntity
 import id.flexi.kasir.data.network.model.TransaksiSinkron
 import id.flexi.kasir.domain.model.CatalogDisplay
 import id.flexi.kasir.domain.model.StoreSetting
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -40,7 +42,7 @@ class SyncPullMappingTest {
             TransaksiSinkron(
                 id = "t-1", versi = 3L, nomor = "ANTRI-1", waktuEpochMili = 1_600_000_000_000L,
                 metodePembayaran = "Qris", jumlahItem = 2, total = 20_000L, dibayar = 20_000L,
-                kembalian = 0L, dibatalkan = false,
+                kembalian = 0L, mejaId = "meja-1", dibatalkan = false,
             ),
             TransaksiSinkron(
                 id = "t-2", versi = 4L, nomor = "ANTRI-2", waktuEpochMili = 1_610_000_000_000L,
@@ -67,13 +69,13 @@ class SyncPullMappingTest {
         setoran = listOf(
             SetoranSinkron(id = "st-1", versi = 1L, shiftId = "s-1", nominal = 100_000L, waktuEpochMili = 1_600_000_000_000L),
         ),
-        bahan = listOf(BahanSinkron(id = "b-1", versi = 1L, nama = "Gula", satuan = "gram", stok = 500, hargaBeli = 12_000L)),
+        bahan = listOf(BahanSinkron(id = "b-1", versi = 1L, nama = "Gula", satuan = "gram", stok = 500.0, hargaBeli = 12_000L)),
         pembelianBahan = listOf(
-            PembelianBahanSinkron(id = "pb-1", versi = 1L, bahanId = "b-1", namaBahan = "Gula", jumlah = 5, hargaTotal = 60_000L, waktuEpochMili = 1_600_000_000_000L),
+            PembelianBahanSinkron(id = "pb-1", versi = 1L, bahanId = "b-1", namaBahan = "Gula", jumlah = 5.0, hargaTotal = 60_000L, waktuEpochMili = 1_600_000_000_000L),
         ),
         resep = listOf(ResepSinkron(id = "r-1", versi = 1L, productId = "p-1", namaProduk = "Es Teh")),
         resepBahan = listOf(
-            BahanResepSinkron(id = "r-1-b-1", versi = 1L, resepId = "r-1", bahanId = "b-1", namaBahan = "Gula", jumlah = 10),
+            BahanResepSinkron(id = "r-1-b-1", versi = 1L, resepId = "r-1", bahanId = "b-1", namaBahan = "Gula", jumlah = 10.0),
         ),
         storeSettings = listOf(
             PengaturanTokoSinkron(
@@ -102,11 +104,19 @@ class SyncPullMappingTest {
         assertEquals(1, hasil.transaksi.size)
         val transaksi = hasil.transaksi.single()
         assertEquals("t-1", transaksi.id)
+        // Nomor antrian dipertahankan dari nomor server ("ANTRI-1") agar
+        // push ulang setelah edit menghasilkan nomor yang sama.
+        assertEquals(1, transaksi.nomorAntrian)
         assertEquals("Qris", transaksi.PaymentMethod)
         assertEquals("Paid", transaksi.status)
         assertEquals(1_600_000_000_000L, transaksi.waktuTransactionEpochMili)
         assertEquals(20_000L, transaksi.uangDibayar)
         assertFalse(transaksi.dibatalkan)
+        // Meja disinkronkan dari server (bukan null lagi) agar pesanan
+        // tampil di meja yang sama di semua perangkat.
+        assertEquals("meja-1", transaksi.mejaId)
+        // Versi server dipertahankan untuk LWW berbasis versi saat pull.
+        assertEquals(3L, transaksi.versi)
         assertEquals(listOf("t-2"), hasil.transaksiDihapus)
     }
 
@@ -195,5 +205,219 @@ class SyncPullMappingTest {
         assertEquals("r-1", bahanResep.resepId)
         assertEquals(10.0, bahanResep.jumlah, 0.001)
         assertEquals("gram", bahanResep.satuan)
+    }
+
+    @Test
+    fun `nomor transaksi - nomor antrian dipertahankan dari server agar tidak berubah saat push ulang`() {
+        // "ANTRI-N" → nomor antrian; regenerasi push ulang identik.
+        assertEquals(7, "ANTRI-7".ambilNomorAntrianDariNomorTransaksi())
+        assertEquals(1, "ANTRI-1".ambilNomorAntrianDariNomorTransaksi())
+        // Format lain / tanpa awalan / kosong → null; push ulang tetap
+        // menghasilkan "TRX-<8id>" yang deterministik dari id transaksi.
+        assertNull("TRX-abc12345".ambilNomorAntrianDariNomorTransaksi())
+        assertNull("Nota-001".ambilNomorAntrianDariNomorTransaksi())
+        assertNull("ANTRI-".ambilNomorAntrianDariNomorTransaksi())
+        assertNull(null.ambilNomorAntrianDariNomorTransaksi())
+    }
+
+    @Test
+    fun `transaksi pull - rincian server menimpa lokal saat versi server lebih baru (LWW berbasis versi)`() {
+        val dariServer = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 5_000L,
+            biayaLayanan = 2_000L,
+            pajak = 1_000L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = "Catatan dari perangkat lain",
+            status = "Paid",
+            PaymentMethod = "Qris",
+            OrderType = "TakeAway",
+            nomorAntrian = null,
+            mejaId = "meja-9",
+            waktuDiprosesEpochMili = null,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = 1_600_000_100_000L,
+            dibatalkan = true,
+            alasanPembatalan = null,
+            versi = 10L,
+        )
+        val adaLokal = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 0L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = null,
+            status = "Processing",
+            PaymentMethod = "Cash",
+            OrderType = "DineIn",
+            nomorAntrian = 7,
+            mejaId = "meja-1",
+            waktuDiprosesEpochMili = 1_600_000_050_000L,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = null,
+            dibatalkan = false,
+            alasanPembatalan = "Alasan lokal",
+            versi = 5L,
+        )
+
+        val hasil = gabungkanTransaksiDariServer(dariServer, adaLokal)
+
+        // Field yang disimpan & dikirim server → nilai server menang (LWW).
+        assertEquals(5_000L, hasil.potongan)
+        assertEquals(2_000L, hasil.biayaLayanan)
+        assertEquals(1_000L, hasil.pajak)
+        assertEquals("Catatan dari perangkat lain", hasil.catatan)
+        assertEquals("Paid", hasil.status)
+        assertEquals("TakeAway", hasil.OrderType)
+        assertEquals("Qris", hasil.PaymentMethod)
+        assertEquals(20_000L, hasil.uangDibayar)
+        assertTrue(hasil.dibatalkan)
+        assertEquals(10L, hasil.versi)
+
+        // Meja kini field BERSAMA (dikirim server) → nilai server menang.
+        assertEquals("meja-9", hasil.mejaId)
+
+        // Field khusus perangkat (tidak dikirim server) → nilai lokal dipertahankan.
+        assertEquals(7, hasil.nomorAntrian)
+        assertEquals(1_600_000_050_000L, hasil.waktuDiprosesEpochMili)
+        assertNull(hasil.waktuDibayarEpochMili)
+        assertEquals("Alasan lokal", hasil.alasanPembatalan)
+    }
+
+    @Test
+    fun `transaksi pull - versi lokal lebih baru dipertahankan utuh (edit belum ter-push)`() {
+        val dariServer = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 0L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = null,
+            status = "Paid",
+            PaymentMethod = "Cash",
+            OrderType = "DineIn",
+            nomorAntrian = null,
+            mejaId = null,
+            waktuDiprosesEpochMili = null,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = 1_600_000_000_000L,
+            dibatalkan = false,
+            alasanPembatalan = null,
+            versi = 4L,
+        )
+        val adaLokal = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 3_000L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = "Edit lokal belum ter-push",
+            status = "Processing",
+            PaymentMethod = "Cash",
+            OrderType = "DineIn",
+            nomorAntrian = 2,
+            mejaId = null,
+            waktuDiprosesEpochMili = 1_600_000_050_000L,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = null,
+            dibatalkan = false,
+            alasanPembatalan = null,
+            versi = 9L,
+        )
+
+        val hasil = gabungkanTransaksiDariServer(dariServer, adaLokal)
+
+        // Server lebih TUA → seluruh data lokal menang, termasuk versi lokal.
+        assertEquals(3_000L, hasil.potongan)
+        assertEquals("Edit lokal belum ter-push", hasil.catatan)
+        assertEquals("Processing", hasil.status)
+        assertEquals(2, hasil.nomorAntrian)
+        assertEquals(9L, hasil.versi)
+    }
+
+    @Test
+    fun `transaksi pull - versi sama (tie) dipertahankan lokal agar edit belum ter-push tidak hilang`() {
+        val dariServer = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 0L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = null,
+            status = "Paid",
+            PaymentMethod = "Cash",
+            OrderType = "DineIn",
+            nomorAntrian = null,
+            mejaId = null,
+            waktuDiprosesEpochMili = null,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = 1_600_000_000_000L,
+            dibatalkan = false,
+            alasanPembatalan = null,
+            versi = 7L,
+        )
+        val adaLokal = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 1_000L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = "Potongan dari perangkat ini",
+            status = "Paid",
+            PaymentMethod = "Cash",
+            OrderType = "DineIn",
+            nomorAntrian = 3,
+            mejaId = null,
+            waktuDiprosesEpochMili = null,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = 1_600_000_000_000L,
+            dibatalkan = false,
+            alasanPembatalan = null,
+            versi = 7L,
+        )
+
+        val hasil = gabungkanTransaksiDariServer(dariServer, adaLokal)
+
+        assertEquals(1_000L, hasil.potongan)
+        assertEquals("Potongan dari perangkat ini", hasil.catatan)
+        assertEquals(7L, hasil.versi)
+    }
+
+    @Test
+    fun `transaksi pull - tanpa salinan lokal, data server diambil apa adanya`() {
+        val dariServer = LocalTransactionEntity(
+            id = "t-1",
+            uangDibayar = 20_000L,
+            potongan = 5_000L,
+            biayaLayanan = 0L,
+            pajak = 0L,
+            waktuTransactionEpochMili = 1_600_000_000_000L,
+            catatan = "Baru dari server",
+            status = "Paid",
+            PaymentMethod = "Qris",
+            OrderType = "TakeAway",
+            nomorAntrian = 1,
+            mejaId = null,
+            waktuDiprosesEpochMili = null,
+            waktuSelesaiEpochMili = null,
+            waktuDibayarEpochMili = 1_600_000_000_000L,
+            dibatalkan = false,
+            alasanPembatalan = null,
+            versi = 12L,
+        )
+
+        val hasil = gabungkanTransaksiDariServer(dariServer, adaLokal = null)
+
+        assertEquals("t-1", hasil.id)
+        assertEquals(5_000L, hasil.potongan)
+        assertEquals("Baru dari server", hasil.catatan)
+        assertEquals(12L, hasil.versi)
     }
 }

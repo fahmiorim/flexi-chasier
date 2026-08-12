@@ -332,38 +332,28 @@ class MesinSinkronisasi(
             // ── 2. Transaksi + item (item diganti total per transaksi) ──
             if (perubahan.transaksi.isNotEmpty()) {
                 perubahan.transaksi.forEach { transaksi ->
-                    // Server kini menyimpan rincian (potongan, biaya layanan, pajak,
-                    // status, tipe pesanan, catatan). Untuk transaksi yang SUDAH ada
-                    // secara lokal, nilai lokal dipertahankan agar data lama (yang
-                    // dibuat sebelum kolom rincian ada di server) tidak tertimpa
-                    // default kosong; untuk data baru nilainya identik di kedua sisi.
+                    // LWW BERBASIS VERSI (lihat [gabungkanTransaksiDariServer]):
+                    // server menang hanya bila versinya lebih baru dari lokal.
+                    // Dalam satu siklus, DORONG selalu dijalankan SEBELUM TARIK,
+                    // jadi edit lokal yang berhasil ter-push sudah ada di server
+                    // (versi lebih baru) saat pull tiba → server menang → nilai
+                    // perangkat lain tersinkron ke perangkat ini.
+                    //
+                    // Bila versi lokal SAMA ATAU LEBIH BARU dari server (mis. edit
+                    // lokal belum ter-push karena pull berdiri sendiri), seluruh
+                    // data lokal dipertahankan — termasuk item — dan tidak ada
+                    // yang ditulis, agar edit yang belum ter-push tidak tertimpa
+                    // data basi dari server.
                     val adaLokal = transaksiDao
                         .ambilTransactionBerdasarkanId(transaksi.id)
                         ?.Transaction
-                    val hasilGabung = if (adaLokal == null) {
-                        transaksi
-                    } else {
-                        transaksi.copy(
-                            potongan = adaLokal.potongan,
-                            biayaLayanan = adaLokal.biayaLayanan,
-                            pajak = adaLokal.pajak,
-                            catatan = adaLokal.catatan,
-                            status = adaLokal.status,
-                            OrderType = adaLokal.OrderType,
-                            nomorAntrian = adaLokal.nomorAntrian,
-                            mejaId = adaLokal.mejaId,
-                            waktuDiprosesEpochMili = adaLokal.waktuDiprosesEpochMili,
-                            waktuSelesaiEpochMili = adaLokal.waktuSelesaiEpochMili,
-                            waktuDibayarEpochMili = adaLokal.waktuDibayarEpochMili,
-                            uangDibayar = adaLokal.uangDibayar,
-                            dibatalkan = adaLokal.dibatalkan,
-                            alasanPembatalan = adaLokal.alasanPembatalan,
+                    if (adaLokal == null || transaksi.versi > adaLokal.versi) {
+                        val hasilGabung = gabungkanTransaksiDariServer(transaksi, adaLokal)
+                        transaksiDao.simpanTransactionDenganItem(
+                            Transaction = hasilGabung,
+                            daftarItem = perubahan.itemTransaksi.filter { it.TransactionId == transaksi.id },
                         )
                     }
-                    transaksiDao.simpanTransactionDenganItem(
-                        Transaction = hasilGabung,
-                        daftarItem = perubahan.itemTransaksi.filter { it.TransactionId == transaksi.id },
-                    )
                 }
             }
 
