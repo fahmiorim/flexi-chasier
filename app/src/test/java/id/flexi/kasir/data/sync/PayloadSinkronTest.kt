@@ -55,6 +55,9 @@ class PayloadSinkronTest {
         status = TransactionStatus.Paid,
         nomorAntrian = 7,
         mejaId = "meja-3",
+        waktuDiprosesEpochMili = 1_700_000_100_000L,
+        waktuSelesaiEpochMili = 1_700_000_200_000L,
+        waktuDibayarEpochMili = 1_700_000_300_000L,
     )
 
     @Test
@@ -80,6 +83,10 @@ class PayloadSinkronTest {
         assertEquals(1_700_000_000_000L, payload.waktuEpochMili)
         assertEquals("ANTRI-7", payload.nomor)
         assertEquals("meja-3", payload.mejaId)
+        // Waktu tahapan ikut dikirim agar tersinkron lintas perangkat.
+        assertEquals(1_700_000_100_000L, payload.waktuDiprosesEpochMili)
+        assertEquals(1_700_000_200_000L, payload.waktuSelesaiEpochMili)
+        assertEquals(1_700_000_300_000L, payload.waktuDibayarEpochMili)
         assertEquals(false, payload.dibatalkan)
     }
 
@@ -114,8 +121,11 @@ class PayloadSinkronTest {
         assertTrue(json.contains("\"namaProduk\""))
         assertTrue(json.contains("\"hargaSatuan\""))
         assertTrue(json.contains("\"items\""))
-        // Meja disinkronkan lintas perangkat → nama field kontrak backend.
+        // Meja & waktu tahapan disinkronkan lintas perangkat → nama field kontrak backend.
         assertTrue(json.contains("\"mejaId\""))
+        assertTrue(json.contains("\"waktuDiprosesEpochMili\""))
+        assertTrue(json.contains("\"waktuSelesaiEpochMili\""))
+        assertTrue(json.contains("\"waktuDibayarEpochMili\""))
         // dibuatOleh null tidak ikut dikirim (explicitNulls = false).
         assertTrue(!json.contains("dibuatOleh"))
     }

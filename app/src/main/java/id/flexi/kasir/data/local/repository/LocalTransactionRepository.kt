@@ -357,10 +357,14 @@ class TransactionRepositoryLokal(
         identitasTransaction: String,
         status: TransactionStatus,
     ) {
-        aksesDataTransaction.perbaruiStatusTransaction(
-            id = identitasTransaction,
-            status = status.name,
-        )
+        // Status dikirim server (LWW) → naikkan versi + catat outbox agar
+        // perubahan ini tersinkron ke perangkat lain.
+        simpanPerubahanParsial(identitasTransaction) {
+            aksesDataTransaction.perbaruiStatusTransaction(
+                id = identitasTransaction,
+                status = status.name,
+            )
+        }
     }
 
     override suspend fun hapusTransactionDanKembalikanStok(
@@ -419,12 +423,10 @@ class TransactionRepositoryLokal(
         paymentMethod: PaymentMethod,
         waktuDibayarEpochMili: Long?,
     ) {
-        basisData.withTransaction {
-            // Update parsial mengubah field BERSAMA (status/dibayar/metode) →
-            // versi entity juga dinaikkan (monotonik dari versi lama) agar
-            // perubahan ini dianggap lebih baru dari data server saat pull,
-            // meski push-nya belum berhasil.
-            val versiBaru = hitungVersiTransaksiBaru(identitasTransaction)
+        // Update parsial mengubah field BERSAMA (status/dibayar/metode/waktu
+        // dibayar) → naikkan versi + catat outbox agar tersinkron lintas
+        // perangkat dan tidak tertimpa data basi saat pull.
+        simpanPerubahanParsial(identitasTransaction) {
             aksesDataTransaction.perbaruiStatusDanUangDibayarTransaction(
                 id = identitasTransaction,
                 status = status.name,
@@ -432,16 +434,6 @@ class TransactionRepositoryLokal(
                 paymentMethod = paymentMethod.name,
                 waktuDibayar = waktuDibayarEpochMili ?: System.currentTimeMillis(),
             )
-            aksesDataTransaction.perbaruiVersiTransaction(identitasTransaction, versiBaru)
-        }
-
-        // Data pembayaran berubah → perbarui payload outbox agar server tidak
-        // menyimpan versi lama (dibayar = 0 untuk pesanan yang baru dibayar).
-        val transaction = aksesDataTransaction
-            .ambilTransactionBerdasarkanId(identitasTransaction)
-            ?.keDomain()
-        if (transaction != null) {
-            runCatching { pencatatOutbox?.catatTransaksi(transaction) }
         }
     }
 
@@ -452,10 +444,9 @@ class TransactionRepositoryLokal(
         waktuSelesaiEpochMili: Long?,
         waktuDibayarEpochMili: Long?,
     ) {
-        basisData.withTransaction {
-            // Status dikirim server (LWW) → versi entity ikut dinaikkan agar
-            // perubahan lokal yang belum ter-push tidak tertimpa saat pull.
-            val versiBaru = hitungVersiTransaksiBaru(identitasTransaction)
+        // Status & waktu tahapan dikirim server (LWW) → naikkan versi + catat
+        // outbox agar perubahan ini tersinkron ke perangkat lain.
+        simpanPerubahanParsial(identitasTransaction) {
             aksesDataTransaction.perbaruiStatusTransaction(
                 id = identitasTransaction,
                 status = status.name,
@@ -469,15 +460,6 @@ class TransactionRepositoryLokal(
             waktuDibayarEpochMili?.let {
                 aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, it)
             }
-            aksesDataTransaction.perbaruiVersiTransaction(identitasTransaction, versiBaru)
-        }
-
-        // Bump versi di outbox agar status terbaru ikut ter-push.
-        val transaction = aksesDataTransaction
-            .ambilTransactionBerdasarkanId(identitasTransaction)
-            ?.keDomain()
-        if (transaction != null) {
-            runCatching { pencatatOutbox?.catatTransaksi(transaction) }
         }
     }
 
@@ -485,14 +467,43 @@ class TransactionRepositoryLokal(
         identitasTransaction: String,
         waktuSelesaiEpochMili: Long,
     ) {
-        aksesDataTransaction.perbaruiWaktuSelesai(identitasTransaction, waktuSelesaiEpochMili)
+        // Waktu selesai kini dikirim server → naikkan versi + catat outbox.
+        simpanPerubahanParsial(identitasTransaction) {
+            aksesDataTransaction.perbaruiWaktuSelesai(identitasTransaction, waktuSelesaiEpochMili)
+        }
     }
 
     override suspend fun perbaruiWaktuDibayar(
         identitasTransaction: String,
         waktuDibayarEpochMili: Long,
     ) {
-        aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, waktuDibayarEpochMili)
+        // Waktu dibayar kini dikirim server → naikkan versi + catat outbox.
+        simpanPerubahanParsial(identitasTransaction) {
+            aksesDataTransaction.perbaruiWaktuDibayar(identitasTransaction, waktuDibayarEpochMili)
+        }
+    }
+
+    /**
+     * Menjalankan update parsial yang mengubah field BERSAMA (status, waktu
+     * tahapan, pembayaran) secara atomik: menaikkan versi entity (monotonik
+     * dari versi lama) lalu mencatat state terbaru ke outbox — perubahan
+     * lokal yang belum ter-push menang LWW saat pull dan tetap ter-push.
+     */
+    private suspend fun simpanPerubahanParsial(
+        identitasTransaction: String,
+        ubah: suspend () -> Unit,
+    ) {
+        basisData.withTransaction {
+            val versiBaru = hitungVersiTransaksiBaru(identitasTransaction)
+            ubah()
+            aksesDataTransaction.perbaruiVersiTransaction(identitasTransaction, versiBaru)
+        }
+        val transaction = aksesDataTransaction
+            .ambilTransactionBerdasarkanId(identitasTransaction)
+            ?.keDomain()
+        if (transaction != null) {
+            runCatching { pencatatOutbox?.catatTransaksi(transaction) }
+        }
     }
 
     override suspend fun tandaiItemSelesai(identitasTransaction: String) {

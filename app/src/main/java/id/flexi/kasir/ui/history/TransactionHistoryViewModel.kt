@@ -15,9 +15,11 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
 import id.flexi.kasir.domain.model.PaymentMethod
+import id.flexi.kasir.domain.model.Meja
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.repository.TransactionRepository
+import id.flexi.kasir.domain.usecase.GetTableList
 import id.flexi.kasir.domain.util.hitungTotalAkhirTransaction
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.ui.format.hitungJumlahItemTransaction
@@ -46,11 +48,16 @@ import java.util.Locale
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransactionHistoryViewModel(
     private val transactionRepository: TransactionRepository,
+    private val GetTableList: GetTableList,
 ) : ViewModel() {
 
     private val _filterTanggal = MutableStateFlow(FilterTanggalRiwayat.Semua)
     private val _tanggalMulaiKustom = MutableStateFlow<Long?>(null)
     private val _tanggalSelesaiKustom = MutableStateFlow<Long?>(null)
+
+    /** Daftar meja (id → nomor) untuk menampilkan nama meja di kartu riwayat. */
+    private val daftarMeja: StateFlow<List<Meja>> = GetTableList()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val pagingData: StateFlow<PagingData<RingkasanTransactionRiwayat>> =
         combine(
@@ -62,12 +69,18 @@ class TransactionHistoryViewModel(
         }
             .distinctUntilChanged()
             .flatMapLatest { (sejak, sampai) ->
-                transactionRepository.amatiTransactionPaged(sejak, sampai)
-                    .map { pagingData ->
-                        pagingData.map { transaction ->
-                            transaction.keRingkasanTransactionRiwayat()
-                        }
+                // Gabungkan paging transaksi dengan daftar meja agar nama meja
+                // (bukan id) bisa ditampilkan di kartu riwayat — pola sama
+                // seperti layar Detail Transaksi.
+                combine(
+                    transactionRepository.amatiTransactionPaged(sejak, sampai),
+                    daftarMeja,
+                ) { pagingData, meja ->
+                    val namaMeja = meja.associate { it.id to it.nomor }
+                    pagingData.map { transaction ->
+                        transaction.keRingkasanTransactionRiwayat(namaMeja)
                     }
+                }
             }
             .cachedIn(viewModelScope)
             .stateIn(
@@ -634,12 +647,19 @@ private class PdfGenerator {
 // EXTENSION FUNCTIONS
 // ═══════════════════════════════════════
 
-private fun Transaction.keRingkasanTransactionRiwayat(): RingkasanTransactionRiwayat {
+internal fun Transaction.keRingkasanTransactionRiwayat(
+    namaMeja: Map<String, String> = emptyMap(),
+): RingkasanTransactionRiwayat {
     return RingkasanTransactionRiwayat(
         TransactionId = id,
         waktuTransactionEpochMili = waktuTransactionEpochMili,
         labelIdentitasTransaction = id.sebagaiLabelIdentitasTransaction(),
         labelWaktu = waktuTransactionEpochMili.sebagaiLabelWaktuTransaction(),
+        // Nama meja diselesaikan dari id meja (dipakai label riwayat lintas
+        // perangkat setelah pull; Take Away tanpa meja → null).
+        labelMeja = if (mejaId != null) {
+            namaMeja[mejaId]?.let { "Meja $it" }
+        } else null,
         labelJumlahItem = "${hitungJumlahItemTransaction()} item",
         totalAkhir = hitungTotalAkhirTransaction(),
         labelTotalAkhir = hitungTotalAkhirTransaction().sebagaiRupiah(),

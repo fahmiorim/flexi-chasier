@@ -142,9 +142,12 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
             OrderType = t.orderType,
             nomorAntrian = t.nomor.ambilNomorAntrianDariNomorTransaksi(),
             mejaId = t.mejaId,
-            waktuDiprosesEpochMili = null,
-            waktuSelesaiEpochMili = null,
-            waktuDibayarEpochMili = if (t.dibatalkan) null else t.waktuEpochMili,
+            waktuDiprosesEpochMili = t.waktuDiprosesEpochMili,
+            waktuSelesaiEpochMili = t.waktuSelesaiEpochMili,
+            // Fallback untuk baris lama di server (kolom baru masih null):
+            // transaksi yang tidak dibatalkan dianggap dibayar saat transaksi.
+            waktuDibayarEpochMili = t.waktuDibayarEpochMili
+                ?: if (t.dibatalkan) null else t.waktuEpochMili,
             dibatalkan = t.dibatalkan,
             alasanPembatalan = null,
             versi = t.versi,
@@ -302,9 +305,9 @@ fun PerubahanResponse.kePerubahanLokal(geraiId: String): PerubahanLokal {
  * - Tidak ada salinan lokal → ambil server apa adanya.
  * - Versi server LEBIH BARU dari lokal → field yang disimpan & dikirim server
  *   (potongan, biaya layanan, pajak, catatan, status, tipe pesanan, dibayar,
- *   dibatalkan, MEJA) diambil dari server agar perubahan perangkat lain
- *   tersinkron; field khusus perangkat (nomor antrian, waktu proses/selesai/
- *   dibayar, alasan pembatalan) yang TIDAK dikirim server dipertahankan dari lokal.
+ *   dibatalkan, MEJA, waktu proses/selesai/dibayar) diambil dari server agar
+ *   perubahan perangkat lain tersinkron; field khusus perangkat (nomor
+ *   antrian, alasan pembatalan) yang TIDAK dikirim server dipertahankan dari lokal.
  * - Versi server SAMA ATAU LEBIH TUA dari lokal → seluruh data lokal
  *   dipertahankan (termasuk versi) agar edit lokal yang belum ter-push
  *   (mis. pull berdiri sendiri saat push gagal) tidak tertimpa data basi.
@@ -317,9 +320,6 @@ internal fun gabungkanTransaksiDariServer(
     if (dariServer.versi <= adaLokal.versi) return adaLokal
     return dariServer.copy(
         nomorAntrian = adaLokal.nomorAntrian,
-        waktuDiprosesEpochMili = adaLokal.waktuDiprosesEpochMili,
-        waktuSelesaiEpochMili = adaLokal.waktuSelesaiEpochMili,
-        waktuDibayarEpochMili = adaLokal.waktuDibayarEpochMili,
         alasanPembatalan = adaLokal.alasanPembatalan,
     )
 }

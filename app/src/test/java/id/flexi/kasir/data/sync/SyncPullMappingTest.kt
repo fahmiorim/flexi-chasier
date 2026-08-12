@@ -42,7 +42,11 @@ class SyncPullMappingTest {
             TransaksiSinkron(
                 id = "t-1", versi = 3L, nomor = "ANTRI-1", waktuEpochMili = 1_600_000_000_000L,
                 metodePembayaran = "Qris", jumlahItem = 2, total = 20_000L, dibayar = 20_000L,
-                kembalian = 0L, mejaId = "meja-1", dibatalkan = false,
+                kembalian = 0L, mejaId = "meja-1",
+                waktuDiprosesEpochMili = 1_600_000_050_000L,
+                waktuSelesaiEpochMili = 1_600_000_080_000L,
+                waktuDibayarEpochMili = 1_600_000_100_000L,
+                dibatalkan = false,
             ),
             TransaksiSinkron(
                 id = "t-2", versi = 4L, nomor = "ANTRI-2", waktuEpochMili = 1_610_000_000_000L,
@@ -112,9 +116,12 @@ class SyncPullMappingTest {
         assertEquals(1_600_000_000_000L, transaksi.waktuTransactionEpochMili)
         assertEquals(20_000L, transaksi.uangDibayar)
         assertFalse(transaksi.dibatalkan)
-        // Meja disinkronkan dari server (bukan null lagi) agar pesanan
-        // tampil di meja yang sama di semua perangkat.
+        // Meja & waktu tahapan disinkronkan dari server (bukan null lagi)
+        // agar pesanan tampil sama di semua perangkat.
         assertEquals("meja-1", transaksi.mejaId)
+        assertEquals(1_600_000_050_000L, transaksi.waktuDiprosesEpochMili)
+        assertEquals(1_600_000_080_000L, transaksi.waktuSelesaiEpochMili)
+        assertEquals(1_600_000_100_000L, transaksi.waktuDibayarEpochMili)
         // Versi server dipertahankan untuk LWW berbasis versi saat pull.
         assertEquals(3L, transaksi.versi)
         assertEquals(listOf("t-2"), hasil.transaksiDihapus)
@@ -235,8 +242,8 @@ class SyncPullMappingTest {
             OrderType = "TakeAway",
             nomorAntrian = null,
             mejaId = "meja-9",
-            waktuDiprosesEpochMili = null,
-            waktuSelesaiEpochMili = null,
+            waktuDiprosesEpochMili = 1_600_000_200_000L,
+            waktuSelesaiEpochMili = 1_600_000_300_000L,
             waktuDibayarEpochMili = 1_600_000_100_000L,
             dibatalkan = true,
             alasanPembatalan = null,
@@ -277,13 +284,14 @@ class SyncPullMappingTest {
         assertTrue(hasil.dibatalkan)
         assertEquals(10L, hasil.versi)
 
-        // Meja kini field BERSAMA (dikirim server) → nilai server menang.
+        // Meja & waktu tahapan kini field BERSAMA (dikirim server) → nilai server menang.
         assertEquals("meja-9", hasil.mejaId)
+        assertEquals(1_600_000_200_000L, hasil.waktuDiprosesEpochMili)
+        assertEquals(1_600_000_300_000L, hasil.waktuSelesaiEpochMili)
+        assertEquals(1_600_000_100_000L, hasil.waktuDibayarEpochMili)
 
         // Field khusus perangkat (tidak dikirim server) → nilai lokal dipertahankan.
         assertEquals(7, hasil.nomorAntrian)
-        assertEquals(1_600_000_050_000L, hasil.waktuDiprosesEpochMili)
-        assertNull(hasil.waktuDibayarEpochMili)
         assertEquals("Alasan lokal", hasil.alasanPembatalan)
     }
 
@@ -337,6 +345,8 @@ class SyncPullMappingTest {
         assertEquals("Edit lokal belum ter-push", hasil.catatan)
         assertEquals("Processing", hasil.status)
         assertEquals(2, hasil.nomorAntrian)
+        // Waktu tahapan lokal juga dipertahankan saat lokal menang LWW.
+        assertEquals(1_600_000_050_000L, hasil.waktuDiprosesEpochMili)
         assertEquals(9L, hasil.versi)
     }
 
@@ -388,6 +398,38 @@ class SyncPullMappingTest {
         assertEquals(1_000L, hasil.potongan)
         assertEquals("Potongan dari perangkat ini", hasil.catatan)
         assertEquals(7L, hasil.versi)
+    }
+
+    @Test
+    fun `transaksi pull - fallback waktu dibayar untuk baris lama tanpa nilai`() {
+        // Baris lama di server (kolom waktu dibayar masih null) + tidak dibatalkan
+        // → fallback ke waktu transaksi agar laporan waktu tetap masuk akal.
+        val respons = PerubahanResponse(
+            transactions = listOf(
+                TransaksiSinkron(
+                    id = "t-1", versi = 3L, nomor = "TRX-abc12345",
+                    waktuEpochMili = 1_600_000_000_000L,
+                    metodePembayaran = "Cash", jumlahItem = 1, total = 10_000L,
+                    dibayar = 10_000L, kembalian = 0L,
+                ),
+            ),
+        )
+        val hasil = respons.kePerubahanLokal("gerai-1")
+        assertEquals(1_600_000_000_000L, hasil.transaksi.single().waktuDibayarEpochMili)
+
+        // Baris lama yang DIBATALKAN → null (tidak ada fallback ke waktu transaksi).
+        val responsBatal = PerubahanResponse(
+            transactions = listOf(
+                TransaksiSinkron(
+                    id = "t-2", versi = 4L, nomor = "TRX-abc12346",
+                    waktuEpochMili = 1_610_000_000_000L,
+                    metodePembayaran = "Cash", jumlahItem = 1, total = 10_000L,
+                    dibayar = 10_000L, kembalian = 0L, dibatalkan = true,
+                ),
+            ),
+        )
+        val hasilBatal = responsBatal.kePerubahanLokal("gerai-1")
+        assertNull(hasilBatal.transaksi.single().waktuDibayarEpochMili)
     }
 
     @Test

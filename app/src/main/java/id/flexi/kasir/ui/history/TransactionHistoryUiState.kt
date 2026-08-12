@@ -58,6 +58,8 @@ data class RingkasanTransactionRiwayat(
     val waktuTransactionEpochMili: Long = 0L,
     val labelIdentitasTransaction: String,
     val labelWaktu: String,
+    /** Label nama meja ("Meja 5") bila transaksi punya meja; null untuk Take Away. */
+    val labelMeja: String? = null,
     val labelJumlahItem: String,
     val totalAkhir: Long = 0L,
     val labelTotalAkhir: String,

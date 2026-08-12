@@ -56,6 +56,7 @@ object CashierViewModelProvider {
             val aplikasi = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CashierApp
             TransactionHistoryViewModel(
                 transactionRepository = aplikasi.kontainer.TransactionRepository,
+                GetTableList = aplikasi.kontainer.GetTableList,
             )
         }
 

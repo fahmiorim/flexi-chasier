@@ -2,12 +2,16 @@ package id.flexi.kasir.ui.history
 
 import androidx.paging.PagingData
 import id.flexi.kasir.domain.model.CartItem
+import id.flexi.kasir.domain.model.Meja
 import id.flexi.kasir.domain.model.PaymentMethod
 import id.flexi.kasir.domain.model.Produk
+import id.flexi.kasir.domain.model.TableStatus
 import id.flexi.kasir.domain.model.TransactionStatus
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Uang
+import id.flexi.kasir.domain.repository.TableRepository
 import id.flexi.kasir.domain.repository.TransactionRepository
+import id.flexi.kasir.domain.usecase.GetTableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +28,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import java.util.Calendar
@@ -44,6 +49,7 @@ class PengujianTransactionHistoryViewModel {
         Dispatchers.setMain(pengaturUji)
         pengelolaTampilan = TransactionHistoryViewModel(
             transactionRepository = repositoriPalsu,
+            GetTableList = GetTableList(TableRepositoryPalsu()),
         )
     }
 
@@ -86,6 +92,29 @@ class PengujianTransactionHistoryViewModel {
     }
 
     @Test
+    fun ringkasanMenyertakanNamaMejaDariIdMeja() {
+        val transaksi = Transaction(
+            id = "TRX-1",
+            daftarCartItem = emptyList(),
+            uangDibayar = Uang.dariRupiah(10_000L),
+            waktuTransactionEpochMili = System.currentTimeMillis(),
+            mejaId = "meja-5",
+        )
+
+        // Id meja diselesaikan menjadi nama meja (sama seperti Detail Transaksi).
+        val ringkasan = transaksi.keRingkasanTransactionRiwayat(mapOf("meja-5" to "5"))
+        assertEquals("Meja 5", ringkasan.labelMeja)
+
+        // Take Away tanpa meja → tidak ada label meja.
+        val takeAway = transaksi.copy(mejaId = null)
+        assertNull(takeAway.keRingkasanTransactionRiwayat(mapOf("meja-5" to "5")).labelMeja)
+
+        // Meja tidak dikenal (dihapus / belum tersinkron) → fallback null.
+        val mejaHilang = transaksi.copy(mejaId = "meja-99")
+        assertNull(mejaHilang.keRingkasanTransactionRiwayat(mapOf("meja-5" to "5")).labelMeja)
+    }
+
+    @Test
     fun pagingDataDapatDiKoleksiSetelahAdaTransaksi() = cakupanPengujian.runTest {
         val pekerjaanPengumpul = launch(UnconfinedTestDispatcher(testScheduler)) {
             pengelolaTampilan.pagingData.collect()
@@ -110,6 +139,17 @@ class PengujianTransactionHistoryViewModel {
 
         assertNotNull(pengelolaTampilan.pagingData.value)
         pekerjaanPengumpul.cancel()
+    }
+
+    private class TableRepositoryPalsu : TableRepository {
+        override fun amatiSemuaMeja(): Flow<List<Meja>> = flowOf(emptyList())
+        override suspend fun SaveTable(meja: Meja) {}
+        override suspend fun DeleteTable(id: String) {}
+        override suspend fun perbaruiTableStatus(
+            id: String,
+            tableStatus: TableStatus,
+            TransactionId: String?,
+        ) {}
     }
 
     private class TransactionRepositoryPalsu : TransactionRepository {
