@@ -39,6 +39,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
+import id.flexi.kasir.ui.theme.FlexiGradients
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +106,7 @@ private fun MenuItemCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp), clip = false)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
@@ -123,9 +126,9 @@ private fun MenuItemCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(FlexiGradients.tile(MaterialTheme.colorScheme.primary)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

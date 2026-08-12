@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -140,19 +140,14 @@ fun BahanFormScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
+            FlexiGradientButton(
                 onClick = { viewModel.tanganiAksi(BahanFormAction.Simpan) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text(
-                    text = if (state.apakahModeEdit) "Simpan Perubahan" else "Tambah Bahan",
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+                text = if (state.apakahModeEdit) "Simpan Perubahan" else "Tambah Bahan",
+                icon = Icons.Default.Check,
+            )
         }
     }
 }

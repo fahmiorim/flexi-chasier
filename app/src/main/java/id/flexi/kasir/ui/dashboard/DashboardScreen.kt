@@ -31,8 +31,6 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -64,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.ui.component.FlexiCard
 import id.flexi.kasir.ui.component.FlexiDotBadge
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiSectionLabel
 import id.flexi.kasir.ui.component.FlexiStatCard
 import id.flexi.kasir.ui.component.FlexiTopAppBar
@@ -249,27 +248,15 @@ fun DashboardScreen(
                 // ── Tombol Buka Transaksi ──
                 item(key = "buka_transaksi") {
                     AnimatedSection(delayMs = 350) {
-                        Button(
+                        FlexiGradientButton(
                             onClick = saatBukaTransaksi,
+                            text = "Buka Transaksi",
+                            icon = Icons.Default.ShoppingCart,
+                            trailingIcon = Icons.AutoMirrored.Filled.ArrowForward,
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                                 .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Buka Transaksi",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
-                        }
+                        )
                     }
                 }
 

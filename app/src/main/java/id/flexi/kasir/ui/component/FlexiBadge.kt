@@ -1,5 +1,6 @@
 package id.flexi.kasir.ui.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,9 +32,13 @@ fun FlexiBadge(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.12f),
         contentColor = color,
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.18f),
+        ),
     ) {
         Text(
             text = text,
@@ -41,7 +46,7 @@ fun FlexiBadge(
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp,
             ),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

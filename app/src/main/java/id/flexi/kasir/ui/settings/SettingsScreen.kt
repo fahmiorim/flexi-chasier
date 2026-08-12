@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -217,20 +217,14 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
+            FlexiGradientButton(
                 onClick = saatSimpan,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
                 enabled = !state.apakahSedangMenyimpan,
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text(
-                    text = "Simpan Pengaturan",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+                text = "Simpan Pengaturan",
+            )
         }
     }
 }

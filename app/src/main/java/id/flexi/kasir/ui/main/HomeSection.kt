@@ -68,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -79,6 +80,7 @@ import id.flexi.kasir.domain.model.SyncStatus
 import id.flexi.kasir.ui.SinkronMesinStatus
 import id.flexi.kasir.ui.labelJudulSinkron
 import id.flexi.kasir.ui.labelMetadataSinkron
+import id.flexi.kasir.ui.theme.FlexiGradients
 
 
 @Composable
@@ -101,10 +103,16 @@ internal fun CashierHomeHeader(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.primary,
-        shadowElevation = 2.dp,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
+        shadowElevation = 6.dp,
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(FlexiGradients.heroDalam()),
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -256,6 +264,7 @@ internal fun CashierHomeHeader(
                     }
                 }
             }
+        }
         }
     }
 }

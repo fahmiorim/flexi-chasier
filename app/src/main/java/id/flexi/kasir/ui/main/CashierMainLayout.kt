@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -46,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.KatalogMemuatStatus
 import id.flexi.kasir.ui.component.SimpleEmptyStatus
 import id.flexi.kasir.domain.model.CatalogDisplay
@@ -93,9 +95,9 @@ private fun ManualItemForm(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
             )
-            Button(
+            FlexiGradientButton(
                 onClick = {
-                    val hargaLong = harga.toLongOrNull() ?: return@Button
+                    val hargaLong = harga.toLongOrNull() ?: return@FlexiGradientButton
                     if (nama.isNotBlank() && hargaLong > 0) {
                         saatTambahItem(nama.trim(), hargaLong)
                         nama = ""
@@ -103,10 +105,10 @@ private fun ManualItemForm(
                     }
                 },
                 enabled = nama.isNotBlank() && (harga.toLongOrNull() ?: 0) > 0,
+                text = "Tambah ke Keranjang",
+                icon = Icons.Default.Add,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Tambah ke Keranjang")
-            }
+            )
         }
     }
 }

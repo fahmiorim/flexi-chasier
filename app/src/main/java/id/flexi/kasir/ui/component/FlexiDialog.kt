@@ -28,10 +28,14 @@ fun FlexiDialog(
                 .fillMaxWidth()
                 .widthIn(max = 400.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
             tonalElevation = 4.dp,
-            shadowElevation = 8.dp,
+            shadowElevation = 12.dp,
             color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            ),
         ) {
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxWidth(),

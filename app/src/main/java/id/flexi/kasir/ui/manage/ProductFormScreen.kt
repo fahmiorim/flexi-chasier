@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -24,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -156,14 +156,12 @@ fun ProductFormScreen(
             }
 
             // Simpan
-            Button(
+            FlexiGradientButton(
                 onClick = { viewModel.tanganiAksi(ProductFormAction.Simpan) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 enabled = state.apakahBisaSimpan && !state.apakahSedangMenyimpan,
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text("Simpan Produk", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
+                text = "Simpan Produk",
+            )
         }
     }
 

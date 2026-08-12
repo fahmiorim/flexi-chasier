@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -24,6 +26,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
 // ── Premium Color Palette ──
+
+private val PremiumSurface = Color(0xFFFCFDFF)
+private val PremiumSurfaceDark = Color(0xFF151C2E)
+private val PremiumSurfaceVariantLight = Color(0xFFF1F5F9)
+private val PremiumSurfaceVariantDark = Color(0xFF2A3348)
 
 private val PremiumBlue = Color(0xFF2563EB)
 private val PremiumBlueDark = Color(0xFF1D4ED8)
@@ -54,9 +61,9 @@ private val SkemaWarnaTerang = lightColorScheme(
     onErrorContainer = Color(0xFF7F1D1D),
     background = Color(0xFFF8FAFC),
     onBackground = Color(0xFF0F172A),
-    surface = Color.White,
+    surface = PremiumSurface,
     onSurface = Color(0xFF0F172A),
-    surfaceVariant = Color(0xFFF1F5F9),
+    surfaceVariant = PremiumSurfaceVariantLight,
     onSurfaceVariant = Color(0xFF475569),
     surfaceTint = PremiumBlue,
     outline = Color(0xFFCBD5E1),
@@ -84,11 +91,11 @@ private val SkemaWarnaGelap = darkColorScheme(
     onError = Color(0xFF7F1D1D),
     errorContainer = Color(0xFF7F1D1D),
     onErrorContainer = Color(0xFFFEE2E2),
-    background = Color(0xFF0F172A),
+    background = Color(0xFF0B1120),
     onBackground = Color(0xFFF1F5F9),
-    surface = Color(0xFF1E293B),
+    surface = PremiumSurfaceDark,
     onSurface = Color(0xFFF1F5F9),
-    surfaceVariant = Color(0xFF334155),
+    surfaceVariant = PremiumSurfaceVariantDark,
     onSurfaceVariant = Color(0xFF94A3B8),
     surfaceTint = Color(0xFF60A5FA),
     outline = Color(0xFF475569),
@@ -158,6 +165,57 @@ private val FlexiKasirShapes = Shapes(
     large = RoundedCornerShape(16.dp),
     extraLarge = RoundedCornerShape(20.dp),
 )
+
+// ── Gradien Premium ──
+
+/**
+ * Kumpulan gradien brand yang dipakai header hero, kartu aksen, dan tombol CTA.
+ * Mengikuti skema warna aktif (terang/gelap) agar selalu kontras.
+ */
+object FlexiGradients {
+    /** Gradien utama brand: primary → secondary (diagonal). */
+    @Composable
+    fun hero(): Brush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.secondary,
+        ),
+    )
+
+    /** Gradien deep untuk hero header (primary → indigo/violet). */
+    @Composable
+    fun heroDalam(): Brush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            lerp(MaterialTheme.colorScheme.primary, PremiumIndigo, 0.45f),
+            lerp(MaterialTheme.colorScheme.primary, PremiumViolet, 0.6f),
+        ),
+    )
+
+    /** Gradien aksen lembut dari warna [warna] ke transparannya. */
+    @Composable
+    fun aksen(warna: Color): Brush = Brush.linearGradient(
+        colors = listOf(warna, warna.copy(alpha = 0.72f)),
+    )
+
+    /** Gradien lembut untuk tile ikon (container berwarna). */
+    @Composable
+    fun tile(warna: Color): Brush = Brush.linearGradient(
+        colors = listOf(
+            warna.copy(alpha = 0.18f),
+            warna.copy(alpha = 0.06f),
+        ),
+    )
+
+    /** Gradien footer/latar halus untuk layar kosong. */
+    @Composable
+    fun latar(): Brush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            Color.Transparent,
+        ),
+    )
+}
 
 // ── Custom Color Tokens ──
 

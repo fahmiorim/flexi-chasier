@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -49,6 +48,7 @@ import androidx.compose.material3.Text
 import id.flexi.kasir.ui.component.FlexiCard
 import id.flexi.kasir.ui.component.FlexiDialog
 import id.flexi.kasir.ui.component.FlexiDialogHeader
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -430,7 +430,7 @@ private fun DialogEditResep(
                     ) {
                         Text("Batal", fontWeight = FontWeight.Medium)
                     }
-                    Button(
+                    FlexiGradientButton(
                         onClick = {
                             val daftar = bahanResepList.mapNotNull { input ->
                                 val jumlahVal = input.jumlah.toDoubleOrNull() ?: return@mapNotNull null
@@ -440,11 +440,10 @@ private fun DialogEditResep(
                             onSimpan(daftar)
                         },
                         enabled = bahanResepList.any { it.jumlah.toDoubleOrNull() != null && (it.jumlah.toDoubleOrNull() ?: 0.0) > 0 && it.bahanId.isNotBlank() },
+                        text = "Simpan",
+                        fillWidth = false,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("Simpan", fontWeight = FontWeight.Bold)
-                    }
+                    )
                 }
         }
     }

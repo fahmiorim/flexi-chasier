@@ -47,6 +47,7 @@ import id.flexi.kasir.ui.component.FlexiDialog
 import id.flexi.kasir.ui.component.FlexiDialogActions
 import id.flexi.kasir.ui.component.FlexiDialogHeader
 import id.flexi.kasir.ui.component.FlexiDialogWarningPanel
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -161,21 +162,16 @@ fun SettingsScreenMeja(
                     shape = MaterialTheme.shapes.small,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                Button(
+                FlexiGradientButton(
                     onClick = {
                         perbaruiJumlahBaris(draftBaris)
                         perbaruiJumlahKolom(draftKolom)
                         saatSimpanGrid()
                     },
+                    text = "Simpan",
+                    fillWidth = false,
                     modifier = Modifier.heightIn(min = 56.dp),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Text(
-                        text = "Simpan",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -378,19 +374,17 @@ fun SettingsScreenMeja(
                         ) {
                             Text("Batal", fontWeight = FontWeight.Medium)
                         }
-                        Button(
+                        FlexiGradientButton(
                             onClick = {
                                 aturMeja(b, k, nomorDialog)
                                 selBaris = null; selKolom = null
                             },
                             enabled = nomorDialog.isNotBlank(),
+                            text = "Simpan",
+                            icon = Icons.Default.CheckCircle,
+                            fillWidth = false,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Simpan", fontWeight = FontWeight.Bold)
-                        }
+                        )
                     }
                 }
             }

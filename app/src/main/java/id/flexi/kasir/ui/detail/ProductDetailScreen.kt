@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import id.flexi.kasir.domain.model.PenyesuaianStok
 import id.flexi.kasir.ui.component.FlexiCard
 import id.flexi.kasir.ui.component.FlexiDialog
+import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.FlexiDialogActions
 import id.flexi.kasir.ui.component.FlexiDialogHeader
 import id.flexi.kasir.ui.component.FlexiDialogSingleAction
@@ -409,20 +410,14 @@ private fun KontenDetailProduk(
                     }
                 }
 
-                Button(
+                FlexiGradientButton(
                     onClick = saatTambahKeKeranjang,
                     enabled = statusAksi.aktif,
+                    text = statusAksi.label,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Text(
-                        text = statusAksi.label,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                )
             }
         }
     }
