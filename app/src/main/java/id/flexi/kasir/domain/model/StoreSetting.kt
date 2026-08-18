@@ -44,4 +44,9 @@ data class StoreSetting(
     val jumlahCopyCetak: Int = 1,
     val tampilkanLogoDiStruk: Boolean = true,
     val tampilkanPajakDiStruk: Boolean = true,
+    // Pengaturan printer dapur (terpisah dari printer kasir)
+    val printerDapurAktif: Boolean = false,
+    val printerDapurType: PrinterType = PrinterType.None,
+    val printerDapurAddress: String = "",
+    val printerDapurName: String = "",
 )

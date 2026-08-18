@@ -67,6 +67,10 @@ class SettingsViewModel(
                         jumlahCopyCetak = pengaturan.jumlahCopyCetak.toString(),
                         tampilkanLogoDiStruk = pengaturan.tampilkanLogoDiStruk,
                         tampilkanPajakDiStruk = pengaturan.tampilkanPajakDiStruk,
+                        printerDapurAktif = pengaturan.printerDapurAktif,
+                        printerDapurType = pengaturan.printerDapurType,
+                        printerDapurAddress = pengaturan.printerDapurAddress,
+                        printerDapurName = pengaturan.printerDapurName,
                         apakahSedangMemuat = false,
                     )
                 }
@@ -123,6 +127,18 @@ class SettingsViewModel(
 
     fun perbaruiPrinter(alamat: String, nama: String) {
         _state.update { it.copy(printerAddress = alamat, printerName = nama) }
+    }
+
+    fun perbaruiPrinterDapurAktif(aktif: Boolean) {
+        _state.update { it.copy(printerDapurAktif = aktif) }
+    }
+
+    fun perbaruiPrinterDapurType(tipe: PrinterType) {
+        _state.update { it.copy(printerDapurType = tipe) }
+    }
+
+    fun perbaruiPrinterDapur(alamat: String, nama: String) {
+        _state.update { it.copy(printerDapurAddress = alamat, printerDapurName = nama) }
     }
 
     fun perbaruiSuaraNotifikasi(aktif: Boolean) {
@@ -201,6 +217,10 @@ class SettingsViewModel(
                             jumlahCopyCetak = s.jumlahCopyCetak.filter { it.isDigit() }.take(1).toIntOrNull()?.coerceIn(1, 5) ?: 1,
                             tampilkanLogoDiStruk = s.tampilkanLogoDiStruk,
                             tampilkanPajakDiStruk = s.tampilkanPajakDiStruk,
+                            printerDapurAktif = s.printerDapurAktif,
+                            printerDapurType = s.printerDapurType,
+                            printerDapurAddress = s.printerDapurAddress,
+                            printerDapurName = s.printerDapurName,
                         ),
                     )
                 // Pajak & biaya layanan disimpan terpisah di StorePreference

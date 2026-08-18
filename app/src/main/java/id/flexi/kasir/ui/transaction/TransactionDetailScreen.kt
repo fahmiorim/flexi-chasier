@@ -53,6 +53,7 @@ fun TransactionDetailScreen(
     perbaruiAlasanPembatalan: (String) -> Unit = {},
     batalkan: () -> Unit = {},
     alasanPembatalan: String = "",
+    saatCetakUlang: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (modelTampilan.apakahDialogBatalkanTerbuka) {
@@ -111,6 +112,7 @@ fun TransactionDetailScreen(
         saatKembali = saatKembali,
         statusMuat = statusMuat,
         bukaDialogBatalkan = bukaDialogBatalkan,
+        saatCetakUlang = saatCetakUlang,
     )
             }
 
@@ -187,6 +189,7 @@ private fun KontenDetailTransactionBerhasil(
     saatKembali: () -> Unit,
     statusMuat: StatusMuatDetailTransaction.Berhasil,
     bukaDialogBatalkan: () -> Unit = {},
+    saatCetakUlang: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -334,6 +337,16 @@ private fun KontenDetailTransactionBerhasil(
             if (!statusMuat.dibatalkan) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = saatCetakUlang,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Cetak Ulang Struk", fontWeight = FontWeight.Bold)
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
                     Button(
                         onClick = bukaDialogBatalkan,
                         modifier = Modifier.fillMaxWidth().height(48.dp),

@@ -55,6 +55,12 @@ class RepositoriStoreSettingDataStore(
                 jumlahCopyCetak = prefs[Kunci.jumlahCopyCetak]?.coerceIn(1, 5) ?: 1,
                 tampilkanLogoDiStruk = prefs[Kunci.tampilkanLogoDiStruk] ?: true,
                 tampilkanPajakDiStruk = prefs[Kunci.tampilkanPajakDiStruk] ?: true,
+                printerDapurAktif = prefs[Kunci.printerDapurAktif] ?: false,
+                printerDapurType = prefs[Kunci.printerDapurType]?.let { nilai ->
+                    try { PrinterType.valueOf(nilai) } catch (_: Exception) { PrinterType.None }
+                } ?: PrinterType.None,
+                printerDapurAddress = prefs[Kunci.printerDapurAddress] ?: "",
+                printerDapurName = prefs[Kunci.printerDapurName] ?: "",
             )
         }
     }
@@ -82,6 +88,10 @@ class RepositoriStoreSettingDataStore(
             prefs[Kunci.jumlahCopyCetak] = pengaturan.jumlahCopyCetak.coerceIn(1, 5)
             prefs[Kunci.tampilkanLogoDiStruk] = pengaturan.tampilkanLogoDiStruk
             prefs[Kunci.tampilkanPajakDiStruk] = pengaturan.tampilkanPajakDiStruk
+            prefs[Kunci.printerDapurAktif] = pengaturan.printerDapurAktif
+            prefs[Kunci.printerDapurType] = pengaturan.printerDapurType.name
+            prefs[Kunci.printerDapurAddress] = pengaturan.printerDapurAddress.trim()
+            prefs[Kunci.printerDapurName] = pengaturan.printerDapurName.trim()
         }
     }
 
@@ -107,5 +117,9 @@ class RepositoriStoreSettingDataStore(
         val jumlahCopyCetak = intPreferencesKey("jumlah_copy_cetak")
         val tampilkanLogoDiStruk = booleanPreferencesKey("tampilkan_logo_di_struk")
         val tampilkanPajakDiStruk = booleanPreferencesKey("tampilkan_pajak_di_struk")
+        val printerDapurAktif = booleanPreferencesKey("printer_dapur_aktif")
+        val printerDapurType = stringPreferencesKey("tipe_printer_dapur")
+        val printerDapurAddress = stringPreferencesKey("alamat_printer_dapur")
+        val printerDapurName = stringPreferencesKey("nama_printer_dapur")
     }
 }

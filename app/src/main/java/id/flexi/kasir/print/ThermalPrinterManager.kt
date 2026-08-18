@@ -138,6 +138,211 @@ class ThermalPrinterManager(
     }
 
     /**
+     * Mencetak struk dapur (kitchen ticket) — hanya berisi daftar item,
+     * nomor antrian, dan catatan. Tanpa info pembayaran/harga.
+     * Digunakan agar dapur/barista mendapat cetakan fisik saat pesanan baru masuk.
+     */
+    suspend fun cetakStrukDapur(
+        Transaction: Transaction,
+        pengaturanStruk: StoreSetting? = null,
+        printerType: id.flexi.kasir.domain.model.PrinterType = id.flexi.kasir.domain.model.PrinterType.Bluetooth,
+        printerAddress: String = "",
+    ): PrintResult = withContext(Dispatchers.IO) {
+        try {
+            when (printerType) {
+                id.flexi.kasir.domain.model.PrinterType.Bluetooth -> {
+                    if (printerAddress.isBlank()) {
+                        val device = cariPrinterBluetooth()
+                        if (device != null) {
+                            cetakStrukDapurKeBluetooth(device, Transaction, pengaturanStruk)
+                        } else {
+                            PrintResult.Gagal("Printer Bluetooth tidak ditemukan.")
+                        }
+                    } else {
+                        val manager = konteks.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                        val adapter = manager?.adapter
+                            ?: return@withContext PrintResult.Gagal("Bluetooth tidak tersedia.")
+                        val device = adapter.getRemoteDevice(printerAddress)
+                        cetakStrukDapurKeBluetooth(device, Transaction, pengaturanStruk)
+                    }
+                }
+                id.flexi.kasir.domain.model.PrinterType.Usb -> {
+                    val device = cariPrinterUsb()
+                    if (device != null) {
+                        cetakStrukDapurKeUsb(device, Transaction, pengaturanStruk)
+                    } else {
+                        PrintResult.Gagal("Printer USB tidak terdeteksi.")
+                    }
+                }
+                id.flexi.kasir.domain.model.PrinterType.None -> {
+                    PrintResult.Gagal("Printer tidak dikonfigurasi.")
+                }
+            }
+        } catch (e: SecurityException) {
+            PrintResult.Gagal("Izin Bluetooth tidak diberikan.")
+        } catch (e: Exception) {
+            PrintResult.Gagal("Gagal mencetak struk dapur: ${e.message ?: "Kesalahan tidak diketahui"}")
+        }
+    }
+
+    private suspend fun cetakStrukDapurKeBluetooth(
+        device: BluetoothDevice,
+        Transaction: Transaction,
+        pengaturanStruk: StoreSetting? = null,
+    ): PrintResult = withContext(Dispatchers.IO) {
+        var socket: BluetoothSocket? = null
+        try {
+            socket = device.createRfcommSocketToServiceRecord(UUID_SPP)
+            socket.connect()
+            val outputStream = socket.outputStream
+            val data = buatByteStrukDapur(Transaction, pengaturanStruk)
+            outputStream.write(data)
+            outputStream.flush()
+            PrintResult.Berhasil
+        } catch (e: Exception) {
+            PrintResult.Gagal("Gagal cetak struk dapur: ${e.message}")
+        } finally {
+            try { socket?.close() } catch (_: Exception) {}
+        }
+    }
+
+    private suspend fun cetakStrukDapurKeUsb(
+        device: UsbDevice,
+        Transaction: Transaction,
+        pengaturanStruk: StoreSetting? = null,
+    ): PrintResult = withContext(Dispatchers.IO) {
+        val usbManager = konteks.getSystemService(Context.USB_SERVICE) as? UsbManager
+            ?: return@withContext PrintResult.Gagal("USB tidak tersedia.")
+        var connection: UsbDeviceConnection? = null
+        try {
+            if (!usbManager.hasPermission(device)) {
+                return@withContext PrintResult.Gagal("Izin USB belum diberikan.")
+            }
+            connection = usbManager.openDevice(device)
+            if (connection == null) return@withContext PrintResult.Gagal("Gagal buka koneksi USB.")
+            val usbInterface = device.getInterface(0)
+            connection.claimInterface(usbInterface, true)
+            val endpointOut = (0 until usbInterface.endpointCount)
+                .map { usbInterface.getEndpoint(it) }
+                .firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_BULK && it.direction == UsbConstants.USB_DIR_OUT }
+                ?: return@withContext PrintResult.Gagal("Tidak ada endpoint OUT.")
+            val data = buatByteStrukDapur(Transaction, pengaturanStruk)
+            val chunkSize = endpointOut.maxPacketSize
+            var offset = 0
+            while (offset < data.size) {
+                connection.bulkTransfer(endpointOut, data, offset, minOf(chunkSize, data.size - offset), 5000)
+                offset += chunkSize
+            }
+            PrintResult.Berhasil
+        } catch (e: Exception) {
+            PrintResult.Gagal("Gagal cetak struk dapur via USB: ${e.message}")
+        } finally {
+            try { connection?.close() } catch (_: Exception) {}
+        }
+    }
+
+    private fun buatByteStrukDapur(
+        Transaction: Transaction,
+        pengaturanStruk: StoreSetting? = null,
+    ): ByteArray {
+        val settings = pengaturanStruk ?: StoreSetting()
+        val lebar = karakterPerBaris(settings.lebarStruk)
+        val formatTanggal = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID"))
+        val waktuCetak = formatTanggal.format(Date(Transaction.waktuTransactionEpochMili))
+
+        val output = ByteArrayOutputStream()
+
+        // Initialize
+        output.write(EscPos.INIT)
+
+        // ── Header: TANDA DAPUR ──
+        output.write(EscPos.ALIGN_CENTER)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write("*** DAPUR ***".toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
+
+        val namaHeader = settings.namaUsaha.ifBlank { "FLEXI KASIR" }
+        output.write(namaHeader.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+
+        // ── Info Pesanan ──
+        output.write(EscPos.FONT_SIZE_BIG)
+        if (Transaction.nomorAntrian != null) {
+            output.write("ANTRIAN #${Transaction.nomorAntrian}".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+        }
+        output.write(EscPos.FONT_SIZE_NORMAL)
+        output.write(Transaction.id.take(8).uppercase().toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(waktuCetak.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(Transaction.orderType.label.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+
+        // Info meja (jika Dine In)
+        if (Transaction.orderType == id.flexi.kasir.domain.model.OrderType.DineIn && Transaction.mejaId != null) {
+            output.write(EscPos.BOLD_ON)
+            output.write("Meja: ${Transaction.mejaId}".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
+        }
+
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+
+        // ── Daftar Item (tanpa harga) ──
+        output.write(EscPos.ALIGN_LEFT)
+        Transaction.daftarCartItem.forEach { item ->
+            val nama = item.varian?.let { "${item.produk.nama} (${it.nama})" }
+                ?: item.produk.nama
+            output.write(EscPos.BOLD_ON)
+            output.write("${item.jumlah}x".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(" ${nama.take(lebar - 5)}".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+            // Catatan item
+            if (!item.catatan.isNullOrBlank()) {
+                output.write("   > ${item.catatan}".take(lebar).toByteArray(CHARSET_CETAK))
+                output.write(EscPos.LF)
+            }
+        }
+
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+
+        // ── Catatan Pesanan ──
+        if (!Transaction.catatan.isNullOrBlank()) {
+            output.write(EscPos.ALIGN_CENTER)
+            output.write(EscPos.BOLD_ON)
+            output.write("CATATAN:".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
+            output.write(Transaction.catatan.toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+            output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+        }
+
+        // ── Footer ──
+        output.write(EscPos.ALIGN_CENTER)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write("Siap Diantar".toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
+
+        // Feed + Cut
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.CUT)
+
+        return output.toByteArray()
+    }
+
+    /**
      * Mencetak struk berdasarkan konfigurasi printer yang dipilih user.
      *
      * @param printerType Tipe printer (None, Bluetooth, Usb).

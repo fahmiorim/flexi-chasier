@@ -325,6 +325,7 @@ private fun KasirAppUtama(
                     perbaruiAlasanPembatalan = TransactionDetailViewModel::perbaruiAlasanPembatalan,
                     batalkan = TransactionDetailViewModel::batalkan,
                     alasanPembatalan = TransactionDetailUiState.value.alasanPembatalan,
+                    saatCetakUlang = TransactionDetailViewModel::cetakUlangStruk,
                 )
             }
 
@@ -393,6 +394,9 @@ private fun KasirAppUtama(
                     perbaruiLebarStruk = viewModel::perbaruiLebarStruk,
                     perbaruiJumlahCopyCetak = viewModel::perbaruiJumlahCopyCetak,
                     perbaruiTampilkanLogoDiStruk = viewModel::perbaruiTampilkanLogoDiStruk,
+                    perbaruiPrinterDapurAktif = viewModel::perbaruiPrinterDapurAktif,
+                    perbaruiPrinterDapurType = viewModel::perbaruiPrinterDapurType,
+                    perbaruiPrinterDapur = viewModel::perbaruiPrinterDapur,
                     perbaruiTampilkanPajakDiStruk = viewModel::perbaruiTampilkanPajakDiStruk,
                     perbaruiBasisPoinPajak = viewModel::perbaruiBasisPoinPajak,
                     perbaruiBiayaLayanan = viewModel::perbaruiBiayaLayanan,

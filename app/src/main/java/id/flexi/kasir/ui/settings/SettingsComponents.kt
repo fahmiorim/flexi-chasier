@@ -539,6 +539,236 @@ internal fun BagianPrinter(
 }
 
 // ═══════════════════════════════════════
+// SECTION: PRINTER DAPUR
+// ═══════════════════════════════════════
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun BagianPrinterDapur(
+    printerDapurAktif: Boolean,
+    printerDapurType: PrinterType,
+    printerDapurName: String,
+    printerDapurAddress: String,
+    perbaruiPrinterDapurAktif: (Boolean) -> Unit,
+    perbaruiPrinterDapurType: (PrinterType) -> Unit,
+    perbaruiPrinterDapur: (alamat: String, nama: String) -> Unit,
+) {
+    val context = LocalContext.current
+    var dropdownTerbuka by remember { mutableStateOf(false) }
+    var pesanBluetooth by remember { mutableStateOf<String?>(null) }
+
+    KartuBagian("Printer Dapur") {
+        BarisSwitch(
+            label = "Aktifkan Printer Dapur",
+            deskripsi = "Cetak struk dapur (kitchen ticket) secara otomatis",
+            checked = printerDapurAktif,
+            onCheckedChange = perbaruiPrinterDapurAktif,
+        )
+
+        if (printerDapurAktif) {
+            ExposedDropdownMenuBox(
+                expanded = dropdownTerbuka,
+                onExpandedChange = { dropdownTerbuka = it },
+            ) {
+                OutlinedTextField(
+                    value = when (printerDapurType) {
+                        PrinterType.None -> "Tidak ada"
+                        PrinterType.Bluetooth -> "Bluetooth"
+                        PrinterType.Usb -> "USB"
+                    },
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Jenis printer dapur") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownTerbuka) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
+                )
+
+                ExposedDropdownMenu(
+                    expanded = dropdownTerbuka,
+                    onDismissRequest = { dropdownTerbuka = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Tidak ada") },
+                        onClick = {
+                            perbaruiPrinterDapurType(PrinterType.None)
+                            perbaruiPrinterDapur("", "")
+                            pesanBluetooth = null
+                            dropdownTerbuka = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Bluetooth") },
+                        onClick = {
+                            perbaruiPrinterDapurType(PrinterType.Bluetooth)
+                            pesanBluetooth = null
+                            dropdownTerbuka = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("USB") },
+                        onClick = {
+                            perbaruiPrinterDapurType(PrinterType.Usb)
+                            perbaruiPrinterDapur("usb_auto", "USB Auto Detect")
+                            pesanBluetooth = null
+                            dropdownTerbuka = false
+                        },
+                    )
+                }
+            }
+
+            if (printerDapurName.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Terpilih: $printerDapurName",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+
+            if (printerDapurType == PrinterType.Bluetooth) {
+                OutlinedButton(
+                    onClick = @Suppress("DEPRECATION") {
+                        pesanBluetooth = null
+                        try {
+                            val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                            val adapter = manager?.adapter
+                            if (adapter == null) {
+                                pesanBluetooth = "Bluetooth tidak tersedia di perangkat ini."
+                                return@OutlinedButton
+                            }
+                            if (!adapter.isEnabled) {
+                                pesanBluetooth = "Bluetooth dalam keadaan mati. Nyalakan Bluetooth terlebih dahulu."
+                                return@OutlinedButton
+                            }
+                            val kataKunciPrinter = listOf(
+                                "printer", "thermal", "pos", "receipt",
+                                "mp", "tm-", "bixolon", "epson",
+                                "xprinter", "gprinter", "star", "citizen",
+                                "honeywell", "zebra", "custom", "argox",
+                                "datamax", "tsp", "sp-", "pp-", "vp-",
+                                "mobile", "bluetooth", "label",
+                            )
+                            val devices = adapter.bondedDevices?.filter { device ->
+                                val nama = device.name?.lowercase() ?: ""
+                                kataKunciPrinter.any { kata -> nama.contains(kata) }
+                            } ?: emptyList()
+
+                            if (devices.isEmpty()) {
+                                pesanBluetooth = "Tidak ditemukan printer Bluetooth yang terpasang. Pastikan printer sudah dipairing."
+                            } else if (devices.size == 1) {
+                                val device = devices.first()
+                                perbaruiPrinterDapur(device.address, device.name ?: "Printer Bluetooth")
+                                pesanBluetooth = "Printer '${device.name ?: "Printer Bluetooth"}' berhasil ditemukan."
+                            } else {
+                                val device = devices.first()
+                                perbaruiPrinterDapur(device.address, device.name ?: "Printer Bluetooth")
+                                pesanBluetooth = "Ditemukan ${devices.size} printer. Menggunakan '${device.name}'."
+                            }
+                        } catch (_: SecurityException) {
+                            pesanBluetooth = "Izin Bluetooth belum diberikan. Berikan izin di Pengaturan > Aplikasi."
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text("Cari Printer Bluetooth Dapur")
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    pesanBluetooth?.let { pesan ->
+                        val warna = if (pesan.contains("berhasil")) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = warna.copy(alpha = 0.08f),
+                        ) {
+                            Text(
+                                text = pesan,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = warna,
+                                fontWeight = if (pesan.contains("berhasil")) FontWeight.SemiBold else FontWeight.Normal,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "Printer dapur akan mencetak struk dapur (tanpa harga) saat pesanan baru masuk.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (printerDapurType == PrinterType.Usb) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Printer USB dapur akan terdeteksi otomatis saat tersambung.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════
 // SECTION: MANAJEMEN KAS
 // ═══════════════════════════════════════
 

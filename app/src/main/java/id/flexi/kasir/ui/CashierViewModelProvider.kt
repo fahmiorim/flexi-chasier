@@ -67,6 +67,8 @@ object CashierViewModelProvider {
                 ObserveTransactionById = aplikasi.kontainer.ObserveTransactionById,
                 GetTableList = aplikasi.kontainer.GetTableList,
                 batalkanTransaction = aplikasi.kontainer.batalkanTransaction,
+                ThermalPrinterManager = aplikasi.kontainer.ThermalPrinterManager,
+                ambilStoreSetting = aplikasi.kontainer.ambilStoreSetting,
                 savedStateHandle = createSavedStateHandle(),
             )
         }

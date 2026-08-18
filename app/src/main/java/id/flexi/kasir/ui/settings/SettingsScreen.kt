@@ -60,6 +60,9 @@ fun SettingsScreen(
     perbaruiJumlahCopyCetak: (String) -> Unit,
     perbaruiTampilkanLogoDiStruk: (Boolean) -> Unit,
     perbaruiTampilkanPajakDiStruk: (Boolean) -> Unit,
+    perbaruiPrinterDapurAktif: (Boolean) -> Unit,
+    perbaruiPrinterDapurType: (PrinterType) -> Unit,
+    perbaruiPrinterDapur: (alamat: String, nama: String) -> Unit,
     perbaruiBasisPoinPajak: (String) -> Unit,
     perbaruiBiayaLayanan: (String) -> Unit,
     saatSimpan: () -> Unit,
@@ -163,6 +166,15 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         manajemenKasAktif = state.manajemenKasAktif,
                         perbaruiManajemenKas = perbaruiManajemenKas,
+                    )
+                    BagianPrinterDapur(
+                        printerDapurAktif = state.printerDapurAktif,
+                        printerDapurType = state.printerDapurType,
+                        printerDapurName = state.printerDapurName,
+                        printerDapurAddress = state.printerDapurAddress,
+                        perbaruiPrinterDapurAktif = perbaruiPrinterDapurAktif,
+                        perbaruiPrinterDapurType = perbaruiPrinterDapurType,
+                        perbaruiPrinterDapur = perbaruiPrinterDapur,
                     )
                 }
                 BagianStruk(

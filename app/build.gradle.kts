@@ -57,8 +57,8 @@ android {
         // 3. Build dengan keystore release SAMA (keystore.properties); tanda
         //    tangan berbeda = update ditolak / data dianggap aplikasi lain.
         // 4. Bump versionCode hanya sekali per rilis yang didistribusikan.
-        versionCode = 5
-        versionName = "0.2.2"
+        versionCode = 6
+        versionName = "0.3.0"
 
 
         // Optimasi ABI: Hanya menyertakan arsitektur yang relevan untuk efisiensi ukuran APK

@@ -18,6 +18,10 @@ import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.domain.model.Meja
 import id.flexi.kasir.domain.model.KitchenStatus
 import id.flexi.kasir.domain.model.Transaction
+import id.flexi.kasir.domain.model.ReceiptPrintFormat
+import id.flexi.kasir.print.PrintResult
+import id.flexi.kasir.print.ThermalPrinterManager
+import id.flexi.kasir.domain.usecase.AmbilStoreSetting
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +30,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -37,6 +42,8 @@ class TransactionDetailViewModel(
     private val ObserveTransactionById: ObserveTransactionById,
     private val GetTableList: GetTableList,
     private val batalkanTransaction: BatalkanTransaction,
+    private val ThermalPrinterManager: ThermalPrinterManager,
+    private val ambilStoreSetting: AmbilStoreSetting,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -47,6 +54,8 @@ class TransactionDetailViewModel(
     private val _nomorPermintaanMuatUlang = MutableStateFlow(0)
     private val _apakahDialogBatalkanTerbuka = MutableStateFlow(false)
     private val _alasanPembatalan = MutableStateFlow("")
+    private val _efekCetak = MutableStateFlow<String?>(null)
+    val efekCetak: StateFlow<String?> = _efekCetak
 
     private val daftarMeja: StateFlow<List<Meja>> = GetTableList()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -110,6 +119,37 @@ class TransactionDetailViewModel(
                 batalkanTransaction(identitasTransaction, alasan.ifBlank { null })
                 _apakahDialogBatalkanTerbuka.value = false
             } catch (_: Exception) { }
+        }
+    }
+
+    /**
+     * Cetak ulang struk untuk transaksi ini.
+     */
+    fun cetakUlangStruk() {
+        viewModelScope.launch {
+            val Transaction = ObserveTransactionById(identitasTransaction).first()
+            if (Transaction == null) {
+                return@launch
+            }
+            val pengaturan = ambilStoreSetting().first()
+            val hasil = if (pengaturan.printerType != id.flexi.kasir.domain.model.PrinterType.None) {
+                ThermalPrinterManager.cetakStrukDenganKonfigurasi(
+                    Transaction = Transaction,
+                    printerType = pengaturan.printerType,
+                    printerAddress = pengaturan.printerAddress,
+                    pengaturanStruk = pengaturan,
+                )
+            } else {
+                ThermalPrinterManager.cetakStruk(Transaction)
+            }
+            when (hasil) {
+                is PrintResult.Berhasil -> {
+                    _efekCetak.value = "Struk berhasil dicetak."
+                }
+                is PrintResult.Gagal -> {
+                    _efekCetak.value = "Cetak gagal: ${hasil.pesan}"
+                }
+            }
         }
     }
 }

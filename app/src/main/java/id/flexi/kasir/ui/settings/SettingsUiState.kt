@@ -36,4 +36,9 @@ data class SettingsUiState(
     val apakahSedangMenyimpan: Boolean = false,
     val pesanBerhasil: String? = null,    val sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
     val pesanSinkronisasi: String? = null,
+    // Pengaturan printer dapur
+    val printerDapurAktif: Boolean = false,
+    val printerDapurType: PrinterType = PrinterType.None,
+    val printerDapurAddress: String = "",
+    val printerDapurName: String = "",
 )

@@ -843,6 +843,12 @@ class CashierMainViewModel(
                 ) {
                     cetakStruk(hasilCheckout.Transaction)
                 }
+
+                // Cetak struk dapur (kitchen ticket) untuk pesanan baru
+                // agar dapur/barista mendapat cetakan fisik item yang harus dibuat
+                if (status == TransactionStatus.Pending || status == TransactionStatus.Processing) {
+                    cetakStrukDapur(hasilCheckout.Transaction)
+                }
             } catch (kesalahanValidasi: IllegalArgumentException) {
                 _statusElemenLayar.update { statusLama ->
                     statusLama.copy(
@@ -1260,6 +1266,62 @@ class CashierMainViewModel(
                     kirimPesanSingkat("Cetak struk gagal: ${hasil.pesan}")
                 }
             }
+        }
+    }
+
+    /**
+     * Cetak struk dapur (kitchen ticket) — hanya berisi daftar item.
+     * Dipanggil saat pesanan baru dibuat agar dapur mendapat cetakan fisik.
+     */
+    private fun cetakStrukDapur(Transaction: Transaction?) {
+        viewModelScope.launch {
+            val Transaction = Transaction ?: return@launch
+            val pengaturan = StoreSetting.value
+
+            // Gunakan printer dapur terpisah jika aktif, fallback ke printer kasir
+            val printerTypeDapur = if (pengaturan.printerDapurAktif) {
+                pengaturan.printerDapurType
+            } else {
+                pengaturan.printerType
+            }
+            val printerAddressDapur = if (pengaturan.printerDapurAktif) {
+                pengaturan.printerDapurAddress
+            } else {
+                pengaturan.printerAddress
+            }
+
+            if (printerTypeDapur == id.flexi.kasir.domain.model.PrinterType.None) return@launch
+
+            val hasil = ThermalPrinterManager.cetakStrukDapur(
+                Transaction = Transaction,
+                pengaturanStruk = pengaturan,
+                printerType = printerTypeDapur,
+                printerAddress = printerAddressDapur,
+            )
+
+            when (hasil) {
+                is PrintResult.Berhasil -> {
+                    kirimPesanSingkat("Struk dapur berhasil dicetak.")
+                }
+                is PrintResult.Gagal -> {
+                    // Hanya log, jangan ganggu user dengan pesan error dapur
+                    android.util.Log.w("CashierMain", "Gagal cetak dapur: ${hasil.pesan}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Cetak ulang struk untuk transaksi yang sudah ada.
+     * Dipanggil dari layar Detail Transaksi.
+     */
+    fun cetakUlangStruk(Transaction: Transaction?) {
+        viewModelScope.launch {
+            val Transaction = Transaction ?: run {
+                kirimPesanSingkat("Tidak ada transaksi untuk dicetak.")
+                return@launch
+            }
+            cetakStruk(Transaction)
         }
     }
 
