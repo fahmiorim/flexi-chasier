@@ -142,6 +142,8 @@ class CashierDependencyContainer(
                 CashierDatabaseMigration.DARI_25_KE_26,
                 CashierDatabaseMigration.DARI_26_KE_27,
                 CashierDatabaseMigration.DARI_27_KE_28,
+                CashierDatabaseMigration.DARI_28_KE_29,
+                CashierDatabaseMigration.DARI_29_KE_30,
             )
             .fallbackToDestructiveMigration(false)
             .build()
@@ -183,6 +185,8 @@ class CashierDependencyContainer(
             layanan = SyncNetworkService,
             sumberGeraiAktifId = sumberGeraiAktifId,
             repositoriStoreSetting = repositoriStoreSetting,
+            tokenStore = TokenStore,
+            sesiStore = SesiStore,
         )
     }
 

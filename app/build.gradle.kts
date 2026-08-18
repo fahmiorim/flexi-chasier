@@ -57,8 +57,8 @@ android {
         // 3. Build dengan keystore release SAMA (keystore.properties); tanda
         //    tangan berbeda = update ditolak / data dianggap aplikasi lain.
         // 4. Bump versionCode hanya sekali per rilis yang didistribusikan.
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 5
+        versionName = "0.2.2"
 
 
         // Optimasi ABI: Hanya menyertakan arsitektur yang relevan untuk efisiensi ukuran APK
@@ -92,7 +92,7 @@ android {
             buildConfigField(
                 "String",
                 "ALAMAT_DASAR_API",
-                "\"http://10.0.2.2:4000/\"",
+                "\"https://api.flexinet.id/\"",
             )
         }
 

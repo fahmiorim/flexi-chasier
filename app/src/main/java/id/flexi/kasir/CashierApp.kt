@@ -32,6 +32,9 @@ class CashierApp : Application() {
         // Sinkronisasi berkala di latar belakang (outbox push + pull perubahan).
         SinkronisasiPenjadwal.jadwalkanBerkala(this)
 
+        // Auto-sync saat jaringan tersedia (tanpa tombol).
+        SinkronisasiPenjadwal.pasangPemantauJaringan(this)
+
         // Minta sinkronisasi segera setiap kali gerai aktif tersedia: saat aplikasi
         // dibuka dengan sesi aktif, atau setelah login/pilih gerai. Dengan begitu
         // katalog produk & data lain langsung terisi dari server — pengguna baru

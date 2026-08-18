@@ -655,4 +655,56 @@ object CashierDatabaseMigration {
             } catch (_: Exception) { }
         }
     }
+
+    /**
+     * Migrasi dari versi 28 ke versi 29.
+     *
+     * Perubahan: no-op — menambahkan @ColumnInfo(defaultValue) pada entity
+     * LocalPenyesuaianStokEntity agar cocok dengan schema aktual yang sudah
+     * memiliki DEFAULT '' sejak migration 24→25.
+     */
+    val DARI_28_KE_29: Migration = object : Migration(28, 29) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Tidak ada perubahan DDL — schema sudah benar.
+        }
+    }
+
+    /**
+     * Migrasi dari versi 29 ke versi 30.
+     *
+     * Perubahan: recreation tabel `penyesuaian_stok` — tabel lama dibuat oleh
+     * versi awal dengan DEFAULT 'undefined' di semua kolom. Room tidak bisa
+     * memvalidasi schema karena `CREATE TABLE IF NOT EXISTS` melewati tabel
+     * yang sudah ada. Solusi: drop + recreate dengan schema yang benar
+     * (DEFAULT '' pada namaEntitas & alasan).
+     */
+    val DARI_29_KE_30: Migration = object : Migration(29, 30) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS `penyesuaian_stok`")
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `penyesuaian_stok` (
+                    `id` TEXT NOT NULL,
+                    `jenis` TEXT NOT NULL,
+                    `entitasId` TEXT NOT NULL,
+                    `namaEntitas` TEXT NOT NULL DEFAULT '',
+                    `stokSebelum` INTEGER NOT NULL,
+                    `stokSesudah` INTEGER NOT NULL,
+                    `selisih` INTEGER NOT NULL,
+                    `alasan` TEXT NOT NULL DEFAULT '',
+                    `waktu` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_penyesuaian_stok_entitas ON penyesuaian_stok(jenis, entitasId)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_penyesuaian_stok_waktu ON penyesuaian_stok(waktu)",
+            )
+        }
+    }
 }

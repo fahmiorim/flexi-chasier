@@ -1,6 +1,8 @@
 package id.flexi.kasir.data.sync
 
 import androidx.room.withTransaction
+import id.flexi.kasir.data.auth.SesiStore
+import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.entity.OutboxSinkronEntity
 import id.flexi.kasir.data.network.config.CashierNetworkProvider
@@ -53,6 +55,8 @@ class MesinSinkronisasi(
     private val layanan: SyncNetworkService,
     private val sumberGeraiAktifId: suspend () -> String?,
     private val repositoriStoreSetting: RepositoriStoreSetting,
+    private val tokenStore: TokenStore? = null,
+    private val sesiStore: SesiStore? = null,
 ) {
 
     private val outboxDao = basisData.OutboxDao()
@@ -96,10 +100,15 @@ class MesinSinkronisasi(
             catatHasil(hasil)
             hasil
         } catch (kesalahan: HttpException) {
+            val kode = kesalahan.code()
+            if (kode == 401 || kode == 403) {
+                tokenStore?.hapus()
+                sesiStore?.hapus()
+            }
             val hasil = HasilSinkronisasi(
                 geraiId = geraiId,
-                kodeError = kesalahan.code(),
-                pesanError = "Sinkronisasi gagal (HTTP ${kesalahan.code()}).",
+                kodeError = kode,
+                pesanError = "Sinkronisasi gagal (HTTP $kode).",
             )
             catatHasil(hasil)
             hasil

@@ -1,6 +1,8 @@
 package id.flexi.kasir.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -10,16 +12,22 @@ import androidx.room.PrimaryKey
  * lintas perangkat (server memakai field yang sama). Mendukung offline-first:
  * baris lokal yang dibuat di luar jaringan tetap tersimpan.
  */
-@Entity(tableName = "penyesuaian_stok")
+@Entity(
+    tableName = "penyesuaian_stok",
+    indices = [
+        Index("jenis", "entitasId"),
+        Index("waktu"),
+    ],
+)
 data class LocalPenyesuaianStokEntity(
     @PrimaryKey
     val id: String,
     val jenis: String, // "Bahan" | "Produk"
     val entitasId: String,
-    val namaEntitas: String = "",
+    @ColumnInfo(defaultValue = "''") val namaEntitas: String = "",
     val stokSebelum: Int,
     val stokSesudah: Int,
     val selisih: Int,
-    val alasan: String = "",
+    @ColumnInfo(defaultValue = "''") val alasan: String = "",
     val waktu: Long,
 )

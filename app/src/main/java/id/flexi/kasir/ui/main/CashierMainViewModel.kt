@@ -114,7 +114,7 @@ class CashierMainViewModel(
     private val shiftKasAktif = amatiKasAktif()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.Eagerly,
             initialValue = null,
         )
 
@@ -274,7 +274,7 @@ class CashierMainViewModel(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        started = SharingStarted.Eagerly,
         initialValue = bentukModelTampilan(
             daftarProdukPenuh = emptyList(),
             TransactionStatus = CashierMainTransactionState(),

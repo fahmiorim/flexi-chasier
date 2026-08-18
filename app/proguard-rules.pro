@@ -1,21 +1,116 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ─────────────────────────────────────────────────────────────────────
+# ProGuard / R8 Rules — Flexi Kasir
+# Release build mengaktifkan isMinifyEnabled=true; file ini WAJIB
+# memuat keep rules agar class refleksi / serialisasi tidak dihapus.
+# ─────────────────────────────────────────────────────────────────────
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── Simpan info baris untuk crash log yang berguna ──
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keepattributes *Annotation*,InnerClasses,EnclosingMethod,Signature
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ──────────────────────────────────────────────────────────────────────
+# SELURUH APLIKASI — keep semua class di namespace id.flexi.kasir
+# Approach paling aman: tidak ada class app yang boleh dihapus/diubah.
+# ──────────────────────────────────────────────────────────────────────
+-keep class id.flexi.kasir.** { *; }
+-keep class id.flexi.kasir.** { <init>(...); }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ──────────────────────────────────────────────────────────────────────
+# Kotlin
+# ──────────────────────────────────────────────────────────────────────
+-keep class kotlin.Metadata { *; }
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+-keepclassmembers class * {
+    @kotlin.jvm.JvmField <fields>;
+    @kotlin.jvm.JvmStatic <methods>;
+}
+-dontwarn kotlin.**
+
+# ──────────────────────────────────────────────────────────────────────
+# Kotlin Serialization — keep serializers + companion + type adapters
+# ──────────────────────────────────────────────────────────────────────
+-keepclassmembers class * {
+    *** Companion;
+}
+-keepclasseswithmembers class * {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep,includedescriptorclasses class id.flexi.kasir.**$$serializer { *; }
+-keepclassmembers class id.flexi.kasir.** {
+    *** Companion;
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# Room Database
+# ──────────────────────────────────────────────────────────────────────
+-keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.room.RoomDatabase$Callback
+-keep class * extends androidx.room.paging.LimitOffsetDataSource
+
+# ──────────────────────────────────────────────────────────────────────
+# Retrofit
+# ──────────────────────────────────────────────────────────────────────
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# ──────────────────────────────────────────────────────────────────────
+# OkHttp
+# ──────────────────────────────────────────────────────────────────────
+-dontwarn org.bouncycastle.jsse.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+-dontwarn okhttp3.internal.platform.**
+-dontwarn org.animalsniffssl.**
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+
+# ──────────────────────────────────────────────────────────────────────
+# AndroidX Security Crypto (EncryptedSharedPreferences)
+# ──────────────────────────────────────────────────────────────────────
+-keep class androidx.security.crypto.** { *; }
+
+# ──────────────────────────────────────────────────────────────────────
+# DataStore Preferences
+# ──────────────────────────────────────────────────────────────────────
+-keep class androidx.datastore.** { *; }
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { *; }
+
+# ──────────────────────────────────────────────────────────────────────
+# Kotlinx Coroutines
+# ──────────────────────────────────────────────────────────────────────
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# Paging 3
+# ──────────────────────────────────────────────────────────────────────
+-keep class * extends androidx.paging.PagingSource
+
+# ──────────────────────────────────────────────────────────────────────
+# WorkManager
+# ──────────────────────────────────────────────────────────────────────
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.ListenableWorker
+-keepclassmembers class * {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# Compose Navigation — keep serializable destinations
+# ──────────────────────────────────────────────────────────────────────
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable <methods>;
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# R8 full mode compatibility
+# ──────────────────────────────────────────────────────────────────────
+-allowaccessmodification
+-repackageclasses ''

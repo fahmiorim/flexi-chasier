@@ -27,7 +27,13 @@ class SinkronisasiWorker(
 
         return when {
             hasil.berhasil -> Result.success()
-            hasil.kodeError == 401 || hasil.kodeError == 403 -> Result.failure()
+            hasil.kodeError == 401 || hasil.kodeError == 403 -> {
+                // Token/sesi tidak valid — bersihkan sesi agar aplikasi
+                // navigasi ke layar login.
+                kontainer.TokenStore.hapus()
+                kontainer.SesiStore.hapus()
+                Result.failure()
+            }
             else -> Result.retry()
         }
     }
