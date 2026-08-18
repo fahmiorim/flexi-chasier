@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB Printer class = 7 -->
+    <usb-device class="7" />
+    <!-- CDC Data class (common in USB-Serial printers) -->
+    <usb-device class="10" />
+</resources>

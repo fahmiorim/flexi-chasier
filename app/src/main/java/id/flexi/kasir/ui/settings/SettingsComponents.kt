@@ -431,12 +431,17 @@ internal fun BagianPrinter(
                             pesanBluetooth = "Bluetooth dalam keadaan mati. Nyalakan Bluetooth terlebih dahulu."
                             return@OutlinedButton
                         }
+                        val kataKunciPrinter = listOf(
+                            "printer", "thermal", "pos", "receipt",
+                            "mp", "tm-", "bixolon", "epson",
+                            "xprinter", "gprinter", "star", "citizen",
+                            "honeywell", "zebra", "custom", "argox",
+                            "datamax", "tsp", "sp-", "pp-", "vp-",
+                            "mobile", "bluetooth", "label",
+                        )
                         val devices = adapter.bondedDevices?.filter { device ->
                             val nama = device.name?.lowercase() ?: ""
-                            nama.contains("printer") || nama.contains("thermal") ||
-                                nama.contains("pos") || nama.contains("receipt") ||
-                                nama.contains("tm-") || nama.contains("epson") ||
-                                nama.contains("bixolon")
+                            kataKunciPrinter.any { kata -> nama.contains(kata) }
                         } ?: emptyList()
 
                         if (devices.isEmpty()) {

@@ -18,7 +18,9 @@ import id.flexi.kasir.domain.util.hitungTotalAkhirTransaction
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +55,12 @@ class ThermalPrinterManager(
         private const val KARAKTER_PER_BARIS_58 = 32
         private const val KARAKTER_PER_BARIS_80 = 48
 
+        /**
+         * Charset CP437 — encoding standar untuk kebanyakan printer thermal.
+         * Mendukung karakter Indonesia seperti é, è, ê, ë, à, â, ñ, dll.
+         */
+        private val CHARSET_CETAK: Charset = Charset.forName("CP437")
+
         private fun karakterPerBaris(lebar: LebarStruk): Int =
             when (lebar) {
                 LebarStruk.Mm58 -> KARAKTER_PER_BARIS_58
@@ -64,6 +72,20 @@ class ThermalPrinterManager(
                 LebarStruk.Mm58 -> LEBAR_MM_58
                 LebarStruk.Mm80 -> LEBAR_MM_80
             }
+
+        /**
+         * Kata kunci untuk auto-detect printer Bluetooth.
+         * Mencakup merek-merek umum: Epson, Bixolon, Star, Citizen, Xprinter,
+         * Gprinter, Honeywell, Zebra, Custom, Argox, Datamax, dll.
+         */
+        private val KATA_KUNCI_PRINTER_BT = listOf(
+            "printer", "thermal", "pos", "receipt",
+            "mp", "tm-", "bixolon", "epson",
+            "xprinter", "gprinter", "star", "citizen",
+            "honeywell", "zebra", "custom", "argox",
+            "datamax", "tsp", "sp-", "pp-", "vp-",
+            "mobile", "bluetooth", "label",
+        )
     }
 
     // ESC/POS Commands
@@ -199,10 +221,7 @@ class ThermalPrinterManager(
         return pairedDevices?.firstOrNull { device ->
             // Filter: biasanya printer thermal punya nama mengandung kata kunci
             val nama = device.name?.lowercase() ?: ""
-            nama.contains("printer") || nama.contains("thermal") ||
-                nama.contains("pos") || nama.contains("receipt") ||
-                nama.contains("mp") || nama.contains("tm-") ||
-                nama.contains("bixolon") || nama.contains("epson")
+            KATA_KUNCI_PRINTER_BT.any { kata -> nama.contains(kata) }
         }
     }
 
@@ -427,28 +446,29 @@ class ThermalPrinterManager(
         tagline: String = "",
     ): ByteArray {
         val transaksiAktif = daftarTransaksi.filter { !it.dibatalkan }
-        val lines = mutableListOf<ByteArray>()
-        lines.add(EscPos.INIT)
+        val output = ByteArrayOutputStream()
+
+        output.write(EscPos.INIT)
 
         // ── Header ──
-        lines.add(EscPos.ALIGN_CENTER)
+        output.write(EscPos.ALIGN_CENTER)
         val namaUsahaHeader = namaUsaha.ifBlank { "FLEXI KASIR" }
-        lines.add(EscPos.FONT_SIZE_BIG)
-        lines.add(namaUsahaHeader.toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write(namaUsahaHeader.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
         if (tagline.isNotBlank()) {
-            lines.add(EscPos.FONT_SIZE_NORMAL)
-            lines.add(tagline.take(karakterPerBaris(LebarStruk.Mm58)).toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
+            output.write(EscPos.FONT_SIZE_NORMAL)
+            output.write(tagline.take(karakterPerBaris(LebarStruk.Mm58)).toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
         }
-        lines.add(EscPos.FONT_SIZE_NORMAL)
-        lines.add("LAPORAN PENJUALAN".toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(garis().toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(labelPeriode.toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
+        output.write("LAPORAN PENJUALAN".toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(garis().toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(labelPeriode.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
 
         // ── Ringkasan ──
         val totalPenjualan = transaksiAktif.sumOf { it.hitungTotalAkhirTransaction() }
@@ -458,24 +478,24 @@ class ThermalPrinterManager(
             .sumOf { it.hitungTotalAkhirTransaction() }
         val jumlahItem = transaksiAktif.sumOf { t -> t.daftarCartItem.sumOf { it.jumlah } }
 
-        lines.add(EscPos.ALIGN_LEFT)
-        lines.add(EscPos.BOLD_ON)
-        lines.add(tulisDuaKolom("Total Transaksi", "${transaksiAktif.size}"))
-        lines.add(EscPos.LF)
-        lines.add(tulisDuaKolom("Total Item", "$jumlahItem"))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.BOLD_OFF)
-        lines.add(garisTitik().toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(tulisDuaKolom("Tunai", totalTunai.sebagaiRupiah()))
-        lines.add(EscPos.LF)
-        lines.add(tulisDuaKolom("QRIS", totalQris.sebagaiRupiah()))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.BOLD_ON)
-        lines.add(tulisDuaKolom("TOTAL", totalPenjualan.sebagaiRupiah()))
-        lines.add(EscPos.BOLD_OFF)
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
+        output.write(EscPos.ALIGN_LEFT)
+        output.write(EscPos.BOLD_ON)
+        output.write(tulisDuaKolom("Total Transaksi", "${transaksiAktif.size}"))
+        output.write(EscPos.LF)
+        output.write(tulisDuaKolom("Total Item", "$jumlahItem"))
+        output.write(EscPos.LF)
+        output.write(EscPos.BOLD_OFF)
+        output.write(garisTitik().toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(tulisDuaKolom("Tunai", totalTunai.sebagaiRupiah()))
+        output.write(EscPos.LF)
+        output.write(tulisDuaKolom("QRIS", totalQris.sebagaiRupiah()))
+        output.write(EscPos.LF)
+        output.write(EscPos.BOLD_ON)
+        output.write(tulisDuaKolom("TOTAL", totalPenjualan.sebagaiRupiah()))
+        output.write(EscPos.BOLD_OFF)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
 
         // ── Per Tanggal ──
         val fmtTgl = SimpleDateFormat("dd MMM yyyy", Locale("id", "ID"))
@@ -486,49 +506,49 @@ class ThermalPrinterManager(
 
         perTanggal.entries.forEach { (tanggal, daftar) ->
             val subTotal = daftar.sumOf { it.hitungTotalAkhirTransaction() }
-            lines.add(EscPos.BOLD_ON)
-            lines.add(tulisDuaKolom(tanggal, "${daftar.size} trx"))
-            lines.add(EscPos.BOLD_OFF)
-            lines.add(EscPos.LF)
-            lines.add(garisTitik().toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
+            output.write(EscPos.BOLD_ON)
+            output.write(tulisDuaKolom(tanggal, "${daftar.size} trx"))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
+            output.write(garisTitik().toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
 
             daftar.forEach { t ->
                 val waktu = fmtJam.format(Date(t.waktuTransactionEpochMili))
                 val idPendek = t.id.take(8).uppercase()
                 val metode = if (t.paymentMethod == id.flexi.kasir.domain.model.PaymentMethod.Cash) "TN" else "QR"
                 val totalTrans = t.hitungTotalAkhirTransaction().sebagaiRupiah()
-                lines.add("$waktu $idPendek [$metode]".toByteArray(charset("US-ASCII")))
-                lines.add(EscPos.LF)
-                lines.add(EscPos.ALIGN_RIGHT)
-                lines.add(totalTrans.toByteArray(charset("US-ASCII")))
-                lines.add(EscPos.LF)
-                lines.add(EscPos.ALIGN_LEFT)
+                output.write("$waktu $idPendek [$metode]".toByteArray(CHARSET_CETAK))
+                output.write(EscPos.LF)
+                output.write(EscPos.ALIGN_RIGHT)
+                output.write(totalTrans.toByteArray(CHARSET_CETAK))
+                output.write(EscPos.LF)
+                output.write(EscPos.ALIGN_LEFT)
             }
 
-            lines.add(EscPos.BOLD_ON)
-            lines.add(tulisDuaKolom("Subtotal", subTotal.sebagaiRupiah()))
-            lines.add(EscPos.BOLD_OFF)
-            lines.add(EscPos.LF)
-            lines.add(EscPos.LF)
+            output.write(EscPos.BOLD_ON)
+            output.write(tulisDuaKolom("Subtotal", subTotal.sebagaiRupiah()))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
+            output.write(EscPos.LF)
         }
 
         // ── Footer ──
-        lines.add(EscPos.ALIGN_CENTER)
-        lines.add(garis().toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.FONT_SIZE_BIG)
-        lines.add("Terima Kasih".toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.FONT_SIZE_NORMAL)
-        lines.add("www.flexikasir.id".toByteArray(charset("US-ASCII")))
+        output.write(EscPos.ALIGN_CENTER)
+        output.write(garis().toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write("Terima Kasih".toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
+        output.write("www.flexikasir.id".toByteArray(CHARSET_CETAK))
 
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
-        lines.add(EscPos.CUT)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.CUT)
 
-        return lines.fold(ByteArray(0)) { acc, bytes -> acc + bytes }
+        return output.toByteArray()
     }
 
     /**
@@ -554,16 +574,16 @@ class ThermalPrinterManager(
         if (jumlahCopy <= 1) return singleCopy
 
         // Multiple copies: gabungkan dengan potongan kertas di antaranya
-        val copies = mutableListOf<ByteArray>()
+        val output = ByteArrayOutputStream()
         for (i in 1..jumlahCopy) {
             if (i > 1) {
                 // Feed kertas sedikit agar ada jarak antar copy
-                copies.add(EscPos.LF)
-                copies.add(EscPos.LF)
+                output.write(EscPos.LF)
+                output.write(EscPos.LF)
             }
-            copies.add(buildSingleByteStruk(Transaction, waktuCetak, subtotal, settings, lebar))
+            output.write(singleCopy)
         }
-        return copies.fold(ByteArray(0)) { acc, bytes -> acc + bytes }
+        return output.toByteArray()
     }
 
     private fun buildSingleByteStruk(
@@ -573,57 +593,57 @@ class ThermalPrinterManager(
         settings: StoreSetting,
         lebar: Int,
     ): ByteArray {
-        val lines = mutableListOf<ByteArray>()
+        val output = ByteArrayOutputStream()
 
         // Initialize
-        lines.add(EscPos.INIT)
+        output.write(EscPos.INIT)
 
         // ── Header ──
-        lines.add(EscPos.ALIGN_CENTER)
+        output.write(EscPos.ALIGN_CENTER)
         val namaHeader = settings.namaUsaha.ifBlank { "FLEXI KASIR" }
-        lines.add(EscPos.FONT_SIZE_BIG)
-        lines.add(namaHeader.toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write(namaHeader.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
 
         // Tagline (jika ada)
         if (settings.tagline.isNotBlank()) {
-            lines.add(EscPos.FONT_SIZE_NORMAL)
-            lines.add(settings.tagline.take(lebar).toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
+            output.write(EscPos.FONT_SIZE_NORMAL)
+            output.write(settings.tagline.take(lebar).toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
         }
 
         // Header custom
         if (settings.strukHeader.isNotBlank()) {
-            lines.add(EscPos.FONT_SIZE_NORMAL)
+            output.write(EscPos.FONT_SIZE_NORMAL)
             settings.strukHeader.lines().forEach { baris ->
-                lines.add(baris.take(lebar).toByteArray(charset("US-ASCII")))
-                lines.add(EscPos.LF)
+                output.write(baris.take(lebar).toByteArray(CHARSET_CETAK))
+                output.write(EscPos.LF)
             }
         }
 
-        lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
 
         // Info transaksi
-        lines.add(EscPos.ALIGN_CENTER)
-        lines.add(Transaction.id.take(8).uppercase().toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(waktuCetak.toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(Transaction.orderType.name.toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(EscPos.ALIGN_CENTER)
+        output.write(Transaction.id.take(8).uppercase().toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(waktuCetak.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(Transaction.orderType.name.toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
         Transaction.nomorAntrian?.let {
-            lines.add(EscPos.BOLD_ON)
-            lines.add("No. Antrian: $it".toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.BOLD_OFF)
-            lines.add(EscPos.LF)
+            output.write(EscPos.BOLD_ON)
+            output.write("No. Antrian: $it".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
         }
 
-        lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
 
         // Daftar item
-        lines.add(EscPos.ALIGN_LEFT)
+        output.write(EscPos.ALIGN_LEFT)
         val maxNamaPanjang = (lebar * 0.6).toInt().coerceIn(15, 30)
         Transaction.daftarCartItem.forEach { item ->
             val hargaSatuan = item.varian?.harga ?: item.produk.harga
@@ -635,104 +655,104 @@ class ThermalPrinterManager(
             val hargaStr = hargaSatuan.sebagaiRupiah()
             val subtotalItem = (hargaSatuan * item.jumlah).sebagaiRupiah()
 
-            lines.add(namaCetak.toByteArray(charset("US-ASCII")))
+            output.write(namaCetak.toByteArray(CHARSET_CETAK))
 
-            lines.add(nama.toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
-            lines.add(EscPos.BOLD_ON)
+            output.write(nama.toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+            output.write(EscPos.BOLD_ON)
             val barisItem = "${item.jumlah} x $hargaStr"
             val padding = " ".repeat(maxOf(0, lebar - barisItem.length - subtotalItem.length - 2))
-            lines.add("$barisItem$padding$subtotalItem".toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.BOLD_OFF)
-            lines.add(EscPos.LF)
+            output.write("$barisItem$padding$subtotalItem".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
         }
 
-        lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
 
         // Rincian biaya
-        lines.add(EscPos.ALIGN_LEFT)
-        lines.add(tulisDuaKolom("Subtotal", subtotal.sebagaiRupiah(), lebar))
-        lines.add(EscPos.LF)
+        output.write(EscPos.ALIGN_LEFT)
+        output.write(tulisDuaKolom("Subtotal", subtotal.sebagaiRupiah(), lebar))
+        output.write(EscPos.LF)
         if (Transaction.potongan.nilaiRupiah > 0) {
-            lines.add(tulisDuaKolom("Potongan", "-${Transaction.potongan.sebagaiRupiah()}", lebar))
-            lines.add(EscPos.LF)
+            output.write(tulisDuaKolom("Potongan", "-${Transaction.potongan.sebagaiRupiah()}", lebar))
+            output.write(EscPos.LF)
         }
         if (settings.tampilkanPajakDiStruk) {
             if (Transaction.biayaLayanan.nilaiRupiah > 0) {
-                lines.add(tulisDuaKolom("Biaya Layanan", Transaction.biayaLayanan.sebagaiRupiah(), lebar))
-                lines.add(EscPos.LF)
+                output.write(tulisDuaKolom("Biaya Layanan", Transaction.biayaLayanan.sebagaiRupiah(), lebar))
+                output.write(EscPos.LF)
             }
             if (Transaction.pajak.nilaiRupiah > 0) {
-                lines.add(tulisDuaKolom("Pajak", Transaction.pajak.sebagaiRupiah(), lebar))
-                lines.add(EscPos.LF)
+                output.write(tulisDuaKolom("Pajak", Transaction.pajak.sebagaiRupiah(), lebar))
+                output.write(EscPos.LF)
             }
         }
 
-        lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
 
         // Total akhir persis sama dengan nilai transaksi tersimpan (termasuk
         // clamp potongan di TransactionCostBreakdown).
         val totalVal = Transaction.hitungTotalAkhirTransaction()
-        lines.add(EscPos.BOLD_ON)
-        lines.add(tulisDuaKolom("Total", totalVal.sebagaiRupiah(), lebar))
-        lines.add(EscPos.BOLD_OFF)
-        lines.add(EscPos.LF)
+        output.write(EscPos.BOLD_ON)
+        output.write(tulisDuaKolom("Total", totalVal.sebagaiRupiah(), lebar))
+        output.write(EscPos.BOLD_OFF)
+        output.write(EscPos.LF)
 
         // Pembayaran: metode (Tunai/QRIS), nominal dibayar, dan kembalian.
         val nominalDibayar = Transaction.uangDibayar.nilaiRupiah
         if (nominalDibayar > 0) {
-            lines.add(tulisDuaKolom(Transaction.paymentMethod.label, nominalDibayar.sebagaiRupiah(), lebar))
-            lines.add(EscPos.LF)
+            output.write(tulisDuaKolom(Transaction.paymentMethod.label, nominalDibayar.sebagaiRupiah(), lebar))
+            output.write(EscPos.LF)
             val kembalian = hitungKembalian(nominalDibayar, totalVal)
             if (kembalian > 0) {
-                lines.add(tulisDuaKolom("Kembalian", kembalian.sebagaiRupiah(), lebar))
-                lines.add(EscPos.LF)
+                output.write(tulisDuaKolom("Kembalian", kembalian.sebagaiRupiah(), lebar))
+                output.write(EscPos.LF)
             }
         }
 
         // Catatan
         if (!Transaction.catatan.isNullOrBlank()) {
-            lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
-            lines.add(EscPos.ALIGN_CENTER)
-            lines.add(EscPos.BOLD_ON)
-            lines.add("Catatan:".toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.BOLD_OFF)
-            lines.add(EscPos.LF)
-            lines.add(Transaction.catatan.toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
+            output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+            output.write(EscPos.ALIGN_CENTER)
+            output.write(EscPos.BOLD_ON)
+            output.write("Catatan:".toByteArray(CHARSET_CETAK))
+            output.write(EscPos.BOLD_OFF)
+            output.write(EscPos.LF)
+            output.write(Transaction.catatan.toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
         }
 
         // Footer custom
         if (settings.strukFooter.isNotBlank()) {
-            lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-            lines.add(EscPos.LF)
-            lines.add(EscPos.ALIGN_CENTER)
+            output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+            output.write(EscPos.LF)
+            output.write(EscPos.ALIGN_CENTER)
             settings.strukFooter.lines().forEach { baris ->
-                lines.add(baris.take(lebar).toByteArray(charset("US-ASCII")))
-                lines.add(EscPos.LF)
+                output.write(baris.take(lebar).toByteArray(CHARSET_CETAK))
+                output.write(EscPos.LF)
             }
         }
 
         // Footer standar
-        lines.add(EscPos.ALIGN_CENTER)
-        lines.add(garis(lebar).toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.FONT_SIZE_BIG)
-        lines.add("Terima Kasih".toByteArray(charset("US-ASCII")))
-        lines.add(EscPos.LF)
-        lines.add(EscPos.FONT_SIZE_NORMAL)
-        lines.add("www.flexikasir.id".toByteArray(charset("US-ASCII")))
+        output.write(EscPos.ALIGN_CENTER)
+        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_BIG)
+        output.write("Terima Kasih".toByteArray(CHARSET_CETAK))
+        output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
+        output.write("www.flexikasir.id".toByteArray(CHARSET_CETAK))
 
         // Feed + Cut
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
-        lines.add(EscPos.LF)
-        lines.add(EscPos.CUT)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
+        output.write(EscPos.CUT)
 
-        return lines.fold(ByteArray(0)) { acc, bytes -> acc + bytes }
+        return output.toByteArray()
     }
 
     /**
@@ -742,7 +762,7 @@ class ThermalPrinterManager(
         val maxPanjang = lebar
         val bersihKiri = kiri.take(maxPanjang - kanan.length - 2)
         val padding = " ".repeat(maxOf(0, maxPanjang - bersihKiri.length - kanan.length))
-        return "$bersihKiri$padding$kanan".toByteArray(charset("US-ASCII"))
+        return "$bersihKiri$padding$kanan".toByteArray(CHARSET_CETAK)
     }
 
     private fun garis(lebar: Int = 32): String = "=".repeat(lebar)
