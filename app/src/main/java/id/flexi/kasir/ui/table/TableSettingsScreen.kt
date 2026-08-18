@@ -30,8 +30,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.TableRestaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
+
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,6 +60,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -102,8 +103,14 @@ fun SettingsScreenMeja(
     var draftBaris by remember(state.barisStr) { mutableStateOf(state.barisStr) }
     var draftKolom by remember(state.kolomStr) { mutableStateOf(state.kolomStr) }
 
-    val grid = remember(state.daftarMeja, state.jumlahBaris, state.jumlahKolom) {
-        state.gridNomorMeja()
+    // Hitung jumlah baris/kolom dari draft agar grid update live saat ketik
+    val liveBaris = draftBaris.filter { it.isDigit() }.take(2).toIntOrNull()
+        ?.coerceIn(1, 12) ?: state.jumlahBaris
+    val liveKolom = draftKolom.filter { it.isDigit() }.take(2).toIntOrNull()
+        ?.coerceIn(1, 12) ?: state.jumlahKolom
+
+    val grid = remember(state.daftarMeja, liveBaris, liveKolom) {
+        state.gridNomorMejaDenganUkuran(liveBaris, liveKolom)
     }
 
     Scaffold(
@@ -162,17 +169,19 @@ fun SettingsScreenMeja(
                     shape = MaterialTheme.shapes.small,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                FlexiGradientButton(
-                    onClick = {
-                        perbaruiJumlahBaris(draftBaris)
-                        perbaruiJumlahKolom(draftKolom)
-                        saatSimpanGrid()
-                    },
-                    text = "Simpan",
-                    fillWidth = false,
-                    modifier = Modifier.heightIn(min = 56.dp),
-                )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FlexiGradientButton(
+                onClick = {
+                    perbaruiJumlahBaris(draftBaris)
+                    perbaruiJumlahKolom(draftKolom)
+                    saatSimpanGrid()
+                },
+                text = "Simpan Grid",
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -186,12 +195,12 @@ fun SettingsScreenMeja(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    for (baris in 0..<state.jumlahBaris) {
+                    for (baris in 0..<liveBaris) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            for (kolom in 0..<state.jumlahKolom) {
+                            for (kolom in 0..<liveKolom) {
                                 val nomorMeja = grid[baris][kolom]
                                 KotakMeja(
                                     nomor = nomorMeja,
@@ -396,26 +405,37 @@ private fun KotakMeja(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val bgColor: Color
+    val borderColor: Color
+    val elevation: Dp
     if (nomor != null) {
-        ElevatedCard(
-            onClick = onClick,
-            modifier = modifier
-                .height(100.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-            ),
+        bgColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+        elevation = 2.dp
+    } else {
+        bgColor = MaterialTheme.colorScheme.surface
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        elevation = 0.5.dp
+    }
+    Surface(
+        modifier = modifier
+            .height(100.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = bgColor,
+        shadowElevation = elevation,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
+            if (nomor != null) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Default.TableRestaurant,
@@ -431,28 +451,7 @@ private fun KotakMeja(
                         textAlign = TextAlign.Center,
                     )
                 }
-            }
-        }
-    } else {
-        ElevatedCard(
-            onClick = onClick,
-            modifier = modifier
-                .height(100.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.5.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
+            } else {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Tambah meja",

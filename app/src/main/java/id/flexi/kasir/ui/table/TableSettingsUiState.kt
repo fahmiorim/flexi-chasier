@@ -13,11 +13,14 @@ data class SettingsUiStateMeja(
     val jumlahBaris: Int get() = barisStr.filter { it.isDigit() }.take(2).toIntOrNull() ?: 3
     val jumlahKolom: Int get() = kolomStr.filter { it.isDigit() }.take(2).toIntOrNull() ?: 4
     fun gridNomorMeja(): List<List<String?>> {
-        val grid = MutableList(jumlahBaris) { MutableList<String?>(jumlahKolom) { null } }
+        return gridNomorMejaDenganUkuran(jumlahBaris, jumlahKolom)
+    }
+    fun gridNomorMejaDenganUkuran(baris: Int, kolom: Int): List<List<String?>> {
+        val grid = MutableList(baris) { MutableList<String?>(kolom) { null } }
         for (meja in daftarMeja) {
-            val (baris, kolom) = meja.posisiGrid() ?: continue
-            if (baris in 0..<jumlahBaris && kolom in 0..<jumlahKolom) {
-                grid[baris][kolom] = meja.nomor
+            val (b, k) = meja.posisiGrid() ?: continue
+            if (b in 0..<baris && k in 0..<kolom) {
+                grid[b][k] = meja.nomor
             }
         }
         return grid

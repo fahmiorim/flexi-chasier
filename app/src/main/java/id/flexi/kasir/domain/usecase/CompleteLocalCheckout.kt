@@ -148,15 +148,7 @@ class CompleteLocalCheckout(
             }
         }
 
-        if (basisData != null) {
-            basisData.runInTransaction {
-                kotlinx.coroutines.runBlocking {
-                    aksiDatabase()
-                }
-            }
-        } else {
-            aksiDatabase()
-        }
+        aksiDatabase()
 
         if (mejaId != null) {
             val sudahLunas = status == TransactionStatus.Processing || status == TransactionStatus.Paid

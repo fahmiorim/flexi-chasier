@@ -861,7 +861,8 @@ class CashierMainViewModel(
                     pesan = kesalahanValidasi.message
                         ?: "Transaction belum valid untuk disimpan.",
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("CashierVM", "Checkout gagal", e)
                 _statusElemenLayar.update { statusLama ->
                     statusLama.copy(
                         apakahDialogKonfirmasiCheckoutTampil = false,
@@ -869,7 +870,7 @@ class CashierMainViewModel(
                     )
                 }
 
-                kirimPesanSingkat("Transaction belum tersimpan. Coba lagi.")
+                kirimPesanSingkat("Gagal: ${e.message ?: e.javaClass.simpleName}")
             }
         }
     }

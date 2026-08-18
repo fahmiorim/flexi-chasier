@@ -208,7 +208,7 @@ private fun BagianGambarProduk(
 ) {
     val indeksWarna = namaProduk.hashCode().let { (it and Int.MAX_VALUE) % WarnaAksenProduk.size }
     val warnaAksen = WarnaAksenProduk[indeksWarna]
-    val inisial = namaProduk.split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
+    val inisial = namaProduk.split(" ").map { it.filter { c -> c.isLetter() } }.filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
 
     val punyaFoto = fotoUri != null
     Surface(
