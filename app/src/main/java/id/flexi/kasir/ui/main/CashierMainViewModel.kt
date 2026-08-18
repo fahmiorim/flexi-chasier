@@ -41,6 +41,7 @@ import id.flexi.kasir.domain.model.OrderType
 import id.flexi.kasir.domain.model.Uang
 import id.flexi.kasir.data.sync.SinkronStatusPengamat
 import id.flexi.kasir.data.sync.SinkronStatusLokal
+import id.flexi.kasir.data.auth.KategoriUrutanStore
 import id.flexi.kasir.ui.SinkronMesinStatus
 import id.flexi.kasir.ui.keSinkronMesinStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -88,6 +89,7 @@ class CashierMainViewModel(
     private val SelesaikanTransaction: SelesaikanTransaction,
     private val amatiKasAktif: AmatiKasAktif,
     private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
+    private val kategoriUrutanStore: KategoriUrutanStore,
 ) : ViewModel() {
 
     private val daftarProdukPenuh = LoadProductCatalog.eksekusi()
@@ -116,6 +118,13 @@ class CashierMainViewModel(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = null,
+        )
+
+    private val urutanKategoriKustom = kategoriUrutanStore.urutanKategori
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyList(),
         )
 
     private val daftarPesananPending = ObservePendingOrders()
@@ -254,7 +263,8 @@ class CashierMainViewModel(
     val modelTampilan = combine(
         statusIntiModelTampilan,
         statusSinkronMesin,
-    ) { inti, sinkronMesin ->
+        urutanKategoriKustom,
+    ) { inti, sinkronMesin, urutanKategori ->
         val perluBukaKas = shiftKasDimuat && inti.statusPengaturan.StoreSetting.manajemenKasAktif && inti.shiftAktif == null
         bentukModelTampilan(
             daftarProdukPenuh = inti.statusDasar.daftarProdukPenuh,
@@ -271,6 +281,7 @@ class CashierMainViewModel(
             kategoriTerpilih = inti.statusNavigasi.kategoriTerpilih,
             apakahPerluBukaKas = perluBukaKas,
             sinkronMesinStatus = sinkronMesin,
+            urutanKategoriKustom = urutanKategori,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -291,11 +302,13 @@ class CashierMainViewModel(
         viewModelScope.launch {
             daftarProdukPenuh.collect { produk ->
                 if (_tabTransaksi.value == 1 && _kategoriTerpilih.value.isBlank() && produk.isNotEmpty()) {
-                    val kategoriPertama = produk.map { it.kategori }
+                    val kategoriList = produk.map { it.kategori }
                         .filter { it.isNotBlank() }
                         .distinct()
-                        .sorted()
-                        .firstOrNull()
+                    val kategoriPertama = KategoriUrutanStore.urutkan(
+                        kategori = kategoriList,
+                        urutanKustom = urutanKategoriKustom.value,
+                    ).firstOrNull()
                     if (kategoriPertama != null) {
                         _kategoriTerpilih.value = kategoriPertama
                     }
@@ -361,11 +374,13 @@ class CashierMainViewModel(
                 if (aksi.tab == 1) {
                     // Auto-pilih kategori pertama saat masuk tab Produk
                     val produk = daftarProdukPenuh.value
-                    val kategoriPertama = produk.map { it.kategori }
+                    val kategoriList = produk.map { it.kategori }
                         .filter { it.isNotBlank() }
                         .distinct()
-                        .sorted()
-                        .firstOrNull()
+                    val kategoriPertama = KategoriUrutanStore.urutkan(
+                        kategori = kategoriList,
+                        urutanKustom = urutanKategoriKustom.value,
+                    ).firstOrNull()
                     _kategoriTerpilih.value = kategoriPertama ?: ""
                 } else {
                     _kategoriTerpilih.value = ""
@@ -385,6 +400,11 @@ class CashierMainViewModel(
             }
             CashierMainAction.BatalkanPilihVarian -> {
                 _statusElemenLayar.update { it.copy(produkUntukPilihVarian = null) }
+            }
+            is CashierMainAction.UbahUrutanKategori -> {
+                viewModelScope.launch {
+                    kategoriUrutanStore.simpanUrutan(aksi.urutanBaru)
+                }
             }
         }
     }

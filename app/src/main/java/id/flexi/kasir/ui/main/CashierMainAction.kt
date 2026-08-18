@@ -205,4 +205,11 @@ sealed interface CashierMainAction {
      */
     data object BatalkanPilihVarian : CashierMainAction
 
+    /**
+     * Aksi saat pengguna mengubah urutan kategori via drag & drop.
+     */
+    data class UbahUrutanKategori(
+        val urutanBaru: List<String>,
+    ) : CashierMainAction
+
 }

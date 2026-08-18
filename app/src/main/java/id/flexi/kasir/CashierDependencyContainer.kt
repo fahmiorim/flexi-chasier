@@ -3,6 +3,7 @@ package id.flexi.kasir
 import android.content.Context
 import androidx.room.Room
 import kotlinx.coroutines.flow.first
+import id.flexi.kasir.data.auth.KategoriUrutanStore
 import id.flexi.kasir.data.auth.SesiStore
 import id.flexi.kasir.data.auth.TokenStore
 import id.flexi.kasir.data.network.config.CashierNetworkConfig
@@ -524,6 +525,13 @@ class CashierDependencyContainer(
      */
     val SesiStore: SesiStore by lazy {
         SesiStore(konteks.applicationContext)
+    }
+
+    /**
+     * Penyimpanan urutan kustom kategori produk.
+     */
+    val KategoriUrutanStore: KategoriUrutanStore by lazy {
+        KategoriUrutanStore(konteks.applicationContext)
     }
 
     /**

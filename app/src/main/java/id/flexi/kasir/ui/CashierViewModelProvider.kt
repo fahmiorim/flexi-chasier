@@ -49,6 +49,7 @@ object CashierViewModelProvider {
                 SelesaikanTransaction = aplikasi.kontainer.SelesaikanTransaction,
                 amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
                 sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
+                kategoriUrutanStore = aplikasi.kontainer.KategoriUrutanStore,
             )
         }
 

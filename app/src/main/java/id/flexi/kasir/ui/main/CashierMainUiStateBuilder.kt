@@ -16,6 +16,7 @@ import id.flexi.kasir.domain.model.SyncStatus
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.Uang
 import id.flexi.kasir.ui.SinkronMesinStatus
+import id.flexi.kasir.data.auth.KategoriUrutanStore
 import java.time.format.DateTimeFormatter
 
 /**
@@ -53,13 +54,16 @@ class BentukCashierMainUiState {
         kategoriTerpilih: String = "",
         apakahPerluBukaKas: Boolean = false,
         sinkronMesinStatus: SinkronMesinStatus = SinkronMesinStatus(),
+        urutanKategoriKustom: List<String> = emptyList(),
     ): CashierMainUiState {
         val daftarCartItem = TransactionStatus.daftarCartItem
 
-        val daftarKategori = daftarProdukPenuh.map { it.kategori }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .sorted()
+        val daftarKategori = KategoriUrutanStore.urutkan(
+            kategori = daftarProdukPenuh.map { it.kategori }
+                .filter { it.isNotBlank() }
+                .distinct(),
+            urutanKustom = urutanKategoriKustom,
+        )
 
         val produkSetelahTab = when (tabTransaksi) {
             0 -> emptyList()

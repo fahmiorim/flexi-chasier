@@ -1,5 +1,6 @@
 package id.flexi.kasir.ui.main
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,15 +40,22 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import id.flexi.kasir.ui.component.FlexiGradientButton
 import id.flexi.kasir.ui.component.KatalogMemuatStatus
 import id.flexi.kasir.ui.component.SimpleEmptyStatus
@@ -221,24 +230,13 @@ internal fun CashierPhoneLayout(
             )
         }
 
-        if (modelTampilan.tabTransaksi == 1 && modelTampilan.daftarKategori.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                modelTampilan.daftarKategori.forEach { kategori ->
-                    FilterChip(
-                        selected = modelTampilan.kategoriTerpilih == kategori,
-                        onClick = {
-                            saatAksiDikirim(CashierMainAction.UbahKategoriTerpilih(kategori))
-                        },
-                        label = { Text(kategori) },
-                    )
-                }
-            }
+        if (modelTampilan.tabTransaksi == 1) {
+            BarisKategori(
+                daftarKategori = modelTampilan.daftarKategori,
+                kategoriTerpilih = modelTampilan.kategoriTerpilih,
+                saatPilihKategori = { saatAksiDikirim(CashierMainAction.UbahKategoriTerpilih(it)) },
+                saatUrutanBerubah = { saatAksiDikirim(CashierMainAction.UbahUrutanKategori(it)) },
+            )
         }
 
         LazyColumn(
@@ -401,24 +399,13 @@ internal fun CashierTabletLayout(
             )
         }
 
-        if (modelTampilan.tabTransaksi == 1 && modelTampilan.daftarKategori.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                modelTampilan.daftarKategori.forEach { kategori ->
-                    FilterChip(
-                        selected = modelTampilan.kategoriTerpilih == kategori,
-                        onClick = {
-                            saatAksiDikirim(CashierMainAction.UbahKategoriTerpilih(kategori))
-                        },
-                        label = { Text(kategori) },
-                    )
-                }
-            }
+        if (modelTampilan.tabTransaksi == 1) {
+            BarisKategori(
+                daftarKategori = modelTampilan.daftarKategori,
+                kategoriTerpilih = modelTampilan.kategoriTerpilih,
+                saatPilihKategori = { saatAksiDikirim(CashierMainAction.UbahKategoriTerpilih(it)) },
+                saatUrutanBerubah = { saatAksiDikirim(CashierMainAction.UbahUrutanKategori(it)) },
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -587,6 +574,89 @@ private fun PendingOrdersTabletButton(
                 contentDescription = "Buka",
                 modifier = Modifier.size(16.dp),
                 tint = warna,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun BarisKategori(
+    daftarKategori: List<String>,
+    kategoriTerpilih: String,
+    saatPilihKategori: (String) -> Unit,
+    saatUrutanBerubah: (List<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (daftarKategori.isEmpty()) return
+
+    var daftarLokal by remember { mutableStateOf(daftarKategori) }
+    var indeksDrag by remember { mutableIntStateOf(-1) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val tokenDrag = remember { Any() }
+
+    LaunchedEffect(daftarKategori) {
+        daftarLokal = daftarKategori
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        daftarLokal.forEachIndexed { indeks, kategori ->
+            val isDragged = indeksDrag == indeks
+
+            FilterChip(
+                selected = kategoriTerpilih == kategori,
+                onClick = { saatPilihKategori(kategori) },
+                label = { Text(kategori) },
+                modifier = Modifier
+                    .offset { IntOffset(if (isDragged) offsetX.roundToInt() else 0, 0) }
+                    .graphicsLayer {
+                        if (isDragged) {
+                            scaleX = 1.08f
+                            scaleY = 1.08f
+                            alpha = 0.9f
+                        }
+                    }
+                    .pointerInput(tokenDrag) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                indeksDrag = indeks
+                                offsetX = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                offsetX += dragAmount.x
+                                val chipLebar = 120f
+                                val geser = (offsetX / chipLebar).toInt()
+                                if (geser != 0) {
+                                    val dari = indeksDrag
+                                    val ke = (dari + geser).coerceIn(0, daftarLokal.lastIndex)
+                                    if (dari != ke) {
+                                        val mutable = daftarLokal.toMutableList()
+                                        val item = mutable.removeAt(dari)
+                                        mutable.add(ke, item)
+                                        daftarLokal = mutable
+                                        offsetX -= geser * chipLebar
+                                        indeksDrag = ke
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                indeksDrag = -1
+                                offsetX = 0f
+                                saatUrutanBerubah(daftarLokal)
+                            },
+                            onDragCancel = {
+                                indeksDrag = -1
+                                offsetX = 0f
+                                daftarLokal = daftarKategori
+                            },
+                        )
+                    },
             )
         }
     }
