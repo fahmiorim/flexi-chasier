@@ -27,6 +27,7 @@ class SettingsViewModel(
     private val amatiStorePreference: AmatiStorePreference,
     private val simpanStorePreference: SimpanStorePreference,
     private val sinkronStatusPengamat: SinkronStatusPengamat? = null,
+    private val thermalPrinterManager: id.flexi.kasir.print.ThermalPrinterManager? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -265,5 +266,37 @@ class SettingsViewModel(
 
     fun bersihkanPesanSinkronisasi() {
         _state.update { it.copy(pesanSinkronisasi = null) }
+    }
+
+    /**
+     * Menampilkan pesan snackbar (untuk test print, dll).
+     */
+    fun kirimPesan(pesan: String) {
+        _state.update { it.copy(pesanBerhasil = pesan) }
+    }
+
+    /**
+     * Test print ke printer yang dipilih.
+     */
+    fun testPrint() {
+        val manager = thermalPrinterManager ?: run {
+            _state.update { it.copy(pesanBerhasil = "Printer tidak tersedia.") }
+            return
+        }
+        viewModelScope.launch {
+            val s = _state.value
+            val result = manager.testPrint(
+                printerType = s.printerType,
+                printerAddress = s.printerAddress,
+            )
+            when (result) {
+                is id.flexi.kasir.print.PrintResult.Berhasil -> {
+                    _state.update { it.copy(pesanBerhasil = "Test print berhasil!") }
+                }
+                is id.flexi.kasir.print.PrintResult.Gagal -> {
+                    _state.update { it.copy(pesanBerhasil = "Test print gagal: ${result.pesan}") }
+                }
+            }
+        }
     }
 }

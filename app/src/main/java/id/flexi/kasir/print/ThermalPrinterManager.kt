@@ -78,13 +78,15 @@ class ThermalPrinterManager(
          * Mencakup merek-merek umum: Epson, Bixolon, Star, Citizen, Xprinter,
          * Gprinter, Honeywell, Zebra, Custom, Argox, Datamax, dll.
          */
+        /**
+         * Kata kunci untuk auto-detect printer Bluetooth.
+         * Masih dipakai di cetakStruk() untuk fallback jika user belum pilih printer.
+         */
         private val KATA_KUNCI_PRINTER_BT = listOf(
             "printer", "thermal", "pos", "receipt",
-            "mp", "tm-", "bixolon", "epson",
+            "bixolon", "epson",
             "xprinter", "gprinter", "star", "citizen",
-            "honeywell", "zebra", "custom", "argox",
-            "datamax", "tsp", "sp-", "pp-", "vp-",
-            "mobile", "bluetooth", "label",
+            "honeywell", "zebra", "custom",
         )
     }
 
@@ -134,6 +136,106 @@ class ThermalPrinterManager(
             PrintResult.Gagal("Izin Bluetooth tidak diberikan. Periksa pengaturan izin.")
         } catch (e: Exception) {
             PrintResult.Gagal("Gagal mencetak: ${e.message ?: "Kesalahan tidak diketahui"}")
+        }
+    }
+
+    /**
+     * Mengirim test print ke printer tertentu (untuk verifikasi koneksi).
+     */
+    suspend fun testPrint(
+        printerType: id.flexi.kasir.domain.model.PrinterType,
+        printerAddress: String,
+    ): PrintResult = withContext(Dispatchers.IO) {
+        try {
+            when (printerType) {
+                id.flexi.kasir.domain.model.PrinterType.Bluetooth -> {
+                    val manager = konteks.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                    val adapter = manager?.adapter
+                        ?: return@withContext PrintResult.Gagal("Bluetooth tidak tersedia.")
+                    val device = if (printerAddress.isNotBlank()) {
+                        adapter.getRemoteDevice(printerAddress)
+                    } else {
+                        cariPrinterBluetooth()
+                            ?: return@withContext PrintResult.Gagal("Printer Bluetooth tidak ditemukan.")
+                    }
+                    var socket: BluetoothSocket? = null
+                    try {
+                        socket = device.createRfcommSocketToServiceRecord(UUID_SPP)
+                        socket.connect()
+                        val output = socket.outputStream
+                        // Kirim test page
+                        output.write(EscPos.INIT)
+                        output.write(EscPos.ALIGN_CENTER)
+                        output.write(EscPos.FONT_SIZE_BIG)
+                        output.write("FLEXI KASIR".toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write(EscPos.FONT_SIZE_NORMAL)
+                        output.write("= Test Print =".toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write(garis(karakterPerBaris(LebarStruk.Mm80)).toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write(EscPos.ALIGN_LEFT)
+                        output.write("Printer berhasil terkoneksi!".toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write("Waktu: ${SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale("id", "ID")).format(Date())}".toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write(EscPos.ALIGN_CENTER)
+                        output.write(garis(karakterPerBaris(LebarStruk.Mm80)).toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write("www.flexikasir.id".toByteArray(CHARSET_CETAK))
+                        output.write(EscPos.LF)
+                        output.write(EscPos.LF)
+                        output.write(EscPos.LF)
+                        output.write(EscPos.CUT)
+                        output.flush()
+                        PrintResult.Berhasil
+                    } finally {
+                        try { socket?.close() } catch (_: Exception) {}
+                    }
+                }
+                id.flexi.kasir.domain.model.PrinterType.Usb -> {
+                    val device = cariPrinterUsb()
+                        ?: return@withContext PrintResult.Gagal("Printer USB tidak terdeteksi.")
+                    val usbManager = konteks.getSystemService(Context.USB_SERVICE) as? UsbManager
+                        ?: return@withContext PrintResult.Gagal("USB tidak tersedia.")
+                    if (!usbManager.hasPermission(device)) {
+                        return@withContext PrintResult.Gagal("Izin USB belum diberikan.")
+                    }
+                    val connection = usbManager.openDevice(device)
+                        ?: return@withContext PrintResult.Gagal("Gagal buka koneksi USB.")
+                    try {
+                        val usbInterface = device.getInterface(0)
+                        connection.claimInterface(usbInterface, true)
+                        val endpointOut = (0 until usbInterface.endpointCount)
+                            .map { usbInterface.getEndpoint(it) }
+                            .firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_BULK && it.direction == UsbConstants.USB_DIR_OUT }
+                            ?: return@withContext PrintResult.Gagal("Tidak ada endpoint OUT.")
+                        val testBytes = ByteArrayOutputStream()
+                        testBytes.write(EscPos.INIT)
+                        testBytes.write(EscPos.ALIGN_CENTER)
+                        testBytes.write("FLEXI KASIR - Test Print".toByteArray(CHARSET_CETAK))
+                        testBytes.write(EscPos.LF)
+                        testBytes.write(EscPos.LF)
+                        testBytes.write(EscPos.CUT)
+                        val data = testBytes.toByteArray()
+                        var offset = 0
+                        while (offset < data.size) {
+                            connection.bulkTransfer(endpointOut, data, offset, minOf(endpointOut.maxPacketSize, data.size - offset), 5000)
+                            offset += endpointOut.maxPacketSize
+                        }
+                        PrintResult.Berhasil
+                    } finally {
+                        try { connection.close() } catch (_: Exception) {}
+                    }
+                }
+                id.flexi.kasir.domain.model.PrinterType.None -> {
+                    PrintResult.Gagal("Printer tidak dikonfigurasi.")
+                }
+            }
+        } catch (e: SecurityException) {
+            PrintResult.Gagal("Izin Bluetooth tidak diberikan.")
+        } catch (e: Exception) {
+            PrintResult.Gagal("Gagal test print: ${e.message}")
         }
     }
 
@@ -974,5 +1076,138 @@ class ThermalPrinterManager(
 
     private fun garisTitik(lebar: Int = 32): String = "-".repeat(lebar)
 
+    // ─── Bluetooth Discovery ──────────────────────────────────
 
+    /**
+     * Hasil scan printer Bluetooth di sekitar.
+     */
+    data class HasilScanPrinter(
+        val alamatMac: String,
+        val nama: String,
+        val sudahDipasangkan: Boolean,
+    )
+
+    /**
+     * Callback untuk hasil scan printer Bluetooth.
+     */
+    fun interface ScanPrinterCallback {
+        fun onHasilScan(daftarPrinter: List<HasilScanPrinter>)
+    }
+
+    private var receiverScanPrinter: android.content.BroadcastReceiver? = null
+
+    /**
+     * Memulai scanning printer Bluetooth di sekitar (termasuk yang belum dipasangkan).
+     * Hasil dikembalikan via callback setelah discovery selesai (~12 detik).
+     *
+     * CATATAN: Untuk Android 12+ (API 31), BLUETOOTH_SCAN harus sudah di-grant.
+     */
+    @SuppressLint("MissingPermission")
+    fun mulaiScanPrinter(callback: ScanPrinterCallback) {
+        val adapter = bluetoothAdapter ?: run {
+            callback.onHasilScan(emptyList())
+            return
+        }
+        if (!adapter.isEnabled) {
+            callback.onHasilScan(emptyList())
+            return
+        }
+
+        // Hentikan scan sebelumnya jika masih jalan
+        hentikanScanPrinter()
+
+        val daftarPrinter = mutableListOf<HasilScanPrinter>()
+        val namaPrinterDikenal = mutableSetOf<String>() // hindari duplikat
+
+        // Tambah paired devices dulu (langsung)
+        adapter.bondedDevices?.forEach { device ->
+            val nama = device.name?.lowercase() ?: ""
+            if (KATA_KUNCI_PRINTER_BT.any { kata -> nama.contains(kata) }) {
+                val key = device.address
+                if (namaPrinterDikenal.add(key)) {
+                    daftarPrinter.add(
+                        HasilScanPrinter(
+                            alamatMac = device.address,
+                            nama = device.name ?: "Printer Unknown",
+                            sudahDipasangkan = true,
+                        )
+                    )
+                }
+            }
+        }
+
+        // Register receiver untuk hasil discovery
+        val filter = android.content.IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+
+        receiverScanPrinter = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                        device ?: return
+                        val nama = device.name?.lowercase() ?: ""
+                        if (KATA_KUNCI_PRINTER_BT.any { kata -> nama.contains(kata) }) {
+                            val key = device.address
+                            if (namaPrinterDikenal.add(key)) {
+                                daftarPrinter.add(
+                                    HasilScanPrinter(
+                                        alamatMac = device.address,
+                                        nama = device.name ?: "Printer Unknown",
+                                        sudahDipasangkan = device.bondState == BluetoothDevice.BOND_BONDED,
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                        callback.onHasilScan(daftarPrinter.toList())
+                        hentikanScanPrinter()
+                    }
+                }
+            }
+        }
+
+        konteks.registerReceiver(receiverScanPrinter, filter)
+        adapter.startDiscovery()
+    }
+
+    /**
+     * Menghentikan scan printer Bluetooth yang sedang berjalan.
+     */
+    @SuppressLint("MissingPermission")
+    fun hentikanScanPrinter() {
+        try {
+            bluetoothAdapter?.cancelDiscovery()
+        } catch (_: Exception) {}
+        try {
+            receiverScanPrinter?.let { konteks.unregisterReceiver(it) }
+        } catch (_: Exception) {}
+        receiverScanPrinter = null
+    }
+
+    /**
+     * Memasangkan (pair) perangkat Bluetooth secara programmatic.
+     * Mengembalikan true jika pairing berhasil/dimulai.
+     */
+    @SuppressLint("MissingPermission")
+    fun pasangkanPerangkat(alamatMac: String): Boolean {
+        val adapter = bluetoothAdapter ?: return false
+        val device = adapter.getRemoteDevice(alamatMac) ?: return false
+
+        return try {
+            // Mulai pairing — user akan melihat dialog konfirmasi di Android
+            device.createBond()
+            true
+        } catch (e: SecurityException) {
+            false
+        }
+    }
 }

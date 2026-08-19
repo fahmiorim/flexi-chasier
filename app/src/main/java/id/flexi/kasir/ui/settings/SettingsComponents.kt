@@ -28,6 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -69,6 +73,203 @@ import id.flexi.kasir.domain.model.ReceiptPrintFormat
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.ui.component.FlexiDialog
 import id.flexi.kasir.ui.component.FlexiDialogHeader
+
+// ═══════════════════════════════════════
+// DATA CLASSES
+// ═══════════════════════════════════════
+
+/** Item hasil scan printer Bluetooth. */
+data class ScanPrinterItem(
+    val alamatMac: String,
+    val nama: String,
+    val sudahDipasangkan: Boolean,
+)
+
+// ═══════════════════════════════════════
+// DIALOG PILIH PRINTER BLUETOOTH
+// ═══════════════════════════════════════
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DialogPilihPrinter(
+    printerAddress: String,
+    onPilih: (alamat: String, nama: String) -> Unit,
+    onTutup: () -> Unit,
+) {
+    val context = LocalContext.current
+    var daftarDevice by remember { mutableStateOf(emptyList<ScanPrinterItem>()) }
+    var sedangScan by remember { mutableStateOf(false) }
+    var scanReceiver by remember { mutableStateOf<android.content.BroadcastReceiver?>(null) }
+
+    // Load paired devices saat dialog dibuka
+    LaunchedEffect(Unit) {
+        try {
+            val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+            val adapter = manager?.adapter
+            if (adapter != null && adapter.isEnabled) {
+                val paired = adapter.bondedDevices?.mapNotNull { device ->
+                    if (device.name?.isNotBlank() == true) {
+                        ScanPrinterItem(device.address, device.name!!, true)
+                    } else null
+                } ?: emptyList()
+                daftarDevice = paired
+            }
+        } catch (_: SecurityException) {}
+    }
+
+    // Cleanup receiver
+    DisposableEffect(Unit) {
+        onDispose {
+            scanReceiver?.let {
+                try { context.unregisterReceiver(it) } catch (_: Exception) {}
+            }
+            try {
+                val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                manager?.adapter?.cancelDiscovery()
+            } catch (_: Exception) {}
+        }
+    }
+
+    id.flexi.kasir.ui.component.FlexiDialog(onDismissRequest = onTutup) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            id.flexi.kasir.ui.component.FlexiDialogHeader(
+                icon = Icons.Default.CheckCircle,
+                title = "Pilih Printer Bluetooth",
+                subtitle = "Ketuk perangkat untuk memilih",
+                onClose = onTutup,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Daftar perangkat
+            if (daftarDevice.isEmpty() && !sedangScan) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ) {
+                    Text(
+                        text = "Tidak ada perangkat Bluetooth yang dipasangkan.\nNyalakan Bluetooth dan scan perangkat baru.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.heightIn(max = 300.dp),
+                ) {
+                    items(daftarDevice.size) { index ->
+                        val device = daftarDevice[index]
+                        Surface(
+                            onClick = { onPilih(device.alamatMac, device.nama) },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (device.alamatMac == printerAddress)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (device.alamatMac == printerAddress) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(device.nama, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                    Text(device.alamatMac, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (device.sudahDipasangkan) {
+                                    Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) {
+                                        Text("Tersambung", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Tombol Scan
+            OutlinedButton(
+                onClick = @Suppress("DEPRECATION") {
+                    sedangScan = true
+                    try {
+                        val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                        val adapter = manager?.adapter
+                        if (adapter == null || !adapter.isEnabled) {
+                            sedangScan = false
+                            return@OutlinedButton
+                        }
+                        adapter.cancelDiscovery()
+
+                        val namaDikenal = daftarDevice.map { it.alamatMac }.toMutableSet()
+
+                        val filter = android.content.IntentFilter().apply {
+                            addAction(android.bluetooth.BluetoothDevice.ACTION_FOUND)
+                            addAction(android.bluetooth.BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+                        }
+
+                        scanReceiver = object : android.content.BroadcastReceiver() {
+                            override fun onReceive(ctx: android.content.Context?, intent: android.content.Intent?) {
+                                when (intent?.action) {
+                                    android.bluetooth.BluetoothDevice.ACTION_FOUND -> {
+                                        val device = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                            intent.getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE, android.bluetooth.BluetoothDevice::class.java)
+                                        } else {
+                                            @Suppress("DEPRECATION")
+                                            intent.getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE)
+                                        }
+                                        device ?: return
+                                        if (device.name?.isNotBlank() == true && namaDikenal.add(device.address)) {
+                                            daftarDevice = daftarDevice + ScanPrinterItem(device.address, device.name!!, device.bondState == android.bluetooth.BluetoothDevice.BOND_BONDED)
+                                        }
+                                    }
+                                    android.bluetooth.BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                                        sedangScan = false
+                                        try { context.unregisterReceiver(this) } catch (_: Exception) {}
+                                        scanReceiver = null
+                                    }
+                                }
+                            }
+                        }
+                        context.registerReceiver(scanReceiver, filter)
+                        adapter.startDiscovery()
+                    } catch (_: SecurityException) {
+                        sedangScan = false
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                enabled = !sedangScan,
+            ) {
+                if (sedangScan) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.height(16.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Memindai perangkat baru...")
+                } else {
+                    Text("Scan Perangkat Baru")
+                }
+            }
+        }
+    }
+}
 
 // ═══════════════════════════════════════
 // REUSABLE BUILDING BLOCKS
@@ -149,14 +350,22 @@ internal fun BagianIdentitasUsaha(
         contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         uri?.let { selectedUri ->
-            perbaruiLogoUri(selectedUri.toString())
-            // Cache ke internal cache untuk akses reliable (PDF export, dll)
             try {
+                // Simpan ke internal storage (persistent, tidak terhapus saat cache clear)
+                val logoFile = java.io.File(context.filesDir, "logo_usaha.png")
                 context.contentResolver.openInputStream(selectedUri)?.use { input ->
-                    java.io.FileOutputStream(
-                        java.io.File(context.cacheDir, "logo_cached.png")
-                    ).use { output ->
+                    java.io.FileOutputStream(logoFile).use { output ->
                         input.copyTo(output)
+                    }
+                }
+                // Simpan path file, bukan content URI (yang bisa expired)
+                perbaruiLogoUri(logoFile.absolutePath)
+                // Juga cache untuk PDF export
+                java.io.File(context.cacheDir, "logo_cached.png").let { cacheFile ->
+                    java.io.FileInputStream(logoFile).use { input ->
+                        java.io.FileOutputStream(cacheFile).use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
             } catch (_: Exception) { }
@@ -176,9 +385,27 @@ internal fun BagianIdentitasUsaha(
             if (logoUri.isNotBlank()) {
                 val bitmap = remember(logoUri) {
                     try {
-                        val uri = Uri.parse(logoUri)
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            BitmapFactory.decodeStream(stream)
+                        when {
+                            // 1. File path langsung (persistent)
+                            logoUri.startsWith("/") || logoUri.contains("files/") -> {
+                                BitmapFactory.decodeFile(logoUri)
+                            }
+                            // 2. Cache file
+                            java.io.File(context.cacheDir, "logo_cached.png").exists() -> {
+                                BitmapFactory.decodeFile(java.io.File(context.cacheDir, "logo_cached.png").absolutePath)
+                            }
+                            // 3. Content URI (legacy)
+                            logoUri.startsWith("content://") -> {
+                                val uri = Uri.parse(logoUri)
+                                context.contentResolver.openInputStream(uri)?.use { stream ->
+                                    BitmapFactory.decodeStream(stream)
+                                }
+                            }
+                            // 4. File URI
+                            logoUri.startsWith("file://") -> {
+                                BitmapFactory.decodeFile(Uri.parse(logoUri).path)
+                            }
+                            else -> null
                         }
                     } catch (_: Exception) { null }
                 }
@@ -331,10 +558,28 @@ internal fun BagianPrinter(
     printerAddress: String,
     perbaruiPrinterType: (PrinterType) -> Unit,
     perbaruiPrinter: (alamat: String, nama: String) -> Unit,
+    saatTestPrint: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var dropdownTerbuka by remember { mutableStateOf(false) }
     var pesanBluetooth by remember { mutableStateOf<String?>(null) }
+    var sedangScan by remember { mutableStateOf(false) }
+    var daftarPrinterScan by remember { mutableStateOf(emptyList<ScanPrinterItem>()) }
+    var scanReceiver by remember { mutableStateOf<android.content.BroadcastReceiver?>(null) }
+    var testPrintStatus by remember { mutableStateOf<String?>(null) }
+
+    // Cleanup receiver saat composable leave composition
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            scanReceiver?.let {
+                try { context.unregisterReceiver(it) } catch (_: Exception) {}
+            }
+            try {
+                val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                manager?.adapter?.cancelDiscovery()
+            } catch (_: Exception) {}
+        }
+    }
 
     KartuBagian("Printer") {
         ExposedDropdownMenuBox(
@@ -414,100 +659,63 @@ internal fun BagianPrinter(
                     )
                 }
             }
-        }
 
-        if (printerType == PrinterType.Bluetooth) {
+            // ── Tombol Test Print ──
             OutlinedButton(
-                onClick = @Suppress("DEPRECATION") {
-                    pesanBluetooth = null
-                    try {
-                        val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
-                        val adapter = manager?.adapter
-                        if (adapter == null) {
-                            pesanBluetooth = "Bluetooth tidak tersedia di perangkat ini."
-                            return@OutlinedButton
-                        }
-                        if (!adapter.isEnabled) {
-                            pesanBluetooth = "Bluetooth dalam keadaan mati. Nyalakan Bluetooth terlebih dahulu."
-                            return@OutlinedButton
-                        }
-                        val kataKunciPrinter = listOf(
-                            "printer", "thermal", "pos", "receipt",
-                            "mp", "tm-", "bixolon", "epson",
-                            "xprinter", "gprinter", "star", "citizen",
-                            "honeywell", "zebra", "custom", "argox",
-                            "datamax", "tsp", "sp-", "pp-", "vp-",
-                            "mobile", "bluetooth", "label",
-                        )
-                        val devices = adapter.bondedDevices?.filter { device ->
-                            val nama = device.name?.lowercase() ?: ""
-                            kataKunciPrinter.any { kata -> nama.contains(kata) }
-                        } ?: emptyList()
-
-                        if (devices.isEmpty()) {
-                            pesanBluetooth = "Tidak ditemukan printer Bluetooth yang terpasang. Pastikan printer sudah dipairing."
-                        } else if (devices.size == 1) {
-                            val device = devices.first()
-                            perbaruiPrinter(device.address, device.name ?: "Printer Bluetooth")
-                            pesanBluetooth = "Printer '${device.name ?: "Printer Bluetooth"}' berhasil ditemukan."
-                        } else {
-                            val device = devices.first()
-                            perbaruiPrinter(device.address, device.name ?: "Printer Bluetooth")
-                            pesanBluetooth = "Ditemukan ${devices.size} printer. Menggunakan '${device.name}'."
-                        }
-                    } catch (_: SecurityException) {
-                        pesanBluetooth = "Izin Bluetooth belum diberikan. Berikan izin di Pengaturan > Aplikasi."
-                    }
+                onClick = {
+                    testPrintStatus = "Mengirim test print..."
+                    saatTestPrint()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
             ) {
-                Text("Cari Printer Bluetooth")
+                Text("Test Print")
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                pesanBluetooth?.let { pesan ->
-                    val warna = if (pesan.contains("berhasil")) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = warna.copy(alpha = 0.08f),
-                    ) {
-                        Text(
-                            text = pesan,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = warna,
-                            fontWeight = if (pesan.contains("berhasil")) FontWeight.SemiBold else FontWeight.Normal,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        )
-                    }
+            testPrintStatus?.let { status ->
+                val warna = if (status.contains("berhasil")) {
+                    MaterialTheme.colorScheme.primary
+                } else if (status.contains("Mengirim")) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
                 }
-
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    color = warna.copy(alpha = 0.08f),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "Pastikan printer Bluetooth sudah dipasangkan (pairing) dengan perangkat ini.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = warna,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    )
                 }
+            }
+        }
+
+        if (printerType == PrinterType.Bluetooth) {
+            // ── Tombol buka modal pilih printer ──
+            var tampilDialog by remember { mutableStateOf(false) }
+
+            OutlinedButton(
+                onClick = { tampilDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("Pilih Printer Bluetooth")
+            }
+
+            // ── Modal dialog pilih printer ──
+            if (tampilDialog) {
+                DialogPilihPrinter(
+                    printerAddress = printerAddress,
+                    onPilih = { alamat, nama ->
+                        perbaruiPrinter(alamat, nama)
+                        tampilDialog = false
+                    },
+                    onTutup = { tampilDialog = false },
+                )
             }
         }
 
@@ -556,6 +764,22 @@ internal fun BagianPrinterDapur(
     val context = LocalContext.current
     var dropdownTerbuka by remember { mutableStateOf(false) }
     var pesanBluetooth by remember { mutableStateOf<String?>(null) }
+    var sedangScan by remember { mutableStateOf(false) }
+    var daftarPrinterScan by remember { mutableStateOf(emptyList<ScanPrinterItem>()) }
+    var scanReceiver by remember { mutableStateOf<android.content.BroadcastReceiver?>(null) }
+
+    // Cleanup receiver saat composable leave composition
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            scanReceiver?.let {
+                try { context.unregisterReceiver(it) } catch (_: Exception) {}
+            }
+            try {
+                val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                manager?.adapter?.cancelDiscovery()
+            } catch (_: Exception) {}
+        }
+    }
 
     KartuBagian("Printer Dapur") {
         BarisSwitch(
@@ -646,97 +870,25 @@ internal fun BagianPrinterDapur(
             }
 
             if (printerDapurType == PrinterType.Bluetooth) {
-                OutlinedButton(
-                    onClick = @Suppress("DEPRECATION") {
-                        pesanBluetooth = null
-                        try {
-                            val manager = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
-                            val adapter = manager?.adapter
-                            if (adapter == null) {
-                                pesanBluetooth = "Bluetooth tidak tersedia di perangkat ini."
-                                return@OutlinedButton
-                            }
-                            if (!adapter.isEnabled) {
-                                pesanBluetooth = "Bluetooth dalam keadaan mati. Nyalakan Bluetooth terlebih dahulu."
-                                return@OutlinedButton
-                            }
-                            val kataKunciPrinter = listOf(
-                                "printer", "thermal", "pos", "receipt",
-                                "mp", "tm-", "bixolon", "epson",
-                                "xprinter", "gprinter", "star", "citizen",
-                                "honeywell", "zebra", "custom", "argox",
-                                "datamax", "tsp", "sp-", "pp-", "vp-",
-                                "mobile", "bluetooth", "label",
-                            )
-                            val devices = adapter.bondedDevices?.filter { device ->
-                                val nama = device.name?.lowercase() ?: ""
-                                kataKunciPrinter.any { kata -> nama.contains(kata) }
-                            } ?: emptyList()
+                var tampilDialog by remember { mutableStateOf(false) }
 
-                            if (devices.isEmpty()) {
-                                pesanBluetooth = "Tidak ditemukan printer Bluetooth yang terpasang. Pastikan printer sudah dipairing."
-                            } else if (devices.size == 1) {
-                                val device = devices.first()
-                                perbaruiPrinterDapur(device.address, device.name ?: "Printer Bluetooth")
-                                pesanBluetooth = "Printer '${device.name ?: "Printer Bluetooth"}' berhasil ditemukan."
-                            } else {
-                                val device = devices.first()
-                                perbaruiPrinterDapur(device.address, device.name ?: "Printer Bluetooth")
-                                pesanBluetooth = "Ditemukan ${devices.size} printer. Menggunakan '${device.name}'."
-                            }
-                        } catch (_: SecurityException) {
-                            pesanBluetooth = "Izin Bluetooth belum diberikan. Berikan izin di Pengaturan > Aplikasi."
-                        }
-                    },
+                OutlinedButton(
+                    onClick = { tampilDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) {
-                    Text("Cari Printer Bluetooth Dapur")
+                    Text("Pilih Printer Bluetooth")
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    pesanBluetooth?.let { pesan ->
-                        val warna = if (pesan.contains("berhasil")) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = warna.copy(alpha = 0.08f),
-                        ) {
-                            Text(
-                                text = pesan,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = warna,
-                                fontWeight = if (pesan.contains("berhasil")) FontWeight.SemiBold else FontWeight.Normal,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = "Printer dapur akan mencetak struk dapur (tanpa harga) saat pesanan baru masuk.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                if (tampilDialog) {
+                    DialogPilihPrinter(
+                        printerAddress = printerDapurAddress,
+                        onPilih = { alamat, nama ->
+                            perbaruiPrinterDapur(alamat, nama)
+                            tampilDialog = false
+                        },
+                        onTutup = { tampilDialog = false },
+                    )
                 }
             }
 

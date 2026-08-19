@@ -48,6 +48,26 @@ data class GeraiNetwork(
     val id: String,
     val nama: String,
     val alamat: String? = null,
+    @SerialName("tagline") val tagline: String? = null,
+    // Struk
+    @SerialName("headerStruk") val headerStruk: String? = null,
+    @SerialName("footerStruk") val footerStruk: String? = null,
+    @SerialName("ukuranKertas") val ukuranKertas: String? = null,
+    // Pajak & Biaya
+    @SerialName("tarifPajak") val tarifPajak: Double? = null,
+    @SerialName("biayaLayanan") val biayaLayanan: Int? = null,
+    // Pembayaran
+    @SerialName("metodePembayaran") val metodePembayaran: String? = null,
+    // Printer
+    @SerialName("printerNama") val printerNama: String? = null,
+    @SerialName("printerTipe") val printerTipe: String? = null,
+    @SerialName("autoCetak") val autoCetak: Boolean? = null,
+    // Branding
+    @SerialName("logoUri") val logoUri: String? = null,
+    @SerialName("telepon") val telepon: String? = null,
+    @SerialName("emailToko") val emailToko: String? = null,
+    @SerialName("instagram") val instagram: String? = null,
+    @SerialName("whatsapp") val whatsapp: String? = null,
 )
 
 @Serializable

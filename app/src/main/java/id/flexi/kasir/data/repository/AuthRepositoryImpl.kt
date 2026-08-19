@@ -204,6 +204,21 @@ class AuthRepositoryImpl(
                             id = gerai.id,
                             nama = gerai.nama,
                             alamat = gerai.alamat,
+                            tagline = gerai.tagline,
+                            headerStruk = gerai.headerStruk,
+                            footerStruk = gerai.footerStruk,
+                            ukuranKertas = gerai.ukuranKertas,
+                            tarifPajak = gerai.tarifPajak,
+                            biayaLayanan = gerai.biayaLayanan,
+                            metodePembayaran = gerai.metodePembayaran,
+                            printerNama = gerai.printerNama,
+                            printerTipe = gerai.printerTipe,
+                            autoCetak = gerai.autoCetak,
+                            logoUri = gerai.logoUri,
+                            telepon = gerai.telepon,
+                            emailToko = gerai.emailToko,
+                            instagram = gerai.instagram,
+                            whatsapp = gerai.whatsapp,
                         )
                     },
                     geraiAktifId = geraiAktif,
@@ -258,11 +273,26 @@ class AuthRepositoryImpl(
             } else {
                 PeranAkun.Pemilik
             },
-            daftarGerai = gerai.map { gerai ->
+            daftarGerai = gerai.map { g ->
                 GeraiSederhana(
-                    id = gerai.id,
-                    nama = gerai.nama,
-                    alamat = gerai.alamat,
+                    id = g.id,
+                    nama = g.nama,
+                    alamat = g.alamat,
+                    tagline = g.tagline,
+                    headerStruk = g.headerStruk,
+                    footerStruk = g.footerStruk,
+                    ukuranKertas = g.ukuranKertas,
+                    tarifPajak = g.tarifPajak,
+                    biayaLayanan = g.biayaLayanan,
+                    metodePembayaran = g.metodePembayaran,
+                    printerNama = g.printerNama,
+                    printerTipe = g.printerTipe,
+                    autoCetak = g.autoCetak,
+                    logoUri = g.logoUri,
+                    telepon = g.telepon,
+                    emailToko = g.emailToko,
+                    instagram = g.instagram,
+                    whatsapp = g.whatsapp,
                 )
             },
         )
@@ -278,11 +308,26 @@ class AuthRepositoryImpl(
             } else {
                 PeranAkun.Pemilik
             },
-            daftarGerai = daftarGerai.map { gerai ->
+            daftarGerai = daftarGerai.map { g ->
                 GeraiSederhana(
-                    id = gerai.id,
-                    nama = gerai.nama,
-                    alamat = gerai.alamat,
+                    id = g.id,
+                    nama = g.nama,
+                    alamat = g.alamat,
+                    tagline = g.tagline,
+                    headerStruk = g.headerStruk,
+                    footerStruk = g.footerStruk,
+                    ukuranKertas = g.ukuranKertas,
+                    tarifPajak = g.tarifPajak,
+                    biayaLayanan = g.biayaLayanan,
+                    metodePembayaran = g.metodePembayaran,
+                    printerNama = g.printerNama,
+                    printerTipe = g.printerTipe,
+                    autoCetak = g.autoCetak,
+                    logoUri = g.logoUri,
+                    telepon = g.telepon,
+                    emailToko = g.emailToko,
+                    instagram = g.instagram,
+                    whatsapp = g.whatsapp,
                 )
             },
             geraiAktifId = geraiAktifId,

@@ -403,6 +403,7 @@ private fun KasirAppUtama(
                     saatSimpan = viewModel::simpan,
                     saatSinkronkan = viewModel::sinkronkanSekarang,
                     saatBersihkanPesanSinkronisasi = viewModel::bersihkanPesanSinkronisasi,
+                    saatTestPrint = viewModel::testPrint,
                 )
             }
 

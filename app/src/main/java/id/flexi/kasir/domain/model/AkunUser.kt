@@ -9,12 +9,33 @@ enum class PeranAkun {
 }
 
 /**
- * Gerai ringkas milik tenant, dipakai untuk memilih gerai aktif di layar login.
+ * Gerai milik tenant — berisi info umum + pengaturan.
+ * Field dari server (auto-sync saat login).
  */
 data class GeraiSederhana(
     val id: String,
     val nama: String,
     val alamat: String? = null,
+    val tagline: String? = null,
+    // Struk
+    val headerStruk: String? = null,
+    val footerStruk: String? = null,
+    val ukuranKertas: String? = null,
+    // Pajak & Biaya
+    val tarifPajak: Double? = null,
+    val biayaLayanan: Int? = null,
+    // Pembayaran
+    val metodePembayaran: String? = null,
+    // Printer
+    val printerNama: String? = null,
+    val printerTipe: String? = null,
+    val autoCetak: Boolean? = null,
+    // Branding
+    val logoUri: String? = null,
+    val telepon: String? = null,
+    val emailToko: String? = null,
+    val instagram: String? = null,
+    val whatsapp: String? = null,
 )
 
 /**

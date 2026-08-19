@@ -29,12 +29,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,7 +61,7 @@ class TransactionHistoryViewModel(
     private val daftarMeja: StateFlow<List<Meja>> = GetTableList()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val pagingData: StateFlow<PagingData<RingkasanTransactionRiwayat>> =
+    val pagingData: Flow<PagingData<RingkasanTransactionRiwayat>> =
         combine(
             _filterTanggal,
             _tanggalMulaiKustom,
@@ -69,25 +71,19 @@ class TransactionHistoryViewModel(
         }
             .distinctUntilChanged()
             .flatMapLatest { (sejak, sampai) ->
-                // Gabungkan paging transaksi dengan daftar meja agar nama meja
-                // (bukan id) bisa ditampilkan di kartu riwayat — pola sama
-                // seperti layar Detail Transaksi.
-                combine(
-                    transactionRepository.amatiTransactionPaged(sejak, sampai),
-                    daftarMeja,
-                ) { pagingData, meja ->
-                    val namaMeja = meja.associate { it.id to it.nomor }
-                    pagingData.map { transaction ->
-                        transaction.keRingkasanTransactionRiwayat(namaMeja)
+                // Ambil paging transaksi, lalu map dengan daftar meja
+                // menggunakan snapshot (daftarMeja.value) agar tidak
+                // menggabungkan dua flow — menghindari pageEventFlow crash.
+                transactionRepository.amatiTransactionPaged(sejak, sampai)
+                    .mapLatest { pagingData ->
+                        val meja = daftarMeja.value
+                        val namaMeja = meja.associate { it.id to it.nomor }
+                        pagingData.map { transaction ->
+                            transaction.keRingkasanTransactionRiwayat(namaMeja)
+                        }
                     }
-                }
             }
             .cachedIn(viewModelScope)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = PagingData.empty(),
-            )
 
     val filterTanggal: StateFlow<FilterTanggalRiwayat> = _filterTanggal
 

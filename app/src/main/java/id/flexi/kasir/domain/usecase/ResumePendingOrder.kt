@@ -42,9 +42,11 @@ class ResumePendingOrder(
             // pakai snapshot tersimpan agar item tetap muncul & bisa dilanjutkan
             // (DB masih menyimpan item tersebut, sehingga menjatuhkannya hanya
             // akan membuat baris yatim yang tidak pernah bisa dilihat/diubah).
+            // Pertahankan status selesai dari item yang sudah diproses dapur;
+            // jangan reset ke false agar item yang sudah selesai tidak muncul
+            // lagi sebagai pending di antrian dapur.
             item.copy(
                 produk = produkSaatIniItem ?: item.produk,
-                apakahSelesai = false,
             )
         }
 

@@ -1043,7 +1043,13 @@ class CashierMainViewModel(
                 val itemGabungan = (itemKeranjang + billLain.flatMap { it.daftarCartItem })
                     .groupBy { it.produk.id to it.varian?.nama }
                     .map { (_, items) ->
-                        items.reduce { a, b -> a.copy(jumlah = a.jumlah + b.jumlah, apakahSelesai = false) }
+                        // Preserve apakahSelesai: true hanya jika SEMUA item gabungan sudah selesai
+                        items.reduce { a, b ->
+                            a.copy(
+                                jumlah = a.jumlah + b.jumlah,
+                                apakahSelesai = a.apakahSelesai && b.apakahSelesai,
+                            )
+                        }
                     }
 
                 // Buat satu transaksi Pending baru (gabungan)

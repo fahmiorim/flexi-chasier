@@ -579,7 +579,7 @@ class CashierDependencyContainer(
     }
 
     val loginUser: LoginUser by lazy {
-        LoginUser(AuthRepository)
+        LoginUser(AuthRepository, SesiStore, repositoriStoreSetting)
     }
 
     val registerAkun: RegisterAkun by lazy {

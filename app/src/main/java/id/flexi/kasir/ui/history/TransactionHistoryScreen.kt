@@ -43,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -51,7 +51,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionHistoryScreen(
-    pagingData: StateFlow<PagingData<RingkasanTransactionRiwayat>>,
+    pagingData: Flow<PagingData<RingkasanTransactionRiwayat>>,
     filterTanggal: FilterTanggalRiwayat,
     labelRentangKustom: String,
     saatKembali: () -> Unit,

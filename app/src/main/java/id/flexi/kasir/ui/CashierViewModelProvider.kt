@@ -131,6 +131,7 @@ object CashierViewModelProvider {
                 amatiStorePreference = aplikasi.kontainer.amatiStorePreference,
                 simpanStorePreference = aplikasi.kontainer.simpanStorePreference,
                 sinkronStatusPengamat = aplikasi.kontainer.SinkronStatusPengamat,
+                thermalPrinterManager = aplikasi.kontainer.ThermalPrinterManager,
             )
         }
 

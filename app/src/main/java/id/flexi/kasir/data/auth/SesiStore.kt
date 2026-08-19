@@ -30,6 +30,21 @@ data class GeraiTersimpan(
     val id: String,
     val nama: String,
     val alamat: String? = null,
+    val tagline: String? = null,
+    val headerStruk: String? = null,
+    val footerStruk: String? = null,
+    val ukuranKertas: String? = null,
+    val tarifPajak: Double? = null,
+    val biayaLayanan: Int? = null,
+    val metodePembayaran: String? = null,
+    val printerNama: String? = null,
+    val printerTipe: String? = null,
+    val autoCetak: Boolean? = null,
+    val logoUri: String? = null,
+    val telepon: String? = null,
+    val emailToko: String? = null,
+    val instagram: String? = null,
+    val whatsapp: String? = null,
 )
 
 /**
