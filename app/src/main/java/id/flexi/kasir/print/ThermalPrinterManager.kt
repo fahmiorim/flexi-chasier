@@ -5,6 +5,9 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
@@ -540,22 +543,36 @@ class ThermalPrinterManager(
         Transaction: Transaction,
         pengaturanStruk: StoreSetting? = null,
     ): PrintResult = withContext(Dispatchers.IO) {
-        var socket: BluetoothSocket? = null
-        try {
-            socket = device.createRfcommSocketToServiceRecord(UUID_SPP)
-            socket.connect()
-            val outputStream = socket.outputStream
-            tulisStruk(outputStream, Transaction, pengaturanStruk)
-            PrintResult.Berhasil
-        } catch (e: SecurityException) {
-            PrintResult.Gagal("Izin Bluetooth tidak diberikan.")
-        } catch (e: Exception) {
-            PrintResult.Gagal("Gagal mencetak: ${e.message}")
-        } finally {
-            try {
-                socket?.close()
-            } catch (_: Exception) {}
+        // Coba beberapa metode koneksi + retry untuk kompatibilitas maksimal
+        val metode = listOf(
+            "Insecure" to { device.createInsecureRfcommSocketToServiceRecord(UUID_SPP) },
+            "RFCOMM(UUID)" to { device.createRfcommSocketToServiceRecord(UUID_SPP) },
+        )
+
+        var lastError: String = "Tidak ada metode koneksi yang berhasil"
+
+        for ((namaMetode, buatSocket) in metode) {
+            for (percobaan in 1..2) {
+                var socket: BluetoothSocket? = null
+                try {
+                    socket = buatSocket()
+                    socket.connect()
+                    Thread.sleep(300)
+                    val outputStream = socket.outputStream
+                    outputStream.write(EscPos.INIT)
+                    outputStream.flush()
+                    Thread.sleep(100)
+                    tulisStruk(outputStream, Transaction, pengaturanStruk)
+                    return@withContext PrintResult.Berhasil
+                } catch (e: Exception) {
+                    lastError = "$namaMetode(#$percobaan): ${e.message}"
+                    try { socket?.close() } catch (_: Exception) {}
+                    Thread.sleep(200)
+                }
+            }
         }
+
+        PrintResult.Gagal("Gagal mencetak: $lastError")
     }
 
     // ─── USB ────────────────────────────────────────────────────
@@ -643,7 +660,7 @@ class ThermalPrinterManager(
      * socket timeout pada struk yang panjang. Printer thermal butuh waktu
      * memproses data sebelum menerima berikutnya.
      */
-    private fun kirimBertahap(stream: OutputStream, data: ByteArray, chunkSize: Int = 512) {
+    private fun kirimBertahap(stream: OutputStream, data: ByteArray, chunkSize: Int = 256) {
         var offset = 0
         while (offset < data.size) {
             val panjang = minOf(chunkSize, data.size - offset)
@@ -651,7 +668,7 @@ class ThermalPrinterManager(
             stream.flush()
             offset += panjang
             if (offset < data.size) {
-                Thread.sleep(20)
+                Thread.sleep(50)
             }
         }
     }
@@ -923,6 +940,18 @@ class ThermalPrinterManager(
 
         // ── Header ──
         output.write(EscPos.ALIGN_CENTER)
+
+        // Logo (jika aktif & ada URI)
+        if (settings.tampilkanLogoDiStruk && settings.logoUri.isNotBlank()) {
+            val lebarDots = lebar * 8
+            val logoRaster = muatLogoDanUbahKeRaster(settings.logoUri, lebarDots)
+            if (logoRaster != null) {
+                output.write(EscPos.ALIGN_CENTER)
+                output.write(logoRaster)
+                output.write(EscPos.LF)
+            }
+        }
+
         val namaHeader = settings.namaUsaha.ifBlank { "FLEXI KASIR" }
         output.write(EscPos.FONT_SIZE_BIG)
         output.write(namaHeader.toByteArray(CHARSET_CETAK))
@@ -944,7 +973,7 @@ class ThermalPrinterManager(
             }
         }
 
-        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
 
         // Info transaksi
@@ -962,9 +991,6 @@ class ThermalPrinterManager(
             output.write(EscPos.LF)
         }
 
-        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
-        output.write(EscPos.LF)
-
         // Daftar item
         output.write(EscPos.ALIGN_LEFT)
         val maxNamaPanjang = (lebar * 0.6).toInt().coerceIn(15, 30)
@@ -979,8 +1005,6 @@ class ThermalPrinterManager(
             val subtotalItem = (hargaSatuan * item.jumlah).sebagaiRupiah()
 
             output.write(namaCetak.toByteArray(CHARSET_CETAK))
-
-            output.write(nama.toByteArray(CHARSET_CETAK))
             output.write(EscPos.LF)
             output.write(EscPos.BOLD_ON)
             val barisItem = "${item.jumlah} x $hargaStr"
@@ -990,7 +1014,7 @@ class ThermalPrinterManager(
             output.write(EscPos.LF)
         }
 
-        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
 
         // Rincian biaya
@@ -1012,7 +1036,7 @@ class ThermalPrinterManager(
             }
         }
 
-        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
 
         // Total akhir persis sama dengan nilai transaksi tersimpan (termasuk
@@ -1037,7 +1061,7 @@ class ThermalPrinterManager(
 
         // Catatan
         if (!Transaction.catatan.isNullOrBlank()) {
-            output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+            output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
             output.write(EscPos.LF)
             output.write(EscPos.ALIGN_CENTER)
             output.write(EscPos.BOLD_ON)
@@ -1050,7 +1074,7 @@ class ThermalPrinterManager(
 
         // Footer custom
         if (settings.strukFooter.isNotBlank()) {
-            output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+            output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
             output.write(EscPos.LF)
             output.write(EscPos.ALIGN_CENTER)
             settings.strukFooter.lines().forEach { baris ->
@@ -1061,17 +1085,13 @@ class ThermalPrinterManager(
 
         // Footer standar
         output.write(EscPos.ALIGN_CENTER)
-        output.write(garis(lebar).toByteArray(CHARSET_CETAK))
+        output.write(garisTitik(lebar).toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
-        output.write(EscPos.FONT_SIZE_BIG)
         output.write("Terima Kasih".toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
-        output.write(EscPos.FONT_SIZE_NORMAL)
         output.write("www.flexikasir.id".toByteArray(CHARSET_CETAK))
 
         // Feed + Cut
-        output.write(EscPos.LF)
-        output.write(EscPos.LF)
         output.write(EscPos.LF)
         output.write(EscPos.CUT)
 
@@ -1091,6 +1111,79 @@ class ThermalPrinterManager(
     private fun garis(lebar: Int = 32): String = "=".repeat(lebar)
 
     private fun garisTitik(lebar: Int = 32): String = "-".repeat(lebar)
+
+    /**
+     * Memuat logo dari URI dan mengubah ke format raster ESC/POS.
+     * Mengembalikan byte array perintah GS v 0, atau null jika gagal.
+     */
+    private fun muatLogoDanUbahKeRaster(logoUri: String, lebarDots: Int): ByteArray? {
+        try {
+            val maybeBitmap: Bitmap? = when {
+                logoUri.startsWith("/") || logoUri.contains("files/") || logoUri.contains("cache/") -> {
+                    BitmapFactory.decodeFile(logoUri)
+                }
+                logoUri.startsWith("content://") -> {
+                    val uri = Uri.parse(logoUri)
+                    konteks.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                }
+                logoUri.startsWith("file://") -> {
+                    BitmapFactory.decodeFile(Uri.parse(logoUri).path)
+                }
+                else -> null
+            }
+            val bitmap = maybeBitmap ?: return null
+
+            // Resize ke lebar printer, pertahankan aspect ratio
+            val tinggiAsli = bitmap.height.toFloat()
+            val lebarAsli = bitmap.width.toFloat()
+            val tinggiBaru = (tinggiAsli * lebarDots / lebarAsli).toInt()
+                .coerceIn(1, 400)
+            val scaled = Bitmap.createScaledBitmap(bitmap, lebarDots, tinggiBaru, true)
+            if (scaled != bitmap) bitmap.recycle()
+
+            // Convert ke monochrome
+            val monokrom = Bitmap.createBitmap(lebarDots, tinggiBaru, Bitmap.Config.ALPHA_8)
+            val canvas = android.graphics.Canvas(monokrom)
+            canvas.drawColor(android.graphics.Color.WHITE)
+            val paint = android.graphics.Paint().apply {
+                color = android.graphics.Color.BLACK
+                isAntiAlias = false
+            }
+            canvas.drawBitmap(scaled, 0f, 0f, paint)
+            if (scaled != monokrom) scaled.recycle()
+
+            // Encode ke ESC/POS GS v 0
+            val bytesPerLine = (lebarDots + 7) / 8
+            val data = ByteArrayOutputStream()
+            data.write(0x1D) // GS
+            data.write(0x76) // v
+            data.write(0x30) // 0 = normal
+            data.write(bytesPerLine and 0xFF)
+            data.write((bytesPerLine shr 8) and 0xFF)
+            data.write(tinggiBaru and 0xFF)
+            data.write((tinggiBaru shr 8) and 0xFF)
+
+            for (y in 0 until tinggiBaru) {
+                for (xByte in 0 until bytesPerLine) {
+                    var byte = 0
+                    for (bit in 0 until 8) {
+                        val x = xByte * 8 + bit
+                        if (x < lebarDots) {
+                            val pixel = monokrom.getPixel(x, y)
+                            if (android.graphics.Color.red(pixel) < 128) {
+                                byte = byte or (0x80 shr bit)
+                            }
+                        }
+                    }
+                    data.write(byte)
+                }
+            }
+            monokrom.recycle()
+            return data.toByteArray()
+        } catch (_: Exception) {
+            return null
+        }
+    }
 
     // ─── Bluetooth Discovery ──────────────────────────────────
 
