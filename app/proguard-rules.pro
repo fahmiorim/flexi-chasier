@@ -58,6 +58,16 @@
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
 
 # ──────────────────────────────────────────────────────────────────────
+# Socket.IO Client
+# ──────────────────────────────────────────────────────────────────────
+-keep class io.socket.** { *; }
+-dontwarn io.socket.**
+-keep class io.socket.engineio.** { *; }
+-dontwarn io.socket.engineio.**
+-keep class io.socket.client.** { *; }
+-dontwarn io.socket.client.**
+
+# ──────────────────────────────────────────────────────────────────────
 # OkHttp
 # ──────────────────────────────────────────────────────────────────────
 -dontwarn org.bouncycastle.jsse.**

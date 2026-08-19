@@ -635,8 +635,25 @@ class ThermalPrinterManager(
      */
     private fun tulisStruk(stream: OutputStream, Transaction: Transaction, pengaturanStruk: StoreSetting? = null) {
         val data = buatByteStrukDenganPengaturan(Transaction, pengaturanStruk)
-        stream.write(data)
-        stream.flush()
+        kirimBertahap(stream, data)
+    }
+
+    /**
+     * Mengirim data ke printer secara bertahap (chunk) untuk mencegah
+     * socket timeout pada struk yang panjang. Printer thermal butuh waktu
+     * memproses data sebelum menerima berikutnya.
+     */
+    private fun kirimBertahap(stream: OutputStream, data: ByteArray, chunkSize: Int = 512) {
+        var offset = 0
+        while (offset < data.size) {
+            val panjang = minOf(chunkSize, data.size - offset)
+            stream.write(data, offset, panjang)
+            stream.flush()
+            offset += panjang
+            if (offset < data.size) {
+                Thread.sleep(20)
+            }
+        }
     }
 
     /**
@@ -700,8 +717,7 @@ class ThermalPrinterManager(
             socket.connect()
             val outputStream = socket.outputStream
             val data = buatByteLaporanRiwayat(daftarTransaksi, labelPeriode, settings.namaUsaha, settings.tagline)
-            outputStream.write(data)
-            outputStream.flush()
+            kirimBertahap(outputStream, data)
             PrintResult.Berhasil
         } catch (e: Exception) {
             PrintResult.Gagal("Gagal cetak laporan: ${e.message}")
