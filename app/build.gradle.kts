@@ -218,6 +218,9 @@ dependencies {
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
 
+    // Socket.IO — Realtime push dari server
+    implementation(libs.socketio.client)
+
     // Pengujian lokal JVM untuk logika domain murni.
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

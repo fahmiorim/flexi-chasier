@@ -14,6 +14,7 @@ import id.flexi.kasir.data.network.service.ProductNetworkService
 import id.flexi.kasir.data.network.service.SyncNetworkService
 import id.flexi.kasir.data.local.database.FlexiKasirDatabase
 import id.flexi.kasir.data.local.database.CashierDatabaseMigration
+import id.flexi.kasir.data.realtime.KlienRealtime
 import id.flexi.kasir.data.sync.MesinSinkronisasi
 import id.flexi.kasir.data.sync.OutboxPencatat
 import id.flexi.kasir.data.sync.SinkronStatusPengamat
@@ -525,6 +526,17 @@ class CashierDependencyContainer(
      */
     val SesiStore: SesiStore by lazy {
         SesiStore(konteks.applicationContext)
+    }
+
+    /**
+     * Klien Socket.IO real-time: menerima push perubahan dari server
+     * dan memicu sinkronisasi otomatis.
+     */
+    val KlienRealtime: KlienRealtime by lazy {
+        KlienRealtime(
+            tokenStore = TokenStore,
+            konteks = konteks.applicationContext,
+        )
     }
 
     /**

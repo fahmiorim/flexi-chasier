@@ -21,6 +21,7 @@ securityCrypto = "1.1.0-alpha06"
 junit = "4.13.2"
 kotlinxCoroutinesTest = "1.10.1"
 work = "2.11.2"
+socketio = "2.1.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -62,3 +63,4 @@ mockito-core = { module = "org.mockito:mockito-core", version = "5.14.2" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+socketio-client = { module = "io.socket:socket.io-client", version.ref = "socketio" }

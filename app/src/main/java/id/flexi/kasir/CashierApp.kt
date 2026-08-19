@@ -35,19 +35,32 @@ class CashierApp : Application() {
         // Auto-sync saat jaringan tersedia (tanpa tombol).
         SinkronisasiPenjadwal.pasangPemantauJaringan(this)
 
-        // Minta sinkronisasi segera setiap kali gerai aktif tersedia: saat aplikasi
-        // dibuka dengan sesi aktif, atau setelah login/pilih gerai. Dengan begitu
-        // katalog produk & data lain langsung terisi dari server — pengguna baru
-        // tidak perlu menunggu siklus berkala untuk melihat katalognya.
+        // Minta sinkronisasi segera + hubungkan real-time setiap kali gerai aktif tersedia:
+        // saat aplikasi dibuka dengan sesi aktif, atau setelah login/pilih gerai.
         scope.launch {
             kontainer.SesiStore.amatiSesi()
                 .map { sesi -> sesi?.geraiAktifId }
                 .distinctUntilChanged()
                 .collect { geraiId ->
                     if (geraiId != null) {
+                        // Sinkronisasi data dari server
                         SinkronisasiPenjadwal.mintaSinkronisasiSekarang(this@CashierApp)
+                        // Hubungkan real-time push (idempoten — tidak duplikat)
+                        kontainer.KlienRealtime.hubungkan()
+                    } else {
+                        // Tidak ada gerai aktif → putuskan koneksi real-time
+                        kontainer.KlienRealtime.putuskan()
                     }
                 }
         }
+    }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        // Bersihkan koneksi real-time saat aplikasi dihancurkan
+        if (::kontainer.isInitialized) {
+            kontainer.KlienRealtime.putuskan()
+        }
+        SinkronisasiPenjadwal.lepasPemantauJaringan(this)
     }
 }
