@@ -941,8 +941,11 @@ class ThermalPrinterManager(
         // ── Header ──
         output.write(EscPos.ALIGN_CENTER)
 
-        // Logo (jika aktif & ada URI)
-        if (settings.tampilkanLogoDiStruk && settings.logoUri.isNotBlank()) {
+        // Logo (jika aktif & ada URI yang merupakan file lokal)
+        if (settings.tampilkanLogoDiStruk && settings.logoUri.isNotBlank()
+            && (settings.logoUri.startsWith("/") && java.io.File(settings.logoUri).exists()
+                || settings.logoUri.startsWith("content://")
+                || settings.logoUri.startsWith("file://"))) {
             val lebarDots = lebar * 8
             val logoRaster = muatLogoDanUbahKeRaster(settings.logoUri, lebarDots)
             if (logoRaster != null) {
@@ -1092,6 +1095,8 @@ class ThermalPrinterManager(
         output.write("www.flexikasir.id".toByteArray(CHARSET_CETAK))
 
         // Feed + Cut
+        output.write(EscPos.LF)
+        output.write(EscPos.LF)
         output.write(EscPos.LF)
         output.write(EscPos.CUT)
 
