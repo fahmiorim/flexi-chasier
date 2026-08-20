@@ -1148,7 +1148,7 @@ internal fun DetailKasPage(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Riwayat Mutasi (${daftarMutasi?.size ?: 0})", fontWeight = FontWeight.Medium, style = MaterialTheme.typography.labelMedium)
+                            Text("Pengeluaran (${daftarMutasi?.size ?: 0})", fontWeight = FontWeight.Medium, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                     OutlinedButton(
@@ -1252,7 +1252,7 @@ private fun DialogRiwayatMutasi(
     FlexiDialog(onDismissRequest = onTutup) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FlexiDialogHeader(
-                icon = Icons.AutoMirrored.Filled.List, title = "Riwayat Mutasi",
+                icon = Icons.AutoMirrored.Filled.List, title = "Pengeluaran",
                 subtitle = "${daftarMutasi.size} mutasi tercatat",
                 onClose = onTutup,
             )
