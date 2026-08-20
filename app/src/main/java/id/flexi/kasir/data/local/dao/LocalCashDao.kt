@@ -52,6 +52,9 @@ interface LocalCashDao {
     @Query("DELETE FROM mutasi_kas WHERE id = :id")
     suspend fun hapusMutasi(id: String)
 
+    @Query("DELETE FROM mutasi_kas WHERE shiftId = :shiftId")
+    suspend fun hapusMutasiBerdasarkanShift(shiftId: String)
+
     // ── Setoran ──
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -68,6 +71,9 @@ interface LocalCashDao {
 
     @Query("UPDATE setoran_kas SET dihapus = 1 WHERE id = :id")
     suspend fun hapusSetoran(id: String)
+
+    @Query("UPDATE setoran_kas SET dihapus = 1 WHERE shiftId = :shiftId")
+    suspend fun hapusSetoranBerdasarkanShift(shiftId: String)
 
     // ═══════════════════════════════════════
     // AGGREGATE QUERIES — Optimasi performa

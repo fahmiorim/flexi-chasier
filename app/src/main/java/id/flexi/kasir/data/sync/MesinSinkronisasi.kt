@@ -148,43 +148,65 @@ class MesinSinkronisasi(
         // shift sebelum mutasi/setoran, bahan sebelum pembelian/bahanResep,
         // produk sebelum resep.
         var diterima = 0
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PRODUK) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_PRODUK) { g, items ->
             layanan.dorongProduk(PushProdukRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_BAHAN) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_BAHAN) { g, items ->
             layanan.dorongBahan(PushBahanRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_MEJA) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_MEJA) { g, items ->
             layanan.dorongMeja(PushMejaRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_SHIFT_KAS) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_SHIFT_KAS) { g, items ->
             layanan.dorongShiftKas(PushShiftKasRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_TRANSAKSI) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_TRANSAKSI) { g, items ->
             layanan.dorongTransaksi(PushTransaksiRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_RESEP) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_RESEP) { g, items ->
             layanan.dorongResep(PushResepRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PEMBELIAN_BAHAN) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_PEMBELIAN_BAHAN) { g, items ->
             layanan.dorongPembelianBahan(PushPembelianBahanRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_SETORAN) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_SETORAN) { g, items ->
             layanan.dorongSetoran(PushSetoranRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_MUTASI_KAS) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_MUTASI_KAS) { g, items ->
             layanan.dorongMutasiKas(PushMutasiKasRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PENGATURAN_TOKO) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_PENGATURAN_TOKO) { g, items ->
             layanan.dorongPengaturanToko(PushPengaturanTokoRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_PENYESUAIAN_STOK) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_PENYESUAIAN_STOK) { g, items ->
             layanan.dorongPenyesuaianStok(PushPenyesuaianStokRequest(g, items))
         }
-        diterima += dorongSatu(geraiId, OutboxPencatat.ENTITAS_MUTASI_REKENING) { g, items ->
+        diterima += dorongSatuSafe(geraiId, OutboxPencatat.ENTITAS_MUTASI_REKENING) { g, items ->
             layanan.dorongMutasiRekening(PushMutasiRekeningRequest(g, items))
         }
         return diterima
+    }
+
+    /**
+     * Wrapper [dorongSatu] yang menangkap exception agar satu entity gagal
+     * tidak membatalkan seluruh siklus push → pull tetap bisa jalan.
+     */
+    private suspend inline fun <reified T> dorongSatuSafe(
+        geraiId: String,
+        entitas: String,
+        kirim: suspend (geraiId: String, items: List<T>) -> PushResponse,
+    ): Int {
+        return try {
+            dorongSatu(geraiId, entitas, kirim)
+        } catch (kesalahan: HttpException) {
+            val kode = kesalahan.code()
+            if (kode == 401 || kode == 403) throw kesalahan
+            android.util.Log.w("Sinkron", "Push $entitas gagal (HTTP $kode), dilewati.")
+            0
+        } catch (kesalahan: Exception) {
+            android.util.Log.w("Sinkron", "Push $entitas gagal: ${kesalahan.message}, dilewati.")
+            0
+        }
     }
 
     /**
@@ -417,18 +439,13 @@ class MesinSinkronisasi(
                 }
             }
 
-            // ── 5. Setoran & mutasi (setoran tanpa induk; mutasi filter shift) ──
+            // ── 5. Setoran & mutasi ──
             perubahan.setoran.forEach { kasDao.simpanSetoran(it) }
 
-            if (perubahan.mutasi.isNotEmpty()) {
-                val idShiftAda = perubahan.mutasi
-                    .map { it.shiftId }
-                    .distinct()
-                    .filter { id -> kasDao.ambilKasBerdasarkanId(id) != null }
-                    .toSet()
-                perubahan.mutasi.filter { it.shiftId in idShiftAda }.forEach { mutasi ->
-                    kasDao.simpanMutasi(mutasi)
-                }
+            // Simpan SEMUA mutasi tanpa cek shift — shift mungkin belum ditarik
+            // dalam batch yang sama. FK NO_ACTION memungkinkan orphan sementara.
+            perubahan.mutasi.forEach { mutasi ->
+                kasDao.simpanMutasi(mutasi)
             }
 
             // ── 5b. Penyesuaian stok & mutasi rekening (mandiri, tanpa induk) ──
@@ -441,7 +458,12 @@ class MesinSinkronisasi(
             perubahan.pembelianDihapus.forEach { bahanDao.hapusPembelian(it) }
             perubahan.mutasiDihapus.forEach { kasDao.hapusMutasi(it) }
             perubahan.setoranDihapus.forEach { kasDao.hapusSetoran(it) } // soft delete lokal
-            perubahan.shiftDihapus.forEach { kasDao.hapusKas(it) } // cascade mutasi
+            perubahan.shiftDihapus.forEach { shiftId ->
+                // Hapus anak dulu (FK NO_ACTION tidak cascade otomatis)
+                kasDao.hapusMutasiBerdasarkanShift(shiftId)
+                kasDao.hapusSetoranBerdasarkanShift(shiftId)
+                kasDao.hapusKas(shiftId)
+            }
             perubahan.bahanDihapus.forEach { bahanDao.hapusBahan(it) } // cascade pembelian & bahan_resep
             perubahan.mejaDihapus.forEach { mejaDao.DeleteTable(it) }
             perubahan.produkDihapus.forEach { produkDao.DeleteProduct(it) }
@@ -470,7 +492,7 @@ class MesinSinkronisasi(
         private const val BATCH_MAKS = 100
         private const val BATCH_PULL = 500
         private const val MAKS_ITERASI_PULL = 30
-        private const val MAKS_PERCOBAAN = 3
+        private const val MAKS_PERCOBAAN = 5
 
         /** Awalan kunci meta kursor pull per entitas. */
         private const val PREFIX_KURSOR = "pull_terakhir"

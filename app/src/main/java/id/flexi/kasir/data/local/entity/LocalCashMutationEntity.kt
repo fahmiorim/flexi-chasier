@@ -23,7 +23,7 @@ import androidx.room.PrimaryKey
             entity = LocalCashKasEntity::class,
             parentColumns = ["id"],
             childColumns = ["shiftId"],
-            onDelete = ForeignKey.CASCADE,
+            onDelete = ForeignKey.NO_ACTION,
         ),
     ],
     indices = [

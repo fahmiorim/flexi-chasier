@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 30,
-    "identityHash": "67b1e6835f1ff6389c33891af179e396",
+    "identityHash": "383879a369c232b34d9086b63ecdf231",
     "entities": [
       {
         "tableName": "Transaction_lokal",
@@ -479,7 +479,7 @@
       },
       {
         "tableName": "mutasi_kas",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `shiftId` TEXT NOT NULL, `tipe` TEXT NOT NULL, `kategori` TEXT NOT NULL, `nominal` INTEGER NOT NULL, `catatan` TEXT NOT NULL, `waktu` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`shiftId`) REFERENCES `shift_kas`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `shiftId` TEXT NOT NULL, `tipe` TEXT NOT NULL, `kategori` TEXT NOT NULL, `nominal` INTEGER NOT NULL, `catatan` TEXT NOT NULL, `waktu` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`shiftId`) REFERENCES `shift_kas`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -563,7 +563,7 @@
         "foreignKeys": [
           {
             "table": "shift_kas",
-            "onDelete": "CASCADE",
+            "onDelete": "NO ACTION",
             "onUpdate": "NO ACTION",
             "columns": [
               "shiftId"
@@ -1179,7 +1179,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '67b1e6835f1ff6389c33891af179e396')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '383879a369c232b34d9086b63ecdf231')"
     ]
   }
 }
