@@ -235,15 +235,15 @@ internal fun RekapKasContent(
 
                 // Profit dari shift yang sudah ditutup (sudah dihitung di ViewModel)
                 val profitDariShiftTertutup = when (state) {
-                    is CashRegisterUiState.BelumBuka -> state.saldoSaatIniTerakhir.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    is CashRegisterUiState.BelumBuka -> state.saldoSaatIniTerakhir.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
                     is CashRegisterUiState.KasAktif -> state.akumulasiProfitShiftTertutup
                     else -> 0L
                 }
                 // Profit hari ini (jika kas aktif)
                 val profitHariIni = if (state is CashRegisterUiState.KasAktif) {
-                    val penjualanTunaiAngka = state.penjualanTunai.replace("[Rp. ]", "").toLongOrNull() ?: 0L
-                    val pemasukanAngka = state.totalPemasukan.replace("[Rp. ]", "").toLongOrNull() ?: 0L
-                    val pengeluaranAngka = state.totalPengeluaran.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    val penjualanTunaiAngka = state.penjualanTunai.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+                    val pemasukanAngka = state.totalPemasukan.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+                    val pengeluaranAngka = state.totalPengeluaran.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
                     penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka
                 } else 0L
                 val totalProfitTerakumulasi = profitDariShiftTertutup + profitHariIni
@@ -389,10 +389,10 @@ internal fun SaldoKasBanner(
     val heroColor = MaterialTheme.colorScheme.primary
 
     // Hitung uang di laci
-    val saldoAwalAngka = saldoAwal.replace("[Rp. ]", "").toLongOrNull() ?: 0L
-    val penjualanTunaiAngka = penjualanTunai.replace("[Rp. ]", "").toLongOrNull() ?: 0L
-    val pemasukanAngka = totalPemasukan.replace("[Rp. ]", "").toLongOrNull() ?: 0L
-    val pengeluaranAngka = totalPengeluaran.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+    val saldoAwalAngka = saldoAwal.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+    val penjualanTunaiAngka = penjualanTunai.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+    val pemasukanAngka = totalPemasukan.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+    val pengeluaranAngka = totalPengeluaran.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
     val uangDiLaci = saldoAwalAngka + penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka
 
     ElevatedCard(

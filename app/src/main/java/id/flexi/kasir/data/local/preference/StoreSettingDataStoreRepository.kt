@@ -40,7 +40,7 @@ class RepositoriStoreSettingDataStore(
                 } ?: ReceiptPrintFormat.Manual,
                 printerType = prefs[Kunci.PrinterType]?.let { nilai ->
                     try { PrinterType.valueOf(nilai) } catch (_: Exception) { PrinterType.None }
-                } ?: PrinterType.None,
+                } ?: PrinterType.Bluetooth,
                 printerAddress = prefs[Kunci.PrinterAddress] ?: "",
                 printerName = prefs[Kunci.PrinterName] ?: "",
                 suaraNotifikasiAktif = prefs[Kunci.suaraNotifikasiAktif] ?: true,

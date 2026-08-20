@@ -16,7 +16,7 @@ data class SettingsUiState(
     val PaymentMethodTunaiAktif: Boolean = true,
     val PaymentMethodQrisAktif: Boolean = true,
     val receiptPrintFormat: ReceiptPrintFormat = ReceiptPrintFormat.Manual,
-    val printerType: PrinterType = PrinterType.None,
+    val printerType: PrinterType = PrinterType.Bluetooth,
     val printerAddress: String = "",
     val printerName: String = "",
     val suaraNotifikasiAktif: Boolean = true,
