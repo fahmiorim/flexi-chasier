@@ -232,7 +232,7 @@ interface LocalTransactionDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
+            MAX(0, COALESCE(i.item_subtotal, 0) - t.potongan) + t.biayaLayanan + t.pajak
         ), 0)
         FROM Transaction_lokal t
         LEFT JOIN (
@@ -251,7 +251,7 @@ interface LocalTransactionDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
+            MAX(0, COALESCE(i.item_subtotal, 0) - t.potongan) + t.biayaLayanan + t.pajak
         ), 0)
         FROM Transaction_lokal t
         LEFT JOIN (
@@ -271,7 +271,7 @@ interface LocalTransactionDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
+            MAX(0, COALESCE(i.item_subtotal, 0) - t.potongan) + t.biayaLayanan + t.pajak
         ), 0)
         FROM Transaction_lokal t
         LEFT JOIN (
@@ -291,7 +291,7 @@ interface LocalTransactionDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
+            MAX(0, COALESCE(i.item_subtotal, 0) - t.potongan) + t.biayaLayanan + t.pajak
         ), 0)
         FROM Transaction_lokal t
         LEFT JOIN (
@@ -312,7 +312,7 @@ interface LocalTransactionDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            COALESCE(i.item_subtotal, 0) - t.potongan + t.biayaLayanan + t.pajak
+            MAX(0, COALESCE(i.item_subtotal, 0) - t.potongan) + t.biayaLayanan + t.pajak
         ), 0)
         FROM Transaction_lokal t
         LEFT JOIN (
@@ -335,9 +335,10 @@ interface LocalTransactionDao {
         """
         SELECT * FROM Transaction_lokal
         WHERE status != 'Pending'
-        AND waktuTransactionEpochMili >= :sejak
-        AND waktuTransactionEpochMili < :sampai
-        ORDER BY waktuTransactionEpochMili DESC
+        AND dibatalkan = 0
+        AND COALESCE(waktuDibayarEpochMili, waktuTransactionEpochMili) >= :sejak
+        AND COALESCE(waktuDibayarEpochMili, waktuTransactionEpochMili) < :sampai
+        ORDER BY COALESCE(waktuDibayarEpochMili, waktuTransactionEpochMili) DESC
         """
     )
     suspend fun ambilTransactionRentang(sejak: Long, sampai: Long): List<TransactionWithLocalItems>

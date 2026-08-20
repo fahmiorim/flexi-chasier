@@ -121,6 +121,7 @@ object CashierViewModelProvider {
                 LoadProductCatalog = aplikasi.kontainer.LoadProductCatalog,
                 amatiKasAktif = aplikasi.kontainer.amatiKasAktif,
                 amatiMutasiKas = aplikasi.kontainer.amatiMutasiKas,
+                amatiSetoran = aplikasi.kontainer.amatiSetoran,
             )
         }
 

@@ -205,14 +205,12 @@ internal fun DialogTutupKas(
     tutupKas: () -> Unit,
     tutup: () -> Unit,
 ) {
-    // Saldo saat ini (operasional) + saldoAwal (float) = expected fisik di laci.
-    // saldoSaatIni berformat Rupiah ("-Rp1.234" untuk negatif) — buang semua
-    // karakter kecuali digit & tanda minus agar nilai negatif tidak berubah positif.
-    val expectedFisikAngka = remember(state.saldoSaatIni, state.kas.saldoAwal) {
-        val operasional = state.saldoSaatIni
+    // saldoSaatIni SUDAH termasuk saldoAwal + tunai + pemasukan - pengeluaran - setoran.
+    // Cukup parse langsung — tidak perlu tambah saldoAwal lagi.
+    val expectedFisikAngka = remember(state.saldoSaatIni) {
+        state.saldoSaatIni
             .replace(Regex("[^0-9-]"), "")
             .toLongOrNull() ?: 0L
-        operasional + state.kas.saldoAwal.nilaiRupiah
     }
     val saldoFisikAngka = remember(state.saldoFisikInput) {
         state.saldoFisikInput.toLongOrNull()
@@ -274,6 +272,15 @@ internal fun DialogTutupKas(
                         Text("- Pengeluaran", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val pengeluaranAngka = state.totalPengeluaran.filter { it.isDigit() }.toLongOrNull() ?: 0L
                         Text("(${pengeluaranAngka.sebagaiRupiah()})",
+                            style = MaterialTheme.typography.bodySmall, color = RedAksen)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("- Setoran", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val setoranAngka = state.totalSetoran.filter { it.isDigit() }.toLongOrNull() ?: 0L
+                        Text("(${setoranAngka.sebagaiRupiah()})",
                             style = MaterialTheme.typography.bodySmall, color = RedAksen)
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))

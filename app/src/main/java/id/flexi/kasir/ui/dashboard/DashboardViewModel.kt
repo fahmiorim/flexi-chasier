@@ -8,8 +8,10 @@ import id.flexi.kasir.domain.model.CashKas
 import id.flexi.kasir.domain.model.PaymentMethod
 import id.flexi.kasir.domain.model.PaymentStatus
 import id.flexi.kasir.domain.repository.TransactionRepository
+import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.usecase.AmatiMutasiKas
 import id.flexi.kasir.domain.usecase.AmatiKasAktif
+import id.flexi.kasir.domain.usecase.AmatiSetoran
 import id.flexi.kasir.domain.usecase.ObservePendingOrders
 import id.flexi.kasir.domain.usecase.ObserveProcessingOrders
 import id.flexi.kasir.domain.usecase.LoadProductCatalog
@@ -30,6 +32,7 @@ class DashboardViewModel(
     private val LoadProductCatalog: LoadProductCatalog,
     private val amatiKasAktif: AmatiKasAktif,
     private val amatiMutasiKas: AmatiMutasiKas,
+    private val amatiSetoran: AmatiSetoran,
 ) : ViewModel() {
 
     /** Transaksi lunas 60 hari terakhir — cukup untuk semua periode dashboard */
@@ -41,6 +44,7 @@ class DashboardViewModel(
     private var daftarMutasiKas = emptyList<CashMutation>()
     private var observasiMutasiJob: Job? = null
     private var shiftIdTerakhir: String? = null
+    private var totalSetoranShiftAktif: Long = 0L
 
     private val _modelTampilan = MutableStateFlow(DashboardUiState())
     val modelTampilan: StateFlow<DashboardUiState> = _modelTampilan
@@ -92,10 +96,22 @@ class DashboardViewModel(
                     }
                 } else if (shift == null) {
                     daftarMutasiKas = emptyList()
+                    totalSetoranShiftAktif = 0L
                     shiftIdTerakhir = null
                     observasiMutasiJob?.cancel()
                     observasiMutasiJob = null
                 }
+                bentukUlang()
+            }
+        }
+        // 6) Setoran per shift aktif → kurangi saldo kas
+        viewModelScope.launch {
+            amatiSetoran().collect { setoranList ->
+                val shiftId = shiftKas?.id
+                totalSetoranShiftAktif = if (shiftId != null) {
+                    setoranList.filter { it.shiftId == shiftId && !it.dihapus }
+                        .sumOf { it.nominal.nilaiRupiah }
+                } else 0L
                 bentukUlang()
             }
         }
@@ -148,7 +164,7 @@ class DashboardViewModel(
                 .sumOf { it.nominal.nilaiRupiah }
             val pengeluaran = daftarMutasiKas.filter { it.tipe == CashMutationType.Pengeluaran }
                 .sumOf { it.nominal.nilaiRupiah }
-            (shiftKas!!.saldoAwal.nilaiRupiah + tunaiHariCount + pemasukan - pengeluaran).sebagaiRupiah()
+            (shiftKas!!.saldoAwal.nilaiRupiah + tunaiHariCount + pemasukan - pengeluaran - totalSetoranShiftAktif).sebagaiRupiah()
         } else "-"
 
         // ── Jumlah item ──

@@ -72,6 +72,7 @@ import id.flexi.kasir.domain.model.MutasiRekeningTipe
 import id.flexi.kasir.domain.model.Setoran
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.PaymentMethod
+import id.flexi.kasir.domain.util.hitungTotalAkhirTransaction
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.ui.component.FlexiBadge
 import id.flexi.kasir.ui.component.FlexiCard
@@ -248,7 +249,13 @@ internal fun RekapKasContent(
                 } else 0L
                 val totalProfitTerakumulasi = profitDariShiftTertutup + profitHariIni
                 val totalSetoranAngka = daftarSetoran.filter { !it.dihapus }.sumOf { it.nominal.nilaiRupiah }
-                val sisaBelumDisetor = totalProfitTerakumulasi - totalSetoranAngka
+                // BelumBuka: cachedAkumulasiProfit SUDAH mengurangi setoran per shift, tidak perlu kurangi lagi.
+                // KasAktif: profitHariIni belum dikurangi setoran, totalSetoranAngka hanya setoran shift aktif.
+                val sisaBelumDisetor = if (state is CashRegisterUiState.BelumBuka) {
+                    totalProfitTerakumulasi
+                } else {
+                    totalProfitTerakumulasi - totalSetoranAngka
+                }
 
                 SaldoKasBanner(
                     saldoAwal = saldoAwalTampil,
@@ -388,12 +395,13 @@ internal fun SaldoKasBanner(
 ) {
     val heroColor = MaterialTheme.colorScheme.primary
 
-    // Hitung uang di laci
+    // Hitung uang di laci: saldo awal + tunai + pemasukan - pengeluaran - setoran
     val saldoAwalAngka = saldoAwal.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
     val penjualanTunaiAngka = penjualanTunai.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
     val pemasukanAngka = totalPemasukan.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
     val pengeluaranAngka = totalPengeluaran.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
-    val uangDiLaci = saldoAwalAngka + penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka
+    val setoranAngka = totalSetoran.replace(Regex("[^\\d]"), "").toLongOrNull() ?: 0L
+    val uangDiLaci = saldoAwalAngka + penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka - setoranAngka
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth()
@@ -1370,7 +1378,7 @@ private fun DialogRiwayatPenjualan(
                                 )
                             }
                             Text(
-                                text = transaksi.uangDibayar.nilaiRupiah.sebagaiRupiah(),
+                                text = transaksi.hitungTotalAkhirTransaction().sebagaiRupiah(),
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = if (transaksi.dibatalkan) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             )
@@ -1400,11 +1408,11 @@ private fun DialogRiwayatPenjualan(
 
             val totalTunai = remember(daftarTransaksi) {
                 daftarTransaksi.filter { it.paymentMethod == PaymentMethod.Cash && !it.dibatalkan }
-                    .sumOf { it.uangDibayar.nilaiRupiah }
+                    .sumOf { it.hitungTotalAkhirTransaction() }
             }
             val totalQRIS = remember(daftarTransaksi) {
                 daftarTransaksi.filter { it.paymentMethod == PaymentMethod.Qris && !it.dibatalkan }
-                    .sumOf { it.uangDibayar.nilaiRupiah }
+                    .sumOf { it.hitungTotalAkhirTransaction() }
             }
 
             Row(
