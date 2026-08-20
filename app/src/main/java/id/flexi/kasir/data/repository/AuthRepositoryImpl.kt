@@ -268,10 +268,10 @@ class AuthRepositoryImpl(
             id = user.id,
             nama = user.nama,
             email = user.email,
-            peran = if (user.peran == PeranAkun.Kasir.name) {
-                PeranAkun.Kasir
-            } else {
-                PeranAkun.Pemilik
+            peran = when (user.peran) {
+                PeranAkun.Waiters.name -> PeranAkun.Waiters
+                PeranAkun.Kasir.name -> PeranAkun.Kasir
+                else -> PeranAkun.Pemilik
             },
             daftarGerai = gerai.map { g ->
                 GeraiSederhana(
@@ -303,10 +303,10 @@ class AuthRepositoryImpl(
             id = id,
             nama = nama,
             email = email,
-            peran = if (peran == PeranAkun.Kasir.name) {
-                PeranAkun.Kasir
-            } else {
-                PeranAkun.Pemilik
+            peran = when (peran) {
+                PeranAkun.Waiters.name -> PeranAkun.Waiters
+                PeranAkun.Kasir.name -> PeranAkun.Kasir
+                else -> PeranAkun.Pemilik
             },
             daftarGerai = daftarGerai.map { g ->
                 GeraiSederhana(

@@ -47,25 +47,12 @@ class LoginUser(
             // Struk
             strukHeader = geraiAktif.headerStruk ?: pengaturanLokal.strukHeader,
             strukFooter = geraiAktif.footerStruk ?: pengaturanLokal.strukFooter,
-            lebarStruk = geraiAktif.ukuranKertas?.let { ukuran ->
-                when (ukuran) {
-                    "58" -> LebarStruk.Mm58
-                    "80" -> LebarStruk.Mm80
-                    else -> null
-                }
-            } ?: pengaturanLokal.lebarStruk,
+            // lebarStruk, printerType, printerName: TIDAK ditimpa dari server.
+            // Pengaturan ini bersifat lokal per device — biarkan user atur sendiri.
             // Pajak & Biaya
             // Note: tarifPajak & biayaLayanan dari server belum ditambahkan ke StoreSetting
             // Mereka hanya tersimpan di SesiStore/GeraiTersimpan untuk saat ini
-            // Printer
-            printerType = geraiAktif.printerTipe?.let { tipe ->
-                when (tipe.lowercase()) {
-                    "bluetooth" -> PrinterType.Bluetooth
-                    "usb" -> PrinterType.Usb
-                    else -> PrinterType.None
-                }
-            } ?: pengaturanLokal.printerType,
-            printerName = geraiAktif.printerNama ?: pengaturanLokal.printerName,
+            // Printer: TIDAK ditimpa dari server (setting lokal per device).
             // Cetak otomatis
             receiptPrintFormat = if (geraiAktif.autoCetak == true) {
                 ReceiptPrintFormat.Automatic

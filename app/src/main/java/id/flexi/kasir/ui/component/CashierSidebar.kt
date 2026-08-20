@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.TableRestaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -173,28 +176,31 @@ fun SidebarKasir(
                     .padding(vertical = 12.dp)
             ) {
                 val bolehKelola = peran == PeranAkun.Pemilik
+                val isWaiters = peran == PeranAkun.Waiters
 
-                // ── Urutan menu sesuai permintaan ──
-                // 1. Dashboard
-                // 2. Transaksi
-                // 3. Riwayat Transaksi
-                // 4. Rekap Kas
-                // 5. Kelola Produk
-                // 6. Pengaturan Meja
-                // 7. Laporan
-                // 8. Pengaturan
-                val itemsMenuUtama = buildList {
-                    add(Triple(Icons.Default.Dashboard, "Dashboard", CashierNavigationDestination.Dashboard))
-                    add(Triple(Icons.Default.ShoppingCart, "Transaksi", CashierNavigationDestination.KasirUtama))
-                    add(Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction))
-                    if (bolehKelola && apakahManajemenKasAktif) {
-                        add(Triple(Icons.Default.AccountBalance, "Rekap Kas", CashierNavigationDestination.Kasir))
+                val itemsMenuUtama = if (isWaiters) {
+                    // Menu terbatas untuk waiters
+                    buildList {
+                        add(Triple(Icons.Default.PointOfSale, "Catat Pesanan", CashierNavigationDestination.WaitersPos))
+                        add(Triple(Icons.Default.History, "Riwayat Pesanan", CashierNavigationDestination.RiwayatTransaction))
                     }
-                    if (bolehKelola) {
-                        add(Triple(Icons.Default.Inventory2, "Kelola Produk", CashierNavigationDestination.KelolaProduk))
-                        add(Triple(Icons.Default.TableRestaurant, "Pengaturan Meja", CashierNavigationDestination.PengaturanMeja))
-                        add(Triple(Icons.Default.Assessment, "Laporan", CashierNavigationDestination.Laporan))
-                        add(Triple(Icons.Default.Settings, "Pengaturan", CashierNavigationDestination.Pengaturan))
+                } else {
+                    // Menu lengkap untuk kasir/pemilik
+                    buildList {
+                        add(Triple(Icons.Default.Dashboard, "Dashboard", CashierNavigationDestination.Dashboard))
+                        add(Triple(Icons.Default.ShoppingCart, "Transaksi", CashierNavigationDestination.KasirUtama))
+                        add(Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction))
+                        if (bolehKelola && apakahManajemenKasAktif) {
+                            add(Triple(Icons.Default.AccountBalance, "Rekap Kas", CashierNavigationDestination.Kasir))
+                        }
+                        if (bolehKelola) {
+                            add(Triple(Icons.Default.Inventory2, "Kelola Produk", CashierNavigationDestination.KelolaProduk))
+                            add(Triple(Icons.Default.TableRestaurant, "Pengaturan Meja", CashierNavigationDestination.PengaturanMeja))
+                            add(Triple(Icons.Default.Leaderboard, "Produk Terlaris", CashierNavigationDestination.ProdukTerlaris))
+                            add(Triple(Icons.Default.Inventory, "Stok Overview", CashierNavigationDestination.StokOverview))
+                            add(Triple(Icons.Default.Assessment, "Laporan", CashierNavigationDestination.Laporan))
+                            add(Triple(Icons.Default.Settings, "Pengaturan", CashierNavigationDestination.Pengaturan))
+                        }
                     }
                 }
 
@@ -279,7 +285,11 @@ fun SidebarKasir(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = if (peran == PeranAkun.Pemilik) "Pemilik" else "Kasir",
+                            text = when (peran) {
+                                PeranAkun.Pemilik -> "Pemilik"
+                                PeranAkun.Waiters -> "Waiters"
+                                else -> "Kasir"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

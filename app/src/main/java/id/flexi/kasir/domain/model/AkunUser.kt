@@ -6,6 +6,7 @@ package id.flexi.kasir.domain.model
 enum class PeranAkun {
     Pemilik,
     Kasir,
+    Waiters,
 }
 
 /**
@@ -55,4 +56,7 @@ data class AkunUser(
 
     val dapatMengelolaData: Boolean
         get() = peran == PeranAkun.Pemilik
+
+    val isWaiters: Boolean
+        get() = peran == PeranAkun.Waiters
 }

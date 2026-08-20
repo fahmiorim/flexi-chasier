@@ -241,5 +241,28 @@ object CashierViewModelProvider {
             )
         }
 
+        initializer {
+            val aplikasi = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CashierApp
+            id.flexi.kasir.ui.stok.StokOverviewViewModel(
+                loadProductCatalog = aplikasi.kontainer.LoadProductCatalog,
+            )
+        }
+
+        initializer {
+            val aplikasi = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CashierApp
+            id.flexi.kasir.ui.top.TopProductsViewModel(
+                observeTransactionHistory = aplikasi.kontainer.ObserveTransactionHistory,
+            )
+        }
+
+        initializer {
+            val aplikasi = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CashierApp
+            id.flexi.kasir.ui.waiters.WaitersPosViewModel(
+                loadProductCatalog = aplikasi.kontainer.LoadProductCatalog,
+                getTableList = aplikasi.kontainer.GetTableList,
+                completeLocalCheckout = aplikasi.kontainer.CompleteLocalCheckout,
+            )
+        }
+
     }
 }

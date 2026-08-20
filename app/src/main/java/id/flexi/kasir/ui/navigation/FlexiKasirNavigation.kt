@@ -53,6 +53,9 @@ import id.flexi.kasir.ui.cashregister.CashRegisterViewModel
 import id.flexi.kasir.ui.report.SalesReportScreen
 import id.flexi.kasir.ui.report.SalesReportViewModel
 import id.flexi.kasir.ui.settings.SettingsScreen
+import id.flexi.kasir.ui.stok.StokOverviewScreen
+import id.flexi.kasir.ui.top.TopProductsScreen
+import id.flexi.kasir.ui.waiters.WaitersPosScreen
 import id.flexi.kasir.ui.settings.SettingsViewModel
 import id.flexi.kasir.ui.history.TransactionHistoryScreen
 import id.flexi.kasir.ui.history.TransactionHistoryViewModel
@@ -145,6 +148,9 @@ private fun KasirAppUtama(
         CashierNavigationDestination.Laporan::class.qualifiedName -> CashierNavigationDestination.Laporan
         CashierNavigationDestination.BahanBaku::class.qualifiedName -> CashierNavigationDestination.BahanBaku
         CashierNavigationDestination.AturResep::class.qualifiedName -> CashierNavigationDestination.AturResep
+        CashierNavigationDestination.StokOverview::class.qualifiedName -> CashierNavigationDestination.StokOverview
+        CashierNavigationDestination.ProdukTerlaris::class.qualifiedName -> CashierNavigationDestination.ProdukTerlaris
+        CashierNavigationDestination.WaitersPos::class.qualifiedName -> CashierNavigationDestination.WaitersPos
         else -> null
     }
 
@@ -515,6 +521,52 @@ private fun KasirAppUtama(
                 ResepScreen(
                     viewModel = viewModel,
                     navigasiKembali = { pengendaliNavigasi.navigateUp() },
+                )
+            }
+
+            composable<CashierNavigationDestination.StokOverview> {
+                val viewModel: id.flexi.kasir.ui.stok.StokOverviewViewModel = viewModel(
+                    factory = CashierViewModelProvider.Factory,
+                )
+                val produkList by viewModel.produkList.collectAsStateWithLifecycle()
+                val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+                StokOverviewScreen(
+                    produkList = produkList,
+                    isLoading = isLoading,
+                    navigasiKembali = { pengendaliNavigasi.navigateUp() },
+                    saatBukaSidebar = null,
+                )
+            }
+
+            composable<CashierNavigationDestination.ProdukTerlaris> {
+                val viewModel: id.flexi.kasir.ui.top.TopProductsViewModel = viewModel(
+                    factory = CashierViewModelProvider.Factory,
+                )
+                val transactions by viewModel.transactions.collectAsStateWithLifecycle()
+                val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+                TopProductsScreen(
+                    transactions = transactions,
+                    isLoading = isLoading,
+                    navigasiKembali = { pengendaliNavigasi.navigateUp() },
+                    saatBukaSidebar = null,
+                )
+            }
+
+            composable<CashierNavigationDestination.WaitersPos> {
+                val viewModel: id.flexi.kasir.ui.waiters.WaitersPosViewModel = viewModel(
+                    factory = CashierViewModelProvider.Factory,
+                )
+                val produkList by viewModel.produkList.collectAsStateWithLifecycle()
+                val mejaList by viewModel.mejaList.collectAsStateWithLifecycle()
+                val pesan by viewModel.pesan.collectAsStateWithLifecycle()
+                WaitersPosScreen(
+                    daftarProduk = produkList,
+                    daftarMeja = mejaList,
+                    navigasiKembali = { pengendaliNavigasi.navigateUp() },
+                    saatBukaSidebar = null,
+                    saatSimpanPesanan = { mejaId, catatan, items ->
+                        viewModel.simpanPesanan(mejaId, catatan, items)
+                    },
                 )
             }
 

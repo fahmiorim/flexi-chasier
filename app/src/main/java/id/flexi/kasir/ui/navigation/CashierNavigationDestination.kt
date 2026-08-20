@@ -120,6 +120,24 @@ sealed interface CashierNavigationDestination {
      */
     @Serializable
     data object AturResep : CashierNavigationDestination
+
+    /**
+     * Tujuan layar stok overview.
+     */
+    @Serializable
+    data object StokOverview : CashierNavigationDestination
+
+    /**
+     * Tujuan layar produk terlaris.
+     */
+    @Serializable
+    data object ProdukTerlaris : CashierNavigationDestination
+
+    /**
+     * Tujuan layar POS untuk waiters.
+     */
+    @Serializable
+    data object WaitersPos : CashierNavigationDestination
 }
 
 /**
@@ -266,4 +284,14 @@ fun NavHostController.bukaAturResep() {
     }
 }
 
+fun NavHostController.bukaStokOverview() {
+    navigate(CashierNavigationDestination.StokOverview) {
+        launchSingleTop = true
+    }
+}
 
+fun NavHostController.bukaProdukTerlaris() {
+    navigate(CashierNavigationDestination.ProdukTerlaris) {
+        launchSingleTop = true
+    }
+}
