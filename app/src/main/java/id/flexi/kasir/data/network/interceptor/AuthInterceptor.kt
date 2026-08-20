@@ -48,7 +48,8 @@ class AuthInterceptor(
         }
 
         val tokenRefresh = tokenStore.refreshToken ?: run {
-            tokenStore.hapus()
+            // Refresh token tidak ada → kembalikan 401, jangan clear sesi.
+            // User tetap di layar, error ditangani oleh ViewModel.
             return respons
         }
 
@@ -68,8 +69,8 @@ class AuthInterceptor(
             }
         }
         if (hasilTukar.isFailure) {
-            // Refresh gagal -> sesi tidak valid lagi, bersihkan token.
-            tokenStore.hapus()
+            // Refresh gagal -> kembalikan 401, jangan clear sesi.
+            // Biarkan user tetap di layar. Error ditangani oleh ViewModel.
             return respons
         }
 

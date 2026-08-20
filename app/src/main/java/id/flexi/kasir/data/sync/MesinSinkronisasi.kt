@@ -101,14 +101,16 @@ class MesinSinkronisasi(
             hasil
         } catch (kesalahan: HttpException) {
             val kode = kesalahan.code()
-            if (kode == 401 || kode == 403) {
-                tokenStore?.hapus()
-                sesiStore?.hapus()
-            }
+            // Jangan clear sesi saat sync gagal 401/403 — biarkan user tetap di layar.
+            // Token akan di-refresh otomatis oleh AuthInterceptor saat ada request baru.
             val hasil = HasilSinkronisasi(
                 geraiId = geraiId,
                 kodeError = kode,
-                pesanError = "Sinkronisasi gagal (HTTP $kode).",
+                pesanError = if (kode == 401 || kode == 403) {
+                    "Sesi perlu diperbarui."
+                } else {
+                    "Sinkronisasi gagal (HTTP $kode)."
+                },
             )
             catatHasil(hasil)
             hasil

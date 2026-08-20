@@ -1,13 +1,22 @@
 package id.flexi.kasir.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,10 +70,23 @@ fun NavigasiFlexiKasirApp() {
     val context = LocalContext.current
     val aplikasi = context.applicationContext as CashierApp
     val cakupanKorutin = rememberCoroutineScope()
+    // Gunakan null sebagai "sedang memuat" agar tidak flash ke login saat startup
+    var sesiSiap by remember { mutableStateOf(false) }
     val sesi by aplikasi.kontainer.amatiSesi().collectAsState(initial = null)
+
+    // Tandai sudah siap setelah DataStore emit nilai pertama
+    LaunchedEffect(Unit) {
+        sesiSiap = true
+    }
 
     val akun = sesi
     when {
+        !sesiSiap -> {
+            // Loading screen — cegah flash ke login saat DataStore belum selesai load
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        }
         akun == null -> {
             val viewModel: AuthViewModel = viewModel(
                 factory = CashierViewModelProvider.Factory,
