@@ -707,4 +707,35 @@ object CashierDatabaseMigration {
             )
         }
     }
+
+    /**
+     * Ubah FK mutasi_kas dari CASCADE ke NO_ACTION supaya mutasi bisa disimpan
+     * sementara sebagai orphan saat shift belum ditarik dari server.
+     */
+    val DARI_30_KE_31: Migration = object : Migration(30, 31) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // FK constraints tidak bisa diubah langsung di SQLite → recreate table
+            db.execSQL("CREATE TABLE IF NOT EXISTS `mutasi_kas_new` (" +
+                "`id` TEXT NOT NULL, " +
+                "`shiftId` TEXT NOT NULL, " +
+                "`tipe` TEXT NOT NULL, " +
+                "`kategori` TEXT NOT NULL DEFAULT 'Lainnya', " +
+                "`nominal` INTEGER NOT NULL, " +
+                "`catatan` TEXT NOT NULL DEFAULT '', " +
+                "`waktu` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`), " +
+                "FOREIGN KEY(`shiftId`) REFERENCES `shift_kas`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION" +
+                ")")
+            db.execSQL("INSERT INTO `mutasi_kas_new` SELECT * FROM `mutasi_kas`")
+            db.execSQL("DROP TABLE `mutasi_kas`")
+            db.execSQL("ALTER TABLE `mutasi_kas_new` RENAME TO `mutasi_kas`")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_mutasi_kas_shiftId` ON `mutasi_kas` (`shiftId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_mutasi_kas_tipe` ON `mutasi_kas` (`tipe`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_mutasi_kas_shiftId_tipe` ON `mutasi_kas` (`shiftId`, `tipe`)")
+
+            // Reset cursor pull mutasiKas supaya sync berikutnya pull ULANG semua
+            // mutasi dari server — memulihkan data yang hilang karena orpin drop.
+            db.execSQL("DELETE FROM meta_sinkron WHERE kunci LIKE 'pull_terakhir:%:mutasiKas'")
+        }
+    }
 }
