@@ -128,6 +128,17 @@ interface TransactionRepository {
         waktuDibayarEpochMili: Long,
     )
 
+    /**
+     * Mengedit detail pembayaran transaksi (metode bayar, uang dibayar, catatan).
+     * Digunakan untuk koreksi jika user salah input saat transaksi.
+     */
+    suspend fun perbaruiPaymentMethodTransaction(
+        identitasTransaction: String,
+        paymentMethod: PaymentMethod,
+        uangDibayar: Long,
+        catatan: String?,
+    )
+
     suspend fun tandaiItemSelesai(identitasTransaction: String)
 
     suspend fun ambilNomorAntrianBerikutnya(): Int

@@ -533,6 +533,22 @@ class TransactionRepositoryLokal(
         }
     }
 
+    override suspend fun perbaruiPaymentMethodTransaction(
+        identitasTransaction: String,
+        paymentMethod: PaymentMethod,
+        uangDibayar: Long,
+        catatan: String?,
+    ) {
+        simpanPerubahanParsial(identitasTransaction) {
+            aksesDataTransaction.perbaruiPaymentMethodTransaction(
+                id = identitasTransaction,
+                paymentMethod = paymentMethod.name,
+                uangDibayar = uangDibayar,
+                catatan = catatan,
+            )
+        }
+    }
+
     /**
      * Menjalankan update parsial yang mengubah field BERSAMA (status, waktu
      * tahapan, pembayaran) secara atomik: menaikkan versi entity (monotonik

@@ -95,6 +95,7 @@ class CashRegisterViewModel(
 
     private var shiftIdAktif: String? = null
     private var observasiMutasiJob: Job? = null
+    private var profitCalculationJob: Job? = null
     private var daftarKasTertutup: List<CashKas> = emptyList()
     private var daftarSetoran: List<Setoran> = emptyList()
     private var totalSetoran: Long = 0L
@@ -108,6 +109,8 @@ class CashRegisterViewModel(
     private var lastPengeluaran: String = "Rp0"
     private var lastMutasiList: List<CashMutation> = emptyList()
     private var lastSaldoSaatIni: String = "Rp0"
+    // Cache akumulasi profit dari shift tertutup (dihitung async, dipakai di BelumBuka & KasAktif)
+    private var cachedAkumulasiProfit: Long = 0L
     // Flag anti-dobel-klik: dipisah dari state agar tidak dioverwrite oleh combine emissions
     @Volatile
     private var sedangTutup = false
@@ -166,6 +169,7 @@ class CashRegisterViewModel(
                 if (shift == null) {
                     val existing = if (currentState is CashRegisterUiState.BelumBuka) currentState else null
 
+                    // Set state awal dengan cached value (sinkron, cepat)
                     _state.value = CashRegisterUiState.BelumBuka(
                         daftarKasTertutup = daftarKasTertutup,
                         daftarSetoran = daftarSetoran,
@@ -177,7 +181,7 @@ class CashRegisterViewModel(
                         totalPemasukanTerakhir = lastPemasukan,
                         totalPengeluaranTerakhir = lastPengeluaran,
                         daftarMutasiTerakhir = lastMutasiList,
-                        saldoSaatIniTerakhir = lastSaldoSaatIni,
+                        saldoSaatIniTerakhir = cachedAkumulasiProfit.sebagaiRupiah(),
                         tanggalBukaEpochMili = existing?.tanggalBukaEpochMili ?: System.currentTimeMillis(),
                         jamBukaJam = existing?.jamBukaJam ?: Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
                         jamBukaMenit = existing?.jamBukaMenit ?: Calendar.getInstance().get(Calendar.MINUTE),
@@ -187,6 +191,32 @@ class CashRegisterViewModel(
                         nominalSetoran = existing?.nominalSetoran ?: "",
                         catatanSetoran = existing?.catatanSetoran ?: "",
                     )
+
+                    // Hitung akumulasi profit dari SEMUA shift tertutup secara async
+                    // Batalkan kalkulasi sebelumnya jika ada
+                    profitCalculationJob?.cancel()
+                    profitCalculationJob = viewModelScope.launch {
+                        try {
+                            var totalProfit = 0L
+                            for (s in daftarKasTertutup) {
+                                val sampai = s.waktuTutup ?: Long.MAX_VALUE
+                                val tunai = transactionRepository.hitungTotalTunaiRentang(s.waktuBuka, sampai)
+                                val pemasukanS = cashRepository.ambilTotalMutasiBerdasarkanTipe(s.id, CashMutationType.Pemasukan.name)
+                                val pengeluaranS = cashRepository.ambilTotalMutasiBerdasarkanTipe(s.id, CashMutationType.Pengeluaran.name)
+                                val setoranS = cashRepository.hitungTotalSetoranBerdasarkanKas(s.id).first()
+                                totalProfit += tunai + pemasukanS - pengeluaranS - setoranS
+                            }
+                            cachedAkumulasiProfit = totalProfit
+                            // Update state hanya jika masih di BelumBuka dan shift masih null
+                            val cur = _state.value
+                            if (cur is CashRegisterUiState.BelumBuka && shiftIdAktif == null) {
+                                _state.value = cur.copy(
+                                    saldoSaatIniTerakhir = totalProfit.sebagaiRupiah(),
+                                )
+                            }
+                        } catch (_: Exception) { }
+                    }
+
                     observasiMutasiJob?.cancel()
                     observasiMutasiJob = null
                     shiftIdAktif = null
@@ -216,7 +246,11 @@ class CashRegisterViewModel(
                 val totalPengeluaran = values[4] as Long
                 val totalSetoranShift = values[5] as Long
 
-                val saldoSaatIni = penjualanTunaiHariIni + totalPemasukan - totalPengeluaran - totalSetoranShift
+                // Saldo Kas = Saldo Awal + Penjualan Tunai + Pemasukan - Pengeluaran - Setoran
+                val saldoSaatIni = shift.saldoAwal.nilaiRupiah + penjualanTunaiHariIni + totalPemasukan - totalPengeluaran - totalSetoranShift
+
+                // Simpan profit shift ini
+                lastSaldoSaatIni = saldoSaatIni.sebagaiRupiah()
 
                 val currentState = _state.value
                 val existingAktif = if (currentState is CashRegisterUiState.KasAktif) currentState else null
@@ -224,6 +258,7 @@ class CashRegisterViewModel(
                 _state.value = CashRegisterUiState.KasAktif(
                     kas = shift,
                     daftarKasTertutup = daftarKasTertutup,
+                    akumulasiProfitShiftTertutup = cachedAkumulasiProfit,
                     daftarSetoran = daftarSetoran.filter { it.shiftId == shift.id },
                     totalSetoran = totalSetoranShift.sebagaiRupiah(),
                     kasTerpilih = existingAktif?.kasTerpilih,
@@ -527,7 +562,7 @@ class CashRegisterViewModel(
             val daftarMutasi = amatiMutasiKas(shift.id).first()
             val daftarTransaksi = transactionRepository.ambilTransactionRentang(sejakBukaShift, sampaiTutupShift)
 
-            val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
+            val saldoSaatIni = shift.saldoAwal.nilaiRupiah + penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
 
             val current = _state.value
             when {
@@ -883,7 +918,7 @@ class CashRegisterViewModel(
                 val totalPengeluaran = daftarMutasi.filter { it.tipe == CashMutationType.Pengeluaran }
                     .sumOf { it.nominal.nilaiRupiah }
                 val totalSetoran = cashRepository.hitungTotalSetoranBerdasarkanKas(shift.id).first()
-                val saldoSaatIni = penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
+                val saldoSaatIni = shift.saldoAwal.nilaiRupiah + penjualanTunai + totalPemasukan - totalPengeluaran - totalSetoran
 
                 val logoBitmap = muatLogoKas(context, logoUri)
                 val waktuCetak = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")).format(Date())

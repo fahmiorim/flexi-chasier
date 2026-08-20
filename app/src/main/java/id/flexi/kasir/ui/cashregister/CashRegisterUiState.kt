@@ -77,6 +77,7 @@ sealed interface CashRegisterUiState {
         val kasTerpilihDaftarTransaksi: List<Transaction>? = null,
         val kasTerpilihSaldoSaatIni: String? = null,
         val saldoSaatIni: String,
+        val akumulasiProfitShiftTertutup: Long = 0L,
         val penjualanTunai: String,
         val penjualanQRIS: String = "Rp0",
         val penjualanTotal: String = "Rp0",

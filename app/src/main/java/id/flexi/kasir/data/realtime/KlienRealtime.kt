@@ -95,6 +95,8 @@ class KlienRealtime(
 
     private val onConnect = Emitter.Listener {
         Log.d(TAG, "Terhubung ke server real-time (id=${socket?.id()})")
+        // Sinkronisasi data saat pertama kali terhubung / reconnect
+        SinkronisasiPenjadwal.mintaSinkronisasiSekarang(konteks)
     }
 
     private val onDisconnect = Emitter.Listener { args ->

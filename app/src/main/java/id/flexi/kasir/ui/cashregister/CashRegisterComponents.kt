@@ -223,12 +223,41 @@ internal fun RekapKasContent(
                     else -> "Rp0"
                 }
 
+                // Ambil saldo awal dari shift aktif
+                val saldoAwalTampil = when (state) {
+                    is CashRegisterUiState.KasAktif -> state.kas.saldoAwal.nilaiRupiah.sebagaiRupiah()
+                    else -> "Rp0"
+                }
+                val totalSetoranTampil = when (state) {
+                    is CashRegisterUiState.KasAktif -> state.totalSetoran
+                    else -> "Rp0"
+                }
+
+                // Profit dari shift yang sudah ditutup (sudah dihitung di ViewModel)
+                val profitDariShiftTertutup = when (state) {
+                    is CashRegisterUiState.BelumBuka -> state.saldoSaatIniTerakhir.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    is CashRegisterUiState.KasAktif -> state.akumulasiProfitShiftTertutup
+                    else -> 0L
+                }
+                // Profit hari ini (jika kas aktif)
+                val profitHariIni = if (state is CashRegisterUiState.KasAktif) {
+                    val penjualanTunaiAngka = state.penjualanTunai.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    val pemasukanAngka = state.totalPemasukan.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    val pengeluaranAngka = state.totalPengeluaran.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+                    penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka
+                } else 0L
+                val totalProfitTerakumulasi = profitDariShiftTertutup + profitHariIni
+                val totalSetoranAngka = daftarSetoran.filter { !it.dihapus }.sumOf { it.nominal.nilaiRupiah }
+                val sisaBelumDisetor = totalProfitTerakumulasi - totalSetoranAngka
+
                 SaldoKasBanner(
-                    saldo = saldoTampil,
+                    saldoAwal = saldoAwalTampil,
                     penjualanTunai = penjualanTunai,
-                    penjualanQRIS = penjualanQRIS,
                     totalPemasukan = totalPemasukan,
                     totalPengeluaran = totalPengeluaran,
+                    totalProfitTerakumulasi = totalProfitTerakumulasi.sebagaiRupiah(),
+                    totalSetoran = totalSetoranAngka.sebagaiRupiah(),
+                    sisaBelumDisetor = sisaBelumDisetor.sebagaiRupiah(),
                     isAktif = isKasAktif,
                     bukaDialogSetoran = bukaDialogSetoran,
                     bukaDialogMutasi = bukaDialogUangKeluar,
@@ -240,23 +269,6 @@ internal fun RekapKasContent(
                 item {
                     BelumBukaBanner(bukaDialogBuka = bukaDialogBuka)
                 }
-            }
-
-            // ── Rekening ──
-            item {
-                SeksiRekening(
-                    state = stateRekening,
-                    bukaDialogSaldoAwal = bukaDialogSaldoAwalRekening,
-                    bukaDialogMutasi = bukaDialogMutasiRekening,
-                    tutupDialogSaldoAwal = tutupDialogSaldoAwalRekening,
-                    perbaruiNominalSaldoAwal = perbaruiNominalSaldoAwalRekening,
-                    perbaruiCatatanSaldoAwal = perbaruiCatatanSaldoAwalRekening,
-                    simpanSaldoAwal = simpanSaldoAwalRekening,
-                    tutupDialogMutasi = tutupDialogMutasiRekening,
-                    perbaruiNominalMutasi = perbaruiNominalMutasiRekening,
-                    perbaruiCatatanMutasi = perbaruiCatatanMutasiRekening,
-                    simpanMutasi = simpanMutasiRekening,
-                )
             }
 
             // ── Riwayat Kas ──
@@ -363,16 +375,25 @@ internal fun RekapKasContent(
 
 @Composable
 internal fun SaldoKasBanner(
-    saldo: String,
+    saldoAwal: String = "Rp0",
     penjualanTunai: String = "Rp0",
-    penjualanQRIS: String = "Rp0",
     totalPemasukan: String = "Rp0",
     totalPengeluaran: String = "Rp0",
+    totalProfitTerakumulasi: String = "Rp0",
+    totalSetoran: String = "Rp0",
+    sisaBelumDisetor: String = "Rp0",
     isAktif: Boolean = true,
     bukaDialogSetoran: () -> Unit = {},
     bukaDialogMutasi: () -> Unit = {},
 ) {
     val heroColor = MaterialTheme.colorScheme.primary
+
+    // Hitung uang di laci
+    val saldoAwalAngka = saldoAwal.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+    val penjualanTunaiAngka = penjualanTunai.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+    val pemasukanAngka = totalPemasukan.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+    val pengeluaranAngka = totalPengeluaran.replace("[Rp. ]", "").toLongOrNull() ?: 0L
+    val uangDiLaci = saldoAwalAngka + penjualanTunaiAngka + pemasukanAngka - pengeluaranAngka
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth()
@@ -382,14 +403,14 @@ internal fun SaldoKasBanner(
         colors = CardDefaults.elevatedCardColors(containerColor = heroColor),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header: label + tombol Setoran
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Saldo Kas",
+                    text = "Saldo Kas (uang di laci)",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                 )
@@ -412,9 +433,9 @@ internal fun SaldoKasBanner(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Big saldo number
+            // Uang di laci
             Text(
-                text = saldo,
+                text = uangDiLaci.sebagaiRupiah(),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = (-1).sp,
@@ -422,133 +443,73 @@ internal fun SaldoKasBanner(
                 color = MaterialTheme.colorScheme.onPrimary,
             )
 
-            // Stats surface: hanya tampil saat kas aktif
+            // Rincian uang di laci (saat kas aktif)
             if (isAktif) {
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.08f),
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    // Baris 1: Penjualan Tunai & Non-Tunai
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Penjualan Tunai",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            )
-                            Text(
-                                text = penjualanTunai,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.08f),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        InfoBarisKas("Saldo Awal", saldoAwal, MaterialTheme.colorScheme.onPrimary)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f), modifier = Modifier.padding(vertical = 4.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("+ Penjualan Tunai", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
+                                Text(penjualanTunai, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimary)
+                            }
+                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("+ Pemasukan", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
+                                Text(totalPemasukan, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimary)
+                            }
                         }
-                        // Pemisah vertikal
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(32.dp)
-                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Penjualan Non-Tunai",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            )
-                            Text(
-                                text = penjualanQRIS,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
-                        modifier = Modifier.padding(vertical = 6.dp),
-                    )
-
-                    // Baris 2: Mutasi — Pemasukan & Pengeluaran
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Pemasukan",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            )
-                            Text(
-                                text = totalPemasukan,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
-                        // Pemisah vertikal
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(32.dp)
-                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Pengeluaran",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            )
-                            Text(
-                                text = totalPengeluaran,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f), modifier = Modifier.padding(vertical = 4.dp))
+                        InfoBarisKas("- Pengeluaran", totalPengeluaran, MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
+
+            // Profit Belum Disetor
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.15f),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Text(
+                        text = "Profit Belum Disetor",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    InfoBarisKas("Total Profit", totalProfitTerakumulasi, MaterialTheme.colorScheme.onPrimary)
+                    InfoBarisKas("Sudah Disetor", totalSetoran, MaterialTheme.colorScheme.onPrimary)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f), modifier = Modifier.padding(vertical = 4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Sisa", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimary)
+                        Text(sisaBelumDisetor, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), color = MaterialTheme.colorScheme.onPrimary)
+                    }
+                }
             }
 
             // Action buttons (hanya saat kas aktif)
             if (isAktif) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                Button(
+                    onClick = bukaDialogMutasi,
+                    modifier = Modifier.fillMaxWidth().height(38.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GreenAksen,
+                        contentColor = Color.White,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                 ) {
-                    Button(
-                        onClick = bukaDialogMutasi,
-                        modifier = Modifier.height(38.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = GreenAksen,
-                            contentColor = Color.White,
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Mutasi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                    }
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Pengeluaran", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -835,6 +796,25 @@ internal fun InfoItem(label: String, value: String) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+    }
+}
+
+@Composable
+internal fun InfoBarisKas(label: String, value: String, tintColor: Color = MaterialTheme.colorScheme.onPrimary) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = tintColor.copy(alpha = 0.8f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = tintColor,
+        )
     }
 }
 

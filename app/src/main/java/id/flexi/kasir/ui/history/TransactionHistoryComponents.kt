@@ -243,9 +243,24 @@ internal fun KartuRingkasanTransactionRiwayat(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
+                    if (ringkasan.nomorAntrian != null) {
+                        Text(
+                            text = "#${ringkasan.nomorAntrian}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Text(
                         text = ringkasan.labelWaktu,
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = ringkasan.orderTypeLabel,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -257,6 +272,15 @@ internal fun KartuRingkasanTransactionRiwayat(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (!ringkasan.catatan.isNullOrBlank()) {
+                    Text(
+                        text = ringkasan.catatan,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

@@ -1,6 +1,7 @@
 package id.flexi.kasir.ui.transaction
 
 import androidx.compose.runtime.Immutable
+import id.flexi.kasir.domain.model.PaymentMethod
 
 /**
  * Representasi status data untuk layar detail Transaction.
@@ -14,6 +15,12 @@ data class TransactionDetailUiState(
     val statusMuat: StatusMuatDetailTransaction = StatusMuatDetailTransaction.Memuat,
     val apakahDialogBatalkanTerbuka: Boolean = false,
     val alasanPembatalan: String = "",
+    // ── Edit dialog state ──
+    val apakahDialogEditTerbuka: Boolean = false,
+    val editPaymentMethod: PaymentMethod = PaymentMethod.Cash,
+    val editUangDibayar: String = "",
+    val editCatatan: String = "",
+    val sedangMenyimpanEdit: Boolean = false,
 )
 
 /**
@@ -66,6 +73,9 @@ sealed interface StatusMuatDetailTransaction {
         val catatan: String?,
         val dibatalkan: Boolean = false,
         val alasanPembatalan: String? = null,
+        // Raw data for editing
+        val paymentMethod: PaymentMethod = PaymentMethod.Cash,
+        val uangDibayar: Long = 0L,
     ) : StatusMuatDetailTransaction
 
     /**

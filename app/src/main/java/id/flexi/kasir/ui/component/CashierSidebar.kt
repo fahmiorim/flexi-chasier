@@ -174,17 +174,31 @@ fun SidebarKasir(
             ) {
                 val bolehKelola = peran == PeranAkun.Pemilik
 
-                val itemsMenu = buildList {
+                // ── Urutan menu sesuai permintaan ──
+                // 1. Dashboard
+                // 2. Transaksi
+                // 3. Riwayat Transaksi
+                // 4. Rekap Kas
+                // 5. Kelola Produk
+                // 6. Pengaturan Meja
+                // 7. Laporan
+                // 8. Pengaturan
+                val itemsMenuUtama = buildList {
                     add(Triple(Icons.Default.Dashboard, "Dashboard", CashierNavigationDestination.Dashboard))
                     add(Triple(Icons.Default.ShoppingCart, "Transaksi", CashierNavigationDestination.KasirUtama))
+                    add(Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction))
+                    if (bolehKelola && apakahManajemenKasAktif) {
+                        add(Triple(Icons.Default.AccountBalance, "Rekap Kas", CashierNavigationDestination.Kasir))
+                    }
                     if (bolehKelola) {
                         add(Triple(Icons.Default.Inventory2, "Kelola Produk", CashierNavigationDestination.KelolaProduk))
                         add(Triple(Icons.Default.TableRestaurant, "Pengaturan Meja", CashierNavigationDestination.PengaturanMeja))
+                        add(Triple(Icons.Default.Assessment, "Laporan", CashierNavigationDestination.Laporan))
+                        add(Triple(Icons.Default.Settings, "Pengaturan", CashierNavigationDestination.Pengaturan))
                     }
-                    add(Triple(Icons.Default.History, "Riwayat Transaksi", CashierNavigationDestination.RiwayatTransaction))
                 }
 
-                itemsMenu.forEach { (icon, label, tujuan) ->
+                itemsMenuUtama.forEach { (icon, label, tujuan) ->
                     val apakahDipilih = when (tujuan) {
                         CashierNavigationDestination.KelolaProduk -> currentRoute == CashierNavigationDestination.KelolaProduk || currentRoute == CashierNavigationDestination.DaftarProduk
                         else -> currentRoute == tujuan
@@ -218,100 +232,6 @@ fun SidebarKasir(
                             unselectedContainerColor = Color.Transparent,
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                    )
-                }
-
-                if (bolehKelola && apakahManajemenKasAktif) {
-                    val rekapKasDipilih = currentRoute == CashierNavigationDestination.Kasir
-                    NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.AccountBalance,
-                                contentDescription = "Rekap Kas",
-                                tint = if (rekapKasDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = "Rekap Kas",
-                                fontWeight = if (rekapKasDipilih) FontWeight.Bold else FontWeight.Medium,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        },
-                        selected = rekapKasDipilih,
-                        onClick = { onPilihMenu(CashierNavigationDestination.Kasir) },
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 2.dp)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            unselectedContainerColor = Color.Transparent
-                        ),
-                    )
-                }
-
-                if (bolehKelola) {
-                    val laporanDipilih = currentRoute == CashierNavigationDestination.Laporan
-                    NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Assessment,
-                                contentDescription = "Laporan",
-                                tint = if (laporanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = "Laporan",
-                                fontWeight = if (laporanDipilih) FontWeight.Bold else FontWeight.Medium,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        },
-                        selected = laporanDipilih,
-                        onClick = { onPilihMenu(CashierNavigationDestination.Laporan) },
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 2.dp)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            unselectedContainerColor = Color.Transparent
-                        ),
-                    )
-
-                    val pengaturanDipilih = currentRoute == CashierNavigationDestination.Pengaturan
-                    NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Pengaturan",
-                                tint = if (pengaturanDipilih) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = "Pengaturan",
-                                fontWeight = if (pengaturanDipilih) FontWeight.Bold else FontWeight.Medium,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        },
-                        selected = pengaturanDipilih,
-                        onClick = { onPilihMenu(CashierNavigationDestination.Pengaturan) },
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 2.dp)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            unselectedContainerColor = Color.Transparent
                         ),
                     )
                 }

@@ -563,6 +563,7 @@ class ThermalPrinterManager(
                     outputStream.flush()
                     Thread.sleep(100)
                     tulisStruk(outputStream, Transaction, pengaturanStruk)
+                    try { socket.close() } catch (_: Exception) {}
                     return@withContext PrintResult.Berhasil
                 } catch (e: Exception) {
                     lastError = "$namaMetode(#$percobaan): ${e.message}"
@@ -942,10 +943,11 @@ class ThermalPrinterManager(
         output.write(EscPos.ALIGN_CENTER)
 
         // Logo (jika aktif & ada URI yang merupakan file lokal)
-        if (settings.tampilkanLogoDiStruk && settings.logoUri.isNotBlank()
-            && (settings.logoUri.startsWith("/") && java.io.File(settings.logoUri).exists()
-                || settings.logoUri.startsWith("content://")
-                || settings.logoUri.startsWith("file://"))) {
+        val shouldShowLogo = settings.tampilkanLogoDiStruk && settings.logoUri.isNotBlank()
+        val isLocalFile = settings.logoUri.startsWith("/") && java.io.File(settings.logoUri).exists()
+        val isContentUri = settings.logoUri.startsWith("content://")
+        val isFileUri = settings.logoUri.startsWith("file://")
+        if (shouldShowLogo && (isLocalFile || isContentUri || isFileUri)) {
             val lebarDots = lebar * 8
             val logoRaster = muatLogoDanUbahKeRaster(settings.logoUri, lebarDots)
             if (logoRaster != null) {
@@ -959,17 +961,16 @@ class ThermalPrinterManager(
         output.write(EscPos.FONT_SIZE_BIG)
         output.write(namaHeader.toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
+        output.write(EscPos.FONT_SIZE_NORMAL)
 
         // Tagline (jika ada)
         if (settings.tagline.isNotBlank()) {
-            output.write(EscPos.FONT_SIZE_NORMAL)
             output.write(settings.tagline.take(lebar).toByteArray(CHARSET_CETAK))
             output.write(EscPos.LF)
         }
 
         // Header custom
         if (settings.strukHeader.isNotBlank()) {
-            output.write(EscPos.FONT_SIZE_NORMAL)
             settings.strukHeader.lines().forEach { baris ->
                 output.write(baris.take(lebar).toByteArray(CHARSET_CETAK))
                 output.write(EscPos.LF)
@@ -985,7 +986,7 @@ class ThermalPrinterManager(
         output.write(EscPos.LF)
         output.write(waktuCetak.toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
-        output.write(Transaction.orderType.name.toByteArray(CHARSET_CETAK))
+        output.write(Transaction.orderType.label.toByteArray(CHARSET_CETAK))
         output.write(EscPos.LF)
         Transaction.nomorAntrian?.let {
             output.write(EscPos.BOLD_ON)
@@ -1071,7 +1072,7 @@ class ThermalPrinterManager(
             output.write("Catatan:".toByteArray(CHARSET_CETAK))
             output.write(EscPos.BOLD_OFF)
             output.write(EscPos.LF)
-            output.write(Transaction.catatan.toByteArray(CHARSET_CETAK))
+            output.write(Transaction.catatan.take(lebar).toByteArray(CHARSET_CETAK))
             output.write(EscPos.LF)
         }
 
@@ -1108,9 +1109,10 @@ class ThermalPrinterManager(
      */
     private fun tulisDuaKolom(kiri: String, kanan: String, lebar: Int = 32): ByteArray {
         val maxPanjang = lebar
-        val bersihKiri = kiri.take(maxPanjang - kanan.length - 2)
-        val padding = " ".repeat(maxOf(0, maxPanjang - bersihKiri.length - kanan.length))
-        return "$bersihKiri$padding$kanan".toByteArray(CHARSET_CETAK)
+        val kananSafe = kanan.take(maxPanjang - 2)
+        val bersihKiri = kiri.take(maxPanjang - kananSafe.length - 2)
+        val padding = " ".repeat(maxOf(0, maxPanjang - bersihKiri.length - kananSafe.length))
+        return "$bersihKiri$padding$kananSafe".toByteArray(CHARSET_CETAK)
     }
 
     private fun garis(lebar: Int = 32): String = "=".repeat(lebar)
@@ -1146,18 +1148,7 @@ class ThermalPrinterManager(
             val scaled = Bitmap.createScaledBitmap(bitmap, lebarDots, tinggiBaru, true)
             if (scaled != bitmap) bitmap.recycle()
 
-            // Convert ke monochrome
-            val monokrom = Bitmap.createBitmap(lebarDots, tinggiBaru, Bitmap.Config.ALPHA_8)
-            val canvas = android.graphics.Canvas(monokrom)
-            canvas.drawColor(android.graphics.Color.WHITE)
-            val paint = android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK
-                isAntiAlias = false
-            }
-            canvas.drawBitmap(scaled, 0f, 0f, paint)
-            if (scaled != monokrom) scaled.recycle()
-
-            // Encode ke ESC/POS GS v 0
+            // Encode ke ESC/POS GS v 0 — langsung dari scaled bitmap (ARGB_8888)
             val bytesPerLine = (lebarDots + 7) / 8
             val data = ByteArrayOutputStream()
             data.write(0x1D) // GS
@@ -1174,8 +1165,12 @@ class ThermalPrinterManager(
                     for (bit in 0 until 8) {
                         val x = xByte * 8 + bit
                         if (x < lebarDots) {
-                            val pixel = monokrom.getPixel(x, y)
-                            if (android.graphics.Color.red(pixel) < 128) {
+                            val pixel = scaled.getPixel(x, y)
+                            val r = android.graphics.Color.red(pixel)
+                            val g = android.graphics.Color.green(pixel)
+                            val b = android.graphics.Color.blue(pixel)
+                            val brightness = (r * 0.299 + g * 0.587 + b * 0.114).toInt()
+                            if (brightness < 128) {
                                 byte = byte or (0x80 shr bit)
                             }
                         }
@@ -1183,7 +1178,7 @@ class ThermalPrinterManager(
                     data.write(byte)
                 }
             }
-            monokrom.recycle()
+            scaled.recycle()
             return data.toByteArray()
         } catch (_: Exception) {
             return null

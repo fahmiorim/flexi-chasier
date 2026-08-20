@@ -488,6 +488,7 @@ class PengujianCashierMainViewModel {
         override suspend fun perbaruiStatusDanWaktuTransaction(identitasTransaction: String, status: TransactionStatus, waktuDiprosesEpochMili: Long?, waktuSelesaiEpochMili: Long?, waktuDibayarEpochMili: Long?) = throw NotImplementedError()
         override suspend fun perbaruiWaktuSelesai(identitasTransaction: String, waktuSelesaiEpochMili: Long) = throw NotImplementedError()
         override suspend fun perbaruiWaktuDibayar(identitasTransaction: String, waktuDibayarEpochMili: Long) = throw NotImplementedError()
+        override suspend fun perbaruiPaymentMethodTransaction(identitasTransaction: String, paymentMethod: PaymentMethod, uangDibayar: Long, catatan: String?) {}
         override suspend fun tandaiItemSelesai(identitasTransaction: String) = throw NotImplementedError()
 
         override suspend fun pastikanDataAwalTersedia() {}

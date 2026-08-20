@@ -29,10 +29,8 @@ class CashierApp : Application() {
         // Inisialisasi kontainer dependensi saat aplikasi pertama kali dibuat
         kontainer = CashierDependencyContainer(this)
 
-        // Sinkronisasi berkala di latar belakang (outbox push + pull perubahan).
-        SinkronisasiPenjadwal.jadwalkanBerkala(this)
-
-        // Auto-sync saat jaringan tersedia (tanpa tombol).
+        // Sinkronisasi hanya berbasis real-time Socket.IO + network callback.
+        // PeriodicWorkRequest (polling 15 menit) dihapus — semua via push realtime.
         SinkronisasiPenjadwal.pasangPemantauJaringan(this)
 
         // Minta sinkronisasi segera + hubungkan real-time setiap kali gerai aktif tersedia:

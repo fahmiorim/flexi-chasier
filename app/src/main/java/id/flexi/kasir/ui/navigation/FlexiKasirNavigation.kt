@@ -326,6 +326,12 @@ private fun KasirAppUtama(
                     batalkan = TransactionDetailViewModel::batalkan,
                     alasanPembatalan = TransactionDetailUiState.value.alasanPembatalan,
                     saatCetakUlang = TransactionDetailViewModel::cetakUlangStruk,
+                    bukaDialogEdit = TransactionDetailViewModel::bukaDialogEdit,
+                    tutupDialogEdit = TransactionDetailViewModel::tutupDialogEdit,
+                    perbaruiEditPaymentMethod = TransactionDetailViewModel::perbaruiEditPaymentMethod,
+                    perbaruiEditUangDibayar = TransactionDetailViewModel::perbaruiEditUangDibayar,
+                    perbaruiEditCatatan = TransactionDetailViewModel::perbaruiEditCatatan,
+                    simpanEdit = TransactionDetailViewModel::simpanEdit,
                 )
             }
 

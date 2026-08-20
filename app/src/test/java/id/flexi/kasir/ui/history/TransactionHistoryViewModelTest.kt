@@ -188,6 +188,7 @@ class PengujianTransactionHistoryViewModel {
         ) {}
         override suspend fun perbaruiWaktuSelesai(identitasTransaction: String, waktuSelesaiEpochMili: Long) {}
         override suspend fun perbaruiWaktuDibayar(identitasTransaction: String, waktuDibayarEpochMili: Long) {}
+        override suspend fun perbaruiPaymentMethodTransaction(identitasTransaction: String, paymentMethod: id.flexi.kasir.domain.model.PaymentMethod, uangDibayar: Long, catatan: String?) {}
         override suspend fun tandaiItemSelesai(identitasTransaction: String) {}
         override suspend fun ambilNomorAntrianBerikutnya(): Int = 1
         override suspend fun pastikanDataAwalTersedia() {}

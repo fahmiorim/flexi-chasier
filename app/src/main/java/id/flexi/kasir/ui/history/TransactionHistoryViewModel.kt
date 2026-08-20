@@ -53,7 +53,7 @@ class TransactionHistoryViewModel(
     private val GetTableList: GetTableList,
 ) : ViewModel() {
 
-    private val _filterTanggal = MutableStateFlow(FilterTanggalRiwayat.Semua)
+    private val _filterTanggal = MutableStateFlow(FilterTanggalRiwayat.HariIni)
     private val _tanggalMulaiKustom = MutableStateFlow<Long?>(null)
     private val _tanggalSelesaiKustom = MutableStateFlow<Long?>(null)
 
@@ -663,6 +663,9 @@ internal fun Transaction.keRingkasanTransactionRiwayat(
         paymentMethod = paymentMethod,
         status = status,
         dibatalkan = dibatalkan,
+        catatan = catatan,
+        nomorAntrian = nomorAntrian,
+        orderTypeLabel = orderType.label,
     )
 }
 

@@ -2,8 +2,8 @@ package id.flexi.kasir.ui.transaction
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import androidx.lifecycle.viewModelScope
 import id.flexi.kasir.ui.format.hitungJumlahItemTransaction
 import id.flexi.kasir.ui.format.hitungKembalianTransaction
 import id.flexi.kasir.ui.format.hitungSubtotalTransaction
@@ -17,8 +17,11 @@ import id.flexi.kasir.domain.usecase.ObserveTransactionById
 import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.domain.model.Meja
 import id.flexi.kasir.domain.model.KitchenStatus
+import id.flexi.kasir.domain.model.PaymentMethod
 import id.flexi.kasir.domain.model.Transaction
 import id.flexi.kasir.domain.model.ReceiptPrintFormat
+import id.flexi.kasir.domain.model.Uang
+import id.flexi.kasir.domain.repository.TransactionRepository
 import id.flexi.kasir.print.PrintResult
 import id.flexi.kasir.print.ThermalPrinterManager
 import id.flexi.kasir.domain.usecase.AmbilStoreSetting
@@ -29,8 +32,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,6 +47,7 @@ class TransactionDetailViewModel(
     private val batalkanTransaction: BatalkanTransaction,
     private val ThermalPrinterManager: ThermalPrinterManager,
     private val ambilStoreSetting: AmbilStoreSetting,
+    private val transactionRepository: TransactionRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -57,33 +61,72 @@ class TransactionDetailViewModel(
     private val _efekCetak = MutableStateFlow<String?>(null)
     val efekCetak: StateFlow<String?> = _efekCetak
 
+    // ── Edit dialog state ──
+    private val _apakahDialogEditTerbuka = MutableStateFlow(false)
+    private val _editPaymentMethod = MutableStateFlow(PaymentMethod.Cash)
+    private val _editUangDibayar = MutableStateFlow("")
+    private val _editCatatan = MutableStateFlow("")
+    private val _sedangMenyimpanEdit = MutableStateFlow(false)
+
     private val daftarMeja: StateFlow<List<Meja>> = GetTableList()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _baseState = _nomorPermintaanMuatUlang.flatMapLatest {
+        combine(
+            ObserveTransactionById(identitasTransaction),
+            daftarMeja,
+        ) { Transaction, tables ->
+            Transaction.keTransactionDetailUiState(identitasTransaction, tables)
+        }.catch {
+            emit(
+                TransactionDetailUiState(
+                    judulLayar = "Detail Transaksi",
+                    statusMuat = StatusMuatDetailTransaction.Gagal(
+                        judul = "Gagal memuat detail transaksi",
+                        deskripsi = "Terjadi gangguan saat membaca transaksi. Silakan coba lagi.",
+                    ),
+                ),
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = TransactionDetailUiState(
+            judulLayar = "Detail Transaksi",
+            statusMuat = StatusMuatDetailTransaction.Memuat,
+        ),
+    )
+
     val modelTampilan: StateFlow<TransactionDetailUiState> =
         combine(
-            _nomorPermintaanMuatUlang.flatMapLatest {
-                combine(
-                    ObserveTransactionById(identitasTransaction),
-                    daftarMeja,
-                ) { Transaction, tables ->
-                    Transaction.keTransactionDetailUiState(identitasTransaction, tables)
-                }.catch {
-                    emit(
-                        TransactionDetailUiState(
-                            judulLayar = "Detail Transaksi",
-                            statusMuat = StatusMuatDetailTransaction.Gagal(
-                                judul = "Gagal memuat detail transaksi",
-                                deskripsi = "Terjadi gangguan saat membaca transaksi. Silakan coba lagi.",
-                            ),
-                        ),
-                    )
-                }
-            },
+            _baseState,
             _apakahDialogBatalkanTerbuka,
             _alasanPembatalan,
         ) { state, dialogTerbuka, alasan ->
-            state.copy(apakahDialogBatalkanTerbuka = dialogTerbuka, alasanPembatalan = alasan)
+            state.copy(
+                apakahDialogBatalkanTerbuka = dialogTerbuka,
+                alasanPembatalan = alasan,
+            )
+        }.combine(
+            _apakahDialogEditTerbuka,
+        ) { state, dialogEdit ->
+            state.copy(apakahDialogEditTerbuka = dialogEdit)
+        }.combine(
+            _editPaymentMethod,
+        ) { state, editMetode ->
+            state.copy(editPaymentMethod = editMetode)
+        }.combine(
+            _editUangDibayar,
+        ) { state, editUang ->
+            state.copy(editUangDibayar = editUang)
+        }.combine(
+            _editCatatan,
+        ) { state, editCatatan ->
+            state.copy(editCatatan = editCatatan)
+        }.combine(
+            _sedangMenyimpanEdit,
+        ) { state, sedangSimpan ->
+            state.copy(sedangMenyimpanEdit = sedangSimpan)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -119,6 +162,56 @@ class TransactionDetailViewModel(
                 batalkanTransaction(identitasTransaction, alasan.ifBlank { null })
                 _apakahDialogBatalkanTerbuka.value = false
             } catch (_: Exception) { }
+        }
+    }
+
+    // ── Edit transaction functions ──
+
+    fun bukaDialogEdit() {
+        val currentState = modelTampilan.value
+        val data = currentState.statusMuat as? StatusMuatDetailTransaction.Berhasil ?: return
+        _apakahDialogEditTerbuka.value = true
+        _editPaymentMethod.value = data.paymentMethod
+        _editUangDibayar.value = if (data.uangDibayar > 0) data.uangDibayar.toString() else ""
+        _editCatatan.value = data.catatan.orEmpty()
+    }
+
+    fun tutupDialogEdit() {
+        _apakahDialogEditTerbuka.value = false
+    }
+
+    fun perbaruiEditPaymentMethod(method: PaymentMethod) {
+        _editPaymentMethod.value = method
+    }
+
+    fun perbaruiEditUangDibayar(nominal: String) {
+        _editUangDibayar.value = nominal.filter { it.isDigit() }
+    }
+
+    fun perbaruiEditCatatan(catatan: String) {
+        _editCatatan.value = catatan
+    }
+
+    fun simpanEdit() {
+        val uangDibayar = _editUangDibayar.value.toLongOrNull() ?: 0L
+        val catatan = _editCatatan.value.ifBlank { null }
+        val paymentMethod = _editPaymentMethod.value
+
+        _sedangMenyimpanEdit.value = true
+        viewModelScope.launch {
+            try {
+                transactionRepository.perbaruiPaymentMethodTransaction(
+                    identitasTransaction = identitasTransaction,
+                    paymentMethod = paymentMethod,
+                    uangDibayar = uangDibayar,
+                    catatan = catatan,
+                )
+                _apakahDialogEditTerbuka.value = false
+                _sedangMenyimpanEdit.value = false
+                muatUlang()
+            } catch (_: Exception) {
+                _sedangMenyimpanEdit.value = false
+            }
         }
     }
 
@@ -211,6 +304,8 @@ private fun Transaction?.keTransactionDetailUiState(
             catatan = catatan,
             dibatalkan = dibatalkan,
             alasanPembatalan = alasanPembatalan,
+            paymentMethod = paymentMethod,
+            uangDibayar = uangDibayar.nilaiRupiah,
         ),
     )
 }

@@ -67,6 +67,9 @@ data class RingkasanTransactionRiwayat(
     val paymentMethod: PaymentMethod = PaymentMethod.Cash,
     val status: TransactionStatus = TransactionStatus.Paid,
     val dibatalkan: Boolean = false,
+    val catatan: String? = null,
+    val nomorAntrian: Int? = null,
+    val orderTypeLabel: String = "Dine In",
 )
 
 enum class FilterTanggalRiwayat {

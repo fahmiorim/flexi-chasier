@@ -179,6 +179,20 @@ interface LocalTransactionDao {
 
     @Query(
         """
+        UPDATE Transaction_lokal
+        SET PaymentMethod = :paymentMethod, uangDibayar = :uangDibayar, catatan = :catatan
+        WHERE id = :id
+        """
+    )
+    suspend fun perbaruiPaymentMethodTransaction(
+        id: String,
+        paymentMethod: String,
+        uangDibayar: Long,
+        catatan: String?,
+    )
+
+    @Query(
+        """
         SELECT COALESCE(MAX(nomorAntrian), 0) FROM Transaction_lokal
         WHERE waktuTransactionEpochMili >= :awalHariEpochMili
         AND waktuTransactionEpochMili < :akhirHariEpochMili

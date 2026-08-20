@@ -18,11 +18,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -33,8 +36,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import id.flexi.kasir.domain.model.PaymentMethod
+import id.flexi.kasir.domain.util.sebagaiRupiah
 import id.flexi.kasir.ui.component.FlexiCard
 import id.flexi.kasir.ui.component.FlexiDialog
 import id.flexi.kasir.ui.component.FlexiDialogActions
@@ -54,8 +60,16 @@ fun TransactionDetailScreen(
     batalkan: () -> Unit = {},
     alasanPembatalan: String = "",
     saatCetakUlang: () -> Unit = {},
+    // Edit dialog callbacks
+    bukaDialogEdit: () -> Unit = {},
+    tutupDialogEdit: () -> Unit = {},
+    perbaruiEditPaymentMethod: (PaymentMethod) -> Unit = {},
+    perbaruiEditUangDibayar: (String) -> Unit = {},
+    perbaruiEditCatatan: (String) -> Unit = {},
+    simpanEdit: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // ── Dialog Batalkan ──
     if (modelTampilan.apakahDialogBatalkanTerbuka) {
         FlexiDialog(
             onDismissRequest = tutupDialogBatalkan,
@@ -94,6 +108,83 @@ fun TransactionDetailScreen(
             }
         }
     }
+
+    // ── Dialog Edit Transaksi ──
+    if (modelTampilan.apakahDialogEditTerbuka) {
+        FlexiDialog(
+            onDismissRequest = tutupDialogEdit,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                FlexiDialogHeader(
+                    icon = Icons.Default.Edit,
+                    title = "Edit Transaksi",
+                    subtitle = "Ubah metode pembayaran atau catatan",
+                    onClose = tutupDialogEdit,
+                )
+
+                // ── Pilihan metode bayar ──
+                Text(
+                    text = "Metode Pembayaran",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = modelTampilan.editPaymentMethod == PaymentMethod.Cash,
+                        onClick = { perbaruiEditPaymentMethod(PaymentMethod.Cash) },
+                        label = { Text("Tunai") },
+                    )
+                    FilterChip(
+                        selected = modelTampilan.editPaymentMethod == PaymentMethod.Qris,
+                        onClick = { perbaruiEditPaymentMethod(PaymentMethod.Qris) },
+                        label = { Text("QRIS") },
+                    )
+                }
+
+                // ── Uang dibayar (hanya untuk Tunai) ──
+                if (modelTampilan.editPaymentMethod == PaymentMethod.Cash) {
+                    OutlinedTextField(
+                        value = modelTampilan.editUangDibayar,
+                        onValueChange = perbaruiEditUangDibayar,
+                        label = { Text("Uang Dibayar") },
+                        placeholder = { Text("Contoh: 50000") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        prefix = { Text("Rp ") },
+                    )
+                }
+
+                // ── Catatan ──
+                OutlinedTextField(
+                    value = modelTampilan.editCatatan,
+                    onValueChange = perbaruiEditCatatan,
+                    label = { Text("Catatan (opsional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                )
+
+                FlexiDialogActions(
+                    onBatal = tutupDialogEdit,
+                    labelBatal = "Batal",
+                    onKonfirmasi = simpanEdit,
+                    labelKonfirmasi = "Simpan",
+                    enabled = !modelTampilan.sedangMenyimpanEdit,
+                )
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -107,13 +198,14 @@ fun TransactionDetailScreen(
             }
 
             is StatusMuatDetailTransaction.Berhasil -> {
-    KontenDetailTransactionBerhasil(
-        paddingDalam = paddingDalam,
-        saatKembali = saatKembali,
-        statusMuat = statusMuat,
-        bukaDialogBatalkan = bukaDialogBatalkan,
-        saatCetakUlang = saatCetakUlang,
-    )
+                KontenDetailTransactionBerhasil(
+                    paddingDalam = paddingDalam,
+                    saatKembali = saatKembali,
+                    statusMuat = statusMuat,
+                    bukaDialogBatalkan = bukaDialogBatalkan,
+                    bukaDialogEdit = bukaDialogEdit,
+                    saatCetakUlang = saatCetakUlang,
+                )
             }
 
             is StatusMuatDetailTransaction.Kosong -> {
@@ -138,13 +230,6 @@ fun TransactionDetailScreen(
     }
 }
 
-/**
- * Konten yang ditampilkan saat detail Transaction sedang dimuat.
- *
- * @param paddingDalam Padding dari Scaffold.
- * @param saatKembali Callback saat tombol kembali diketuk.
- * @param modifier Modifikasi tata letak.
- */
 @Composable
 private fun KontenMemuatDetailTransaction(
     paddingDalam: PaddingValues,
@@ -175,20 +260,13 @@ private fun KontenMemuatDetailTransaction(
     }
 }
 
-/**
- * Konten yang ditampilkan saat detail Transaction berhasil dimuat.
- *
- * @param paddingDalam Padding dari Scaffold.
- * @param saatKembali Callback saat tombol kembali diketuk.
- * @param statusMuat Data detail Transaction yang berhasil dimuat.
- * @param modifier Modifikasi tata letak.
- */
 @Composable
 private fun KontenDetailTransactionBerhasil(
     paddingDalam: PaddingValues,
     saatKembali: () -> Unit,
     statusMuat: StatusMuatDetailTransaction.Berhasil,
     bukaDialogBatalkan: () -> Unit = {},
+    bukaDialogEdit: () -> Unit = {},
     saatCetakUlang: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -346,6 +424,18 @@ private fun KontenDetailTransactionBerhasil(
                     }
                 }
                 item {
+                    Button(
+                        onClick = bukaDialogEdit,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                        ),
+                    ) {
+                        Text("Edit Transaksi", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondary)
+                    }
+                }
+                item {
                     Spacer(modifier = Modifier.height(4.dp))
                     Button(
                         onClick = bukaDialogBatalkan,
@@ -363,12 +453,6 @@ private fun KontenDetailTransactionBerhasil(
     }
 }
 
-/**
- * Komponen kartu yang merangkum rincian finansial Transaction (total, pajak, kembalian, dll).
- *
- * @param statusMuat Data Transaction yang berhasil dimuat.
- * @param modifier Modifikasi tata letak.
- */
 @Composable
 private fun KartuRingkasanFinansialTransaction(
     statusMuat: StatusMuatDetailTransaction.Berhasil,
@@ -423,14 +507,6 @@ private fun KartuRingkasanFinansialTransaction(
     }
 }
 
-/**
- * Baris sederhana untuk menampilkan satu entri informasi finansial (misal: Pajak: Rp1.000).
- *
- * @param label Teks label di sisi kiri.
- * @param nilai Teks nilai di sisi kanan.
- * @param modifier Modifikasi tata letak.
- * @param tonjolkan Apakah teks harus ditampilkan lebih tebal/menonjol.
- */
 @Composable
 private fun BarisRingkasanTransaction(
     label: String,
@@ -458,15 +534,6 @@ private fun BarisRingkasanTransaction(
     }
 }
 
-/**
- * Konten yang ditampilkan saat detail Transaction tidak ditemukan atau kosong.
- *
- * @param paddingDalam Padding dari Scaffold.
- * @param saatKembali Callback saat tombol kembali diketuk.
- * @param judul Pesan judul kosong.
- * @param deskripsi Pesan deskripsi kosong.
- * @param modifier Modifikasi tata letak.
- */
 @Composable
 private fun KontenTransactionKosong(
     paddingDalam: PaddingValues,
@@ -493,16 +560,6 @@ private fun KontenTransactionKosong(
     }
 }
 
-/**
- * Konten yang ditampilkan saat terjadi kegagalan dalam memuat detail Transaction.
- *
- * @param paddingDalam Padding dari Scaffold.
- * @param saatKembali Callback saat tombol kembali diketuk.
- * @param judul Pesan judul kegagalan.
- * @param deskripsi Pesan rincian kegagalan.
- * @param saatCobaMuatUlang Callback untuk mencoba memuat data kembali.
- * @param modifier Modifikasi tata letak.
- */
 @Composable
 private fun KontenTransactionGagal(
     paddingDalam: PaddingValues,
