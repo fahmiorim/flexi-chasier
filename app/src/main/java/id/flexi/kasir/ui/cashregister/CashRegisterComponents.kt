@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.flexi.kasir.domain.model.CashMutationType
 import id.flexi.kasir.domain.model.CashKas
+import id.flexi.kasir.domain.model.CashKasRingkasan
 import id.flexi.kasir.domain.model.MutasiRekening
 import id.flexi.kasir.domain.model.MutasiRekeningTipe
 import id.flexi.kasir.domain.model.Setoran
@@ -173,6 +174,11 @@ internal fun RekapKasContent(
         is CashRegisterUiState.KasAktif -> state.daftarSetoran
         is CashRegisterUiState.BelumBuka -> state.daftarSetoran
         else -> emptyList()
+    }
+    val ringkasanShift = when (state) {
+        is CashRegisterUiState.KasAktif -> state.ringkasanShift
+        is CashRegisterUiState.BelumBuka -> state.ringkasanShift
+        else -> emptyMap()
     }
 
     val riwayatGroup = remember(daftarKasTertutup, daftarSetoran, shiftAktif) {
@@ -350,8 +356,10 @@ internal fun RekapKasContent(
                             is CashKas -> {
                                 val shift = item
                                 item(key = "shift_${shift.id}") {
+                                    val ringkasan = ringkasanShift[shift.id]
+                                        ?: CashKasRingkasan(kas = shift)
                                     KasCard(
-                                        shift = shift,
+                                        ringkasan = ringkasan,
                                         formatTanggal = formatTanggal,
                                         onClick = { pilihKas(shift) },
                                     )
@@ -601,10 +609,11 @@ internal fun BelumBukaBanner(bukaDialogBuka: () -> Unit) {
 
 @Composable
 internal fun KasCard(
-    shift: CashKas,
+    ringkasan: CashKasRingkasan,
     formatTanggal: SimpleDateFormat,
     onClick: () -> Unit,
 ) {
+    val shift = ringkasan.kas
     val isSelesai = shift.saldoAkhir != null
     val cardColor = if (isSelesai) GreenAksen else BlueAksen
     val durasi = remember(shift) {
@@ -617,56 +626,136 @@ internal fun KasCard(
     }
 
     FlexiCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Icon
-            Box(
-                modifier = Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
-                    .background(cardColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    if (isSelesai) Icons.AutoMirrored.Filled.List else Icons.Default.Add,
-                    contentDescription = null, modifier = Modifier.size(18.dp),
-                    tint = cardColor,
+                // Icon
+                Box(
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
+                        .background(cardColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        if (isSelesai) Icons.AutoMirrored.Filled.List else Icons.Default.Add,
+                        contentDescription = null, modifier = Modifier.size(18.dp),
+                        tint = cardColor,
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Info column
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Kas ${formatTanggal.format(Date(shift.waktuBuka))}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Saldo: ${shift.saldoAwal.nilaiRupiah.sebagaiRupiah()}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                        )
+                        Text(
+                            text = durasi,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = cardColor.copy(alpha = 0.8f),
+                        )
+                    }
+                }
+
+                // Badge
+                FlexiBadge(
+                    text = if (isSelesai) "Selesai" else "Aktif",
+                    color = cardColor,
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
 
-            // Info column
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Kas ${formatTanggal.format(Date(shift.waktuBuka))}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                )
+            // Ringkasan keuangan
+            if (ringkasan.penjualanTunai > 0 || ringkasan.totalPengeluaran > 0 || ringkasan.totalSetoran > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (ringkasan.penjualanTunai + ringkasan.penjualanQRIS > 0) {
+                        InfoMini(label = "Jual", nominal = ringkasan.penjualanTunai + ringkasan.penjualanQRIS, warna = BlueAksen, modifier = Modifier.weight(1f))
+                    }
+                    if (ringkasan.totalPengeluaran > 0) {
+                        InfoMini(label = "Keluar", nominal = ringkasan.totalPengeluaran, warna = RedAksen, modifier = Modifier.weight(1f))
+                    }
+                    if (ringkasan.totalSetoran > 0) {
+                        InfoMini(label = "Setor", nominal = ringkasan.totalSetoran, warna = AmberAksen, modifier = Modifier.weight(1f))
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = "Saldo: ${shift.saldoAwal.nilaiRupiah.sebagaiRupiah()}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "•",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    )
-                    Text(
-                        text = durasi,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cardColor.copy(alpha = 0.8f),
-                    )
+                    if (ringkasan.jumlahTransaksi > 0) {
+                        Text(
+                            text = "${ringkasan.jumlahTransaksi} transaksi",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (isSelesai) {
+                        Text(text = "•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                        Text(
+                            text = "Saldo: ${shift.saldoAkhir?.nilaiRupiah?.sebagaiRupiah() ?: "Rp0"}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    if (ringkasan.selisih != null && ringkasan.selisih != 0L) {
+                        Text(text = "•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                        val warnaSelisih = if (ringkasan.selisih > 0) GreenAksen else RedAksen
+                        val prefix = if (ringkasan.selisih > 0) "+" else ""
+                        Text(
+                            text = "Selisih $prefix${ringkasan.selisih.sebagaiRupiah()}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = warnaSelisih,
+                        )
+                    }
                 }
             }
+        }
+    }
+}
 
-            // Badge
-            FlexiBadge(
-                text = if (isSelesai) "Selesai" else "Aktif",
-                color = cardColor,
+@Composable
+private fun InfoMini(label: String, nominal: Long, warna: Color, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = warna.copy(alpha = 0.08f),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                color = warna.copy(alpha = 0.8f),
+            )
+            Text(
+                text = nominal.sebagaiRupiah(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                color = warna,
             )
         }
     }
@@ -859,6 +948,7 @@ internal fun TutupBerhasilContent(
 @Composable
 internal fun DetailKasPage(
     shift: CashKas,
+    ringkasan: CashKasRingkasan? = null,
     saldoSaatIni: String? = null,
     penjualanTunai: String? = null,
     penjualanQRIS: String? = null,
@@ -1094,6 +1184,36 @@ internal fun DetailKasPage(
                             color = RedAksen,
                             modifier = Modifier.weight(1f),
                         )
+                    }
+                    // Jumlah transaksi + Selisih (hanya shift tutup)
+                    if (ringkasan != null && (ringkasan.jumlahTransaksi > 0 || ringkasan.selisih != null)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (ringkasan.jumlahTransaksi > 0) {
+                                DetailStatBox(
+                                    label = "Transaksi",
+                                    value = "${ringkasan.jumlahTransaksi}",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (ringkasan.selisih != null) {
+                                val warnaSelisih = when {
+                                    ringkasan.selisih == 0L -> GreenAksen
+                                    ringkasan.selisih > 0 -> AmberAksen
+                                    else -> RedAksen
+                                }
+                                val prefix = if (ringkasan.selisih > 0) "+" else ""
+                                DetailStatBox(
+                                    label = "Selisih",
+                                    value = "$prefix${ringkasan.selisih.sebagaiRupiah()}",
+                                    color = warnaSelisih,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
                     }
                 }
             }

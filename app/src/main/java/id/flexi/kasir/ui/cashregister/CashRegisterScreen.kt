@@ -127,6 +127,7 @@ fun CashRegisterScreen(
                     val isClosed = state.kasTerpilih.saldoAkhir != null
                     DetailKasPage(
                         shift = state.kasTerpilih,
+                        ringkasan = state.ringkasanShift[state.kasTerpilih.id],
                         saldoSaatIni = if (isClosed) state.kasTerpilihSaldoSaatIni ?: state.saldoSaatIni else state.saldoSaatIni,
                         penjualanTunai = if (isClosed) state.kasTerpilihPenjualanTunai ?: state.penjualanTunai else state.penjualanTunai,
                         penjualanQRIS = if (isClosed) state.kasTerpilihPenjualanQRIS ?: state.penjualanQRIS else state.penjualanQRIS,
@@ -207,6 +208,7 @@ fun CashRegisterScreen(
                 if (state.kasTerpilih != null) {
                     DetailKasPage(
                         shift = state.kasTerpilih,
+                        ringkasan = state.ringkasanShift[state.kasTerpilih.id],
                         saldoSaatIni = state.kasTerpilihSaldoSaatIni ?: state.penjualanTotalTerakhir,
                         penjualanTunai = state.kasTerpilihPenjualanTunai ?: state.penjualanTunaiTerakhir,
                         penjualanQRIS = state.kasTerpilihPenjualanQRIS ?: state.penjualanQRISTerakhir,

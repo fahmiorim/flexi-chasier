@@ -177,6 +177,9 @@ interface TransactionRepository {
     /** Total penjualan QRIS dalam rentang waktu (suspend, one-shot). */
     suspend fun hitungTotalQRISRentang(sejak: Long, sampai: Long): Long
 
+    /** Jumlah transaksi yang sudah dibayar dalam rentang waktu (suspend, one-shot). */
+    suspend fun hitungJumlahTransaksiRentang(sejak: Long, sampai: Long): Int
+
     /** Riwayat transaksi lunas sejak waktu tertentu (untuk dashboard/chart). */
     fun amatiTransactionSejak(sejak: Long): Flow<List<Transaction>>
 

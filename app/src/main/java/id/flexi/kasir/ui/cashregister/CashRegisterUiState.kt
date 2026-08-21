@@ -2,6 +2,7 @@ package id.flexi.kasir.ui.cashregister
 
 import id.flexi.kasir.domain.model.CashExpenseCategory
 import id.flexi.kasir.domain.model.CashKas
+import id.flexi.kasir.domain.model.CashKasRingkasan
 import id.flexi.kasir.domain.model.CashMutation
 import id.flexi.kasir.domain.model.CashMutationType
 import id.flexi.kasir.domain.model.Setoran
@@ -20,6 +21,8 @@ sealed interface CashRegisterUiState {
         val daftarSetoran: List<Setoran> = emptyList(),
         val totalSetoran: String = "Rp0",
         val kasTerpilih: CashKas? = null,
+        // Ringkasan keuangan per shift (termasuk tertutup)
+        val ringkasanShift: Map<String, CashKasRingkasan> = emptyMap(),
         // Financial data dari shift terakhir (disimpan saat transisi dari KasAktif)
         val penjualanTunaiTerakhir: String = "Rp0",
         val penjualanQRISTerakhir: String = "Rp0",
@@ -67,6 +70,8 @@ sealed interface CashRegisterUiState {
         val daftarSetoran: List<Setoran> = emptyList(),
         val totalSetoran: String = "Rp0",
         val kasTerpilih: CashKas? = null,
+        // Ringkasan keuangan per shift (termasuk tertutup)
+        val ringkasanShift: Map<String, CashKasRingkasan> = emptyMap(),
         // Financial data untuk shift tertutup yang dipilih dari riwayat
         val kasTerpilihPenjualanTunai: String? = null,
         val kasTerpilihPenjualanQRIS: String? = null,

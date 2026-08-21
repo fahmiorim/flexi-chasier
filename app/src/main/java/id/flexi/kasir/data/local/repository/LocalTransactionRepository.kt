@@ -621,6 +621,9 @@ class TransactionRepositoryLokal(
     override suspend fun hitungTotalQRISRentang(sejak: Long, sampai: Long): Long =
         aksesDataTransaction.hitungTotalQRISRentang(sejak, sampai)
 
+    override suspend fun hitungJumlahTransaksiRentang(sejak: Long, sampai: Long): Int =
+        aksesDataTransaction.hitungJumlahTransaksiRentang(sejak, sampai)
+
     override suspend fun ambilTransactionRentang(sejak: Long, sampai: Long): List<Transaction> =
         aksesDataTransaction.ambilTransactionRentang(sejak, sampai).map { it.keDomain() }
 

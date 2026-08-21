@@ -328,6 +328,19 @@ interface LocalTransactionDao {
     suspend fun hitungTotalQRISRentang(sejak: Long, sampai: Long): Long
 
     /**
+     * Jumlah transaksi yang sudah dibayar dalam rentang waktu tertentu.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM Transaction_lokal
+        WHERE status != 'Pending' AND dibatalkan = 0
+        AND COALESCE(waktuDibayarEpochMili, waktuTransactionEpochMili) >= :sejak
+        AND COALESCE(waktuDibayarEpochMili, waktuTransactionEpochMili) < :sampai
+        """
+    )
+    suspend fun hitungJumlahTransaksiRentang(sejak: Long, sampai: Long): Int
+
+    /**
      * Mengambil daftar transaksi dalam rentang waktu (one-shot).
      */
     @Transaction
